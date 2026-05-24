@@ -13,13 +13,13 @@ import (
 	"strings"
 	"testing"
 
+	"moonbridge/internal/config"
 	"moonbridge/internal/extension/codex"
 	deepseekv4 "moonbridge/internal/extension/deepseek_v4"
 	"moonbridge/internal/extension/plugin"
-	"moonbridge/internal/config"
+	"moonbridge/internal/format"
 	"moonbridge/internal/logger"
 	"moonbridge/internal/protocol/openai"
-	"moonbridge/internal/format"
 	"moonbridge/internal/service/provider"
 	"moonbridge/internal/service/server"
 	"moonbridge/internal/service/stats"
@@ -82,7 +82,6 @@ func (provider providerFunc) StreamMessage(ctx context.Context, req any) (<-chan
 	return provider.stream(ctx, req)
 }
 
-
 type roundTripFunc func(*http.Request) (*http.Response, error)
 
 func (fn roundTripFunc) RoundTrip(request *http.Request) (*http.Response, error) {
@@ -109,6 +108,31 @@ func registryWithCompletionCapture(t *testing.T, p *captureCompletionPlugin) *pl
 	registry := plugin.NewRegistry(nil)
 	registry.Register(p)
 	return registry
+}
+
+func TestServerServesConsoleWithoutReplacingOpenAIRoutes(t *testing.T) {
+	handler := server.New(server.Config{})
+
+	console := httptest.NewRecorder()
+	handler.ServeHTTP(console, httptest.NewRequest(http.MethodGet, "/console/providers/openai", nil))
+	if console.Code != http.StatusOK {
+		t.Fatalf("/console status = %d, body = %s", console.Code, console.Body.String())
+	}
+	if body := console.Body.String(); !strings.Contains(body, `<div id="root"></div>`) {
+		t.Fatalf("/console body does not contain placeholder index: %s", body)
+	}
+
+	models := httptest.NewRecorder()
+	handler.ServeHTTP(models, httptest.NewRequest(http.MethodPost, "/v1/models", nil))
+	if models.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("/v1/models POST status = %d, body = %s", models.Code, models.Body.String())
+	}
+
+	responses := httptest.NewRecorder()
+	handler.ServeHTTP(responses, httptest.NewRequest(http.MethodGet, "/v1/responses", nil))
+	if responses.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("/v1/responses GET status = %d, body = %s", responses.Code, responses.Body.String())
+	}
 }
 
 func TestResponsesHandlerReturnsOpenAIResponse(t *testing.T) {

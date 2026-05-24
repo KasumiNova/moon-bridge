@@ -53,6 +53,14 @@ node_modules/
 build/
 .wrangler/
 # WebUI build artifacts (source in webui/)
+webui/node_modules/
+webui/dist/
+webui/coverage/
+webui/.vite/
+webui/.vitest/
+webui/*.tsbuildinfo
+webui/test-results/
+webui/playwright-report/
 
 # Wrangler dev vars
 .dev.vars
