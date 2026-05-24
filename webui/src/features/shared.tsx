@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import { ApiError } from "../rpc/http";
 import { ErrorState } from "../components/ErrorState";
+import { useI18n } from "../i18n/I18nProvider";
+import { type ConfigPath, getConfigDescription } from "../configDocs/configDescriptions";
 
 export const defaultPage = { limit: 20, offset: 0 };
 
@@ -23,10 +25,11 @@ export function PageHeader({
 }
 
 export function StoreUnavailableState() {
+  const { t } = useI18n();
   return (
     <ErrorState
-      title="Management API unavailable"
-      message="The persistence store is not available. Enable Moon Bridge persistence to use the console management API."
+      title={t("error.storeTitle")}
+      message={t("error.storeMessage")}
     />
   );
 }
@@ -35,10 +38,48 @@ export function QueryErrorState({ error }: { error: unknown }) {
   if (error instanceof ApiError && (error.code === "store_unavailable" || error.status === 404)) {
     return <StoreUnavailableState />;
   }
-  const message = error instanceof Error ? error.message : "Unknown request error";
-  return <ErrorState message={message} />;
+  const { t } = useI18n();
+  const message = error instanceof Error ? error.message : t("error.unknownRequest");
+  return <ErrorState title={t("error.requestFailed")} message={message} />;
 }
 
 export function formatNumber(value: number | undefined) {
   return typeof value === "number" ? new Intl.NumberFormat().format(value) : "0";
+}
+
+export function FieldHint({ children }: { children: ReactNode }) {
+  return <small className="field-hint">{children}</small>;
+}
+
+export function ConfigHint({ path, id }: { path: ConfigPath; id?: string }) {
+  const { locale, t } = useI18n();
+  const description = getConfigDescription(path, locale);
+
+  return (
+    <small id={id} className="field-hint">
+      {description.description}
+      <span> {t("configDoc.type")}: {description.type}</span>
+      {description.defaultValue ? <span> {t("configDoc.default")}: {description.defaultValue}</span> : null}
+      {description.sensitive ? <span> {t("configDoc.sensitive")}</span> : null}
+    </small>
+  );
+}
+
+export function FieldWithHint({
+  children,
+  className,
+  hintPath,
+  hintId
+}: {
+  children: ReactNode;
+  className?: string;
+  hintPath: ConfigPath;
+  hintId: string;
+}) {
+  return (
+    <div className={className ? `form-field ${className}` : "form-field"}>
+      {children}
+      <ConfigHint id={hintId} path={hintPath} />
+    </div>
+  );
 }

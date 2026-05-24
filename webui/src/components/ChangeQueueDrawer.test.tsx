@@ -1,19 +1,12 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { renderWithConsoleProviders } from "../test/renderWithConsoleProviders";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import * as management from "../rpc/management";
 import { ChangeQueueDrawer } from "./ChangeQueueDrawer";
 
 function renderDrawer() {
-  const client = new QueryClient({
-    defaultOptions: { queries: { retry: false } }
-  });
-  return render(
-    <QueryClientProvider client={client}>
-      <ChangeQueueDrawer open onClose={() => undefined} />
-    </QueryClientProvider>
-  );
+  return renderWithConsoleProviders(<ChangeQueueDrawer open onClose={() => undefined} />);
 }
 
 describe("ChangeQueueDrawer", () => {

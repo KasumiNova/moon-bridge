@@ -11,12 +11,14 @@ import {
   putWebSearch,
   validateConfig
 } from "../../rpc/management";
-import { PageHeader, QueryErrorState } from "../shared";
+import { FieldWithHint, PageHeader, QueryErrorState } from "../shared";
+import { useI18n } from "../../i18n/I18nProvider";
 import { ConfigGenerator } from "./ConfigGenerator";
 
 const defaultYAML = "mode: Transform\n";
 
 export function ConfigPage() {
+  const { t } = useI18n();
   const [yaml, setYAML] = useState(defaultYAML);
   const [includeSecrets, setIncludeSecrets] = useState(false);
   const [feedback, setFeedback] = useState("");
@@ -69,18 +71,18 @@ export function ConfigPage() {
 
   async function validate() {
     const result = await validateConfig(yaml);
-    setFeedback(result.valid ? "Valid config" : `Invalid config: ${(result.errors ?? []).join("; ")}`);
+    setFeedback(result.valid ? t("config.valid") : t("config.invalid", { errors: (result.errors ?? []).join("; ") }));
   }
 
   async function importYAML() {
     const result = await importConfig(yaml);
-    setFeedback(result.message || `${result.count} changes staged`);
+    setFeedback(result.message || t("feedback.changesStaged", { count: result.count }));
   }
 
   async function exportYAML() {
     const exported = await exportConfig({ includeSecrets });
     setYAML(exported);
-    setFeedback(includeSecrets ? "Exported with secrets" : "Exported masked config");
+    setFeedback(includeSecrets ? t("config.exportedSecrets") : t("config.exportedMasked"));
   }
 
   async function stageDefaults() {
@@ -89,7 +91,7 @@ export function ConfigPage() {
       max_tokens: Number(defaultsForm.max_tokens),
       system_prompt: defaultsForm.system_prompt
     });
-    setFeedback(`Staged change #${result.change_id}`);
+    setFeedback(t("feedback.stagedChange", { id: result.change_id }));
   }
 
   async function stageWebSearch() {
@@ -100,25 +102,26 @@ export function ConfigPage() {
       firecrawl_api_key: webSearchForm.firecrawl_api_key,
       search_max_rounds: Number(webSearchForm.search_max_rounds)
     });
-    setFeedback(`Staged change #${result.change_id}`);
+    setFeedback(t("feedback.stagedChange", { id: result.change_id }));
   }
 
   return (
     <section className="page-stack" aria-labelledby="config-title">
-      <PageHeader eyebrow="Configuration" title="Config">
-        Generate, validate, import, export, and stage Moon Bridge YAML configuration.
+      <PageHeader eyebrow={t("config.visualGenerator")} title={t("nav.config")}>
+        {t("config.description")}
       </PageHeader>
 
       <section className="content-panel">
-        <h2>Visual Generator</h2>
+        <h2>{t("config.visualGenerator")}</h2>
         <ConfigGenerator onGenerate={setYAML} />
       </section>
 
       <section className="content-panel">
-        <h2>YAML Preview and Import</h2>
+        <h2>{t("config.yamlImport")}</h2>
         <label className="textarea-field">
-          YAML Editor
+          {t("field.yamlEditor")}
           <textarea
+            name="config.yaml"
             value={yaml}
             onChange={(event) => setYAML(event.currentTarget.value)}
             rows={18}
@@ -126,13 +129,13 @@ export function ConfigPage() {
         </label>
         <div className="form-actions">
           <button type="button" onClick={validate}>
-            Validate
+            {t("action.validate")}
           </button>
           <button type="button" onClick={importYAML}>
-            Import
+            {t("action.import")}
           </button>
           <button type="button" className="secondary-button" onClick={exportYAML}>
-            Export
+            {t("action.export")}
           </button>
           <label className="checkbox-inline">
             <input
@@ -140,7 +143,7 @@ export function ConfigPage() {
               checked={includeSecrets}
               onChange={(event) => setIncludeSecrets(event.currentTarget.checked)}
             />
-            Include secrets
+            {t("config.includeSecrets")}
           </label>
           {feedback ? <span className="feedback-inline">{feedback}</span> : null}
         </div>
@@ -148,87 +151,119 @@ export function ConfigPage() {
 
       <div className="section-grid">
         <section className="content-panel">
-          <h2>Defaults</h2>
+          <h2>{t("config.defaults")}</h2>
           <div className="form-grid">
-            <label>
-              Default Model
-              <input
-                value={defaultsForm.model}
-                onChange={(event) => updateDefaults("model", event.currentTarget.value)}
-              />
-            </label>
-            <label>
-              Max Tokens
-              <input
-                type="number"
-                value={defaultsForm.max_tokens}
-                onChange={(event) => updateDefaults("max_tokens", event.currentTarget.value)}
-              />
-            </label>
-            <label className="form-grid__wide">
-              System Prompt
-              <textarea
-                rows={5}
-                value={defaultsForm.system_prompt}
-                onChange={(event) => updateDefaults("system_prompt", event.currentTarget.value)}
-              />
-            </label>
+            <FieldWithHint hintId="defaults-model-hint" hintPath="defaults.model">
+              <label>
+                {t("field.defaultModel")}
+                <input
+                  aria-describedby="defaults-model-hint"
+                  name="defaults.model"
+                  value={defaultsForm.model}
+                  onChange={(event) => updateDefaults("model", event.currentTarget.value)}
+                />
+              </label>
+            </FieldWithHint>
+            <FieldWithHint hintId="defaults-max-tokens-hint" hintPath="defaults.max_tokens">
+              <label>
+                {t("field.maxTokens")}
+                <input
+                  aria-describedby="defaults-max-tokens-hint"
+                  name="defaults.max_tokens"
+                  type="number"
+                  value={defaultsForm.max_tokens}
+                  onChange={(event) => updateDefaults("max_tokens", event.currentTarget.value)}
+                />
+              </label>
+            </FieldWithHint>
+            <FieldWithHint className="form-grid__wide" hintId="defaults-system-prompt-hint" hintPath="defaults.system_prompt">
+              <label>
+                {t("field.systemPrompt")}
+                <textarea
+                  aria-describedby="defaults-system-prompt-hint"
+                  name="defaults.system_prompt"
+                  rows={5}
+                  value={defaultsForm.system_prompt}
+                  onChange={(event) => updateDefaults("system_prompt", event.currentTarget.value)}
+                />
+              </label>
+            </FieldWithHint>
             <div className="form-actions">
               <button type="button" onClick={stageDefaults}>
-                Stage defaults
+                {t("action.stageDefaults")}
               </button>
             </div>
           </div>
         </section>
 
         <section className="content-panel">
-          <h2>Web Search</h2>
+          <h2>{t("config.webSearch")}</h2>
           <div className="form-grid">
-            <label>
-              Web Search Support
-              <select
-                value={webSearchForm.support}
-                onChange={(event) => updateWebSearch("support", event.currentTarget.value)}
-              >
-                <option value="auto">auto</option>
-                <option value="enabled">enabled</option>
-                <option value="disabled">disabled</option>
-                <option value="injected">injected</option>
-              </select>
-            </label>
-            <label>
-              Max Uses
-              <input
-                type="number"
-                value={webSearchForm.max_uses}
-                onChange={(event) => updateWebSearch("max_uses", event.currentTarget.value)}
-              />
-            </label>
-            <label>
-              Tavily API Key
-              <input
-                value={webSearchForm.tavily_api_key}
-                onChange={(event) => updateWebSearch("tavily_api_key", event.currentTarget.value)}
-              />
-            </label>
-            <label>
-              Firecrawl API Key
-              <input
-                value={webSearchForm.firecrawl_api_key}
-                onChange={(event) => updateWebSearch("firecrawl_api_key", event.currentTarget.value)}
-              />
-            </label>
-            <label>
-              Search Max Rounds
-              <input
-                type="number"
-                value={webSearchForm.search_max_rounds}
-                onChange={(event) => updateWebSearch("search_max_rounds", event.currentTarget.value)}
-              />
-            </label>
+            <FieldWithHint hintId="web-search-support-hint" hintPath="web_search.support">
+              <label>
+                {t("field.webSearchSupport")}
+                <select
+                  aria-describedby="web-search-support-hint"
+                  name="web_search.support"
+                  value={webSearchForm.support}
+                  onChange={(event) => updateWebSearch("support", event.currentTarget.value)}
+                >
+                  <option value="auto">auto</option>
+                  <option value="enabled">enabled</option>
+                  <option value="disabled">disabled</option>
+                  <option value="injected">injected</option>
+                </select>
+              </label>
+            </FieldWithHint>
+            <FieldWithHint hintId="web-search-max-uses-hint" hintPath="web_search.max_uses">
+              <label>
+                {t("field.maxUses")}
+                <input
+                  aria-describedby="web-search-max-uses-hint"
+                  name="web_search.max_uses"
+                  type="number"
+                  value={webSearchForm.max_uses}
+                  onChange={(event) => updateWebSearch("max_uses", event.currentTarget.value)}
+                />
+              </label>
+            </FieldWithHint>
+            <FieldWithHint hintId="web-search-tavily-api-key-hint" hintPath="web_search.tavily_api_key">
+              <label>
+                {t("field.tavilyApiKey")}
+                <input
+                  aria-describedby="web-search-tavily-api-key-hint"
+                  name="web_search.tavily_api_key"
+                  value={webSearchForm.tavily_api_key}
+                  onChange={(event) => updateWebSearch("tavily_api_key", event.currentTarget.value)}
+                />
+              </label>
+            </FieldWithHint>
+            <FieldWithHint hintId="web-search-firecrawl-api-key-hint" hintPath="web_search.firecrawl_api_key">
+              <label>
+                {t("field.firecrawlApiKey")}
+                <input
+                  aria-describedby="web-search-firecrawl-api-key-hint"
+                  name="web_search.firecrawl_api_key"
+                  value={webSearchForm.firecrawl_api_key}
+                  onChange={(event) => updateWebSearch("firecrawl_api_key", event.currentTarget.value)}
+                />
+              </label>
+            </FieldWithHint>
+            <FieldWithHint hintId="web-search-max-rounds-hint" hintPath="web_search.search_max_rounds">
+              <label>
+                {t("field.searchMaxRounds")}
+                <input
+                  aria-describedby="web-search-max-rounds-hint"
+                  name="web_search.search_max_rounds"
+                  type="number"
+                  value={webSearchForm.search_max_rounds}
+                  onChange={(event) => updateWebSearch("search_max_rounds", event.currentTarget.value)}
+                />
+              </label>
+            </FieldWithHint>
             <div className="form-actions">
               <button type="button" onClick={stageWebSearch}>
-                Stage web search
+                {t("action.stageWebSearch")}
               </button>
             </div>
           </div>
@@ -236,9 +271,9 @@ export function ConfigPage() {
       </div>
 
       <section className="content-panel">
-        <h2>Effective Config Snapshot</h2>
+        <h2>{t("config.effectiveSnapshot")}</h2>
         {effective.isLoading ? (
-          <LoadingState label="Loading effective config" />
+          <LoadingState label={t("config.loadingEffective")} />
         ) : effective.error ? (
           <QueryErrorState error={effective.error} />
         ) : (

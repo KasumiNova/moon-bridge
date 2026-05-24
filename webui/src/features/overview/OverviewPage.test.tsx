@@ -1,20 +1,11 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
+import { renderWithConsoleProviders } from "../../test/renderWithConsoleProviders";
 import { ApiError } from "../../rpc/http";
 import * as management from "../../rpc/management";
 import { OverviewPage } from "./OverviewPage";
 
-function renderPage() {
-  const client = new QueryClient({
-    defaultOptions: { queries: { retry: false } }
-  });
-  return render(
-    <QueryClientProvider client={client}>
-      <OverviewPage />
-    </QueryClientProvider>
-  );
-}
+
 
 describe("OverviewPage", () => {
   afterEach(() => {
@@ -57,7 +48,7 @@ describe("OverviewPage", () => {
       }
     ]);
 
-    renderPage();
+    renderWithConsoleProviders(<OverviewPage />);
 
     expect(await screen.findByText("transform")).toBeInTheDocument();
     expect(screen.getByText("2")).toBeInTheDocument();
@@ -81,7 +72,7 @@ describe("OverviewPage", () => {
       new ApiError(503, "store_unavailable", "配置存储不可用")
     );
 
-    renderPage();
+    renderWithConsoleProviders(<OverviewPage />);
 
     await waitFor(() => {
       expect(screen.getByText(/persistence store/i)).toBeInTheDocument();

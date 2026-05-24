@@ -1,20 +1,11 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { renderWithConsoleProviders } from "../../test/renderWithConsoleProviders";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import * as responses from "../../rpc/responses";
 import { RpcTestPage } from "./RpcTestPage";
 
-function renderPage() {
-  const client = new QueryClient({
-    defaultOptions: { queries: { retry: false } }
-  });
-  return render(
-    <QueryClientProvider client={client}>
-      <RpcTestPage />
-    </QueryClientProvider>
-  );
-}
+
 
 describe("RpcTestPage", () => {
   afterEach(() => {
@@ -33,7 +24,7 @@ describe("RpcTestPage", () => {
       output_text: "pong"
     });
 
-    renderPage();
+    renderWithConsoleProviders(<RpcTestPage />);
 
     await screen.findByRole("option", { name: "moonbridge" });
     await userEvent.selectOptions(screen.getByLabelText(/model/i), "moonbridge");

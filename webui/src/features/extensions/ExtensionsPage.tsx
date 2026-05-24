@@ -2,9 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { LoadingState } from "../../components/LoadingState";
 import { getExtension, listExtensions, putExtension } from "../../rpc/management";
-import { PageHeader, QueryErrorState } from "../shared";
+import { FieldWithHint, PageHeader, QueryErrorState } from "../shared";
+import { useI18n } from "../../i18n/I18nProvider";
 
 export function ExtensionsPage() {
+  const { t } = useI18n();
   const [selected, setSelected] = useState("");
   const [editorValue, setEditorValue] = useState("{}");
   const [feedback, setFeedback] = useState("");
@@ -22,7 +24,7 @@ export function ExtensionsPage() {
     return <QueryErrorState error={extensions.error} />;
   }
   if (extensions.isLoading) {
-    return <LoadingState label="Loading extensions" />;
+    return <LoadingState label={t("loading.extensions")} />;
   }
 
   async function selectExtension(name: string) {
@@ -35,17 +37,17 @@ export function ExtensionsPage() {
   async function stageExtension() {
     const parsed = JSON.parse(editorValue);
     const result = await putExtension(selected, parsed);
-    setFeedback(`Staged change #${result.change_id}`);
+    setFeedback(t("feedback.stagedChange", { id: result.change_id }));
   }
 
   return (
     <section className="page-stack" aria-labelledby="extensions-title">
-      <PageHeader eyebrow="Extensions" title="Extensions">
-        Inspect extension config as JSON and stage safe updates through the management API.
+      <PageHeader eyebrow={t("nav.extensions")} title={t("nav.extensions")}>
+        {t("extensions.description")}
       </PageHeader>
       <div className="section-grid">
         <section className="content-panel">
-          <h2>Installed Extensions</h2>
+          <h2>{t("extensions.installed")}</h2>
           {(extensions.data?.length ?? 0) > 0 ? (
             <div className="button-list">
               {extensions.data?.map((name) => (
@@ -60,23 +62,27 @@ export function ExtensionsPage() {
               ))}
             </div>
           ) : (
-            <p className="empty-state">No extensions registered</p>
+            <p className="empty-state">{t("empty.extensions")}</p>
           )}
         </section>
         <section className="content-panel">
-          <h2>JSON Editor</h2>
-          {detail.isFetching && selected ? <p className="empty-state">Refreshing {selected}</p> : null}
-          <label className="textarea-field">
-            Extension JSON
-            <textarea
-              value={editorValue}
-              onChange={(event) => setEditorValue(event.currentTarget.value)}
-              rows={18}
-            />
-          </label>
+          <h2>{t("extensions.jsonEditor")}</h2>
+          {detail.isFetching && selected ? <p className="empty-state">{t("extensions.refreshing", { name: selected })}</p> : null}
+          <FieldWithHint className="textarea-field" hintId="extension-json-hint" hintPath="extensions.<name>.config">
+            <label>
+              {t("field.extensionJson")}
+              <textarea
+                aria-describedby="extension-json-hint"
+                name="extensions.config"
+                value={editorValue}
+                onChange={(event) => setEditorValue(event.currentTarget.value)}
+                rows={18}
+              />
+            </label>
+          </FieldWithHint>
           <div className="form-actions">
             <button type="button" onClick={stageExtension} disabled={!selected}>
-              Stage extension
+              {t("action.stageExtension")}
             </button>
             {feedback ? <span className="feedback-inline">{feedback}</span> : null}
           </div>

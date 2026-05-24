@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, type ReactNode, useState } from "react";
 import { type ApiError, isAuthError, saveToken } from "../rpc/http";
+import { useI18n } from "../i18n/I18nProvider";
 
 type AuthGateProps = {
   children: ReactNode;
@@ -9,6 +10,7 @@ type AuthGateProps = {
 };
 
 export function AuthGate({ children, error, onTokenSaved }: AuthGateProps) {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const [token, setToken] = useState("");
   const [remember, setRemember] = useState(false);
@@ -33,8 +35,8 @@ export function AuthGate({ children, error, onTokenSaved }: AuthGateProps) {
   return (
     <main className="auth-gate" aria-labelledby="auth-title">
       <form className="auth-card" onSubmit={submit}>
-        <p className="eyebrow">Authentication required</p>
-        <h1 id="auth-title">输入 Moon Bridge Token</h1>
+        <p className="eyebrow">{t("auth.eyebrow")}</p>
+        <h1 id="auth-title">{t("auth.title")}</h1>
         <p>{apiError.message}</p>
         <label>
           Token
@@ -51,9 +53,9 @@ export function AuthGate({ children, error, onTokenSaved }: AuthGateProps) {
             checked={remember}
             onChange={(event) => setRemember(event.currentTarget.checked)}
           />
-          Remember on this device
+          {t("auth.remember")}
         </label>
-        <button type="submit">Save token</button>
+        <button type="submit">{t("action.saveToken")}</button>
       </form>
     </main>
   );

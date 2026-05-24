@@ -1,19 +1,10 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
+import { renderWithConsoleProviders } from "../../test/renderWithConsoleProviders";
 import * as management from "../../rpc/management";
 import { ChangesPage } from "./ChangesPage";
 
-function renderPage() {
-  const client = new QueryClient({
-    defaultOptions: { queries: { retry: false } }
-  });
-  return render(
-    <QueryClientProvider client={client}>
-      <ChangesPage />
-    </QueryClientProvider>
-  );
-}
+
 
 describe("ChangesPage", () => {
   afterEach(() => {
@@ -33,7 +24,7 @@ describe("ChangesPage", () => {
       }
     ]);
 
-    renderPage();
+    renderWithConsoleProviders(<ChangesPage />);
 
     expect(await screen.findByText("moonbridge")).toBeInTheDocument();
     expect(screen.getByText("route")).toBeInTheDocument();

@@ -5,9 +5,11 @@ import {
   listResponseModels,
   type CreateResponseResult
 } from "../../rpc/responses";
+import { useI18n } from "../../i18n/I18nProvider";
 import { PageHeader, QueryErrorState } from "../shared";
 
 export function RpcTestPage() {
+  const { t } = useI18n();
   const models = useQuery({
     queryKey: ["responses", "models"],
     queryFn: listResponseModels
@@ -45,20 +47,20 @@ export function RpcTestPage() {
 
   return (
     <section className="page-stack" aria-labelledby="rpc-test-title">
-      <PageHeader eyebrow="Smoke Test" title="RPC Test">
-        Send a minimal non-streaming `/v1/responses` request through Moon Bridge.
+      <PageHeader eyebrow={t("pageEyebrow.smokeTest")} title={t("nav.rpcTest")}>
+        {t("rpc.description")}
       </PageHeader>
       <div className="section-grid">
         <section className="content-panel">
-          <h2>Request</h2>
+          <h2>{t("rpc.request")}</h2>
           <form className="form-grid" onSubmit={submit}>
             <label className="form-grid__wide">
-              Model
+              {t("field.model")}
               <select
                 value={model}
                 onChange={(event) => setModel(event.currentTarget.value)}
               >
-                <option value="">Select model</option>
+                <option value="">{t("rpc.selectModel")}</option>
                 {models.data?.models.map((item) => (
                   <option key={item.slug} value={item.slug}>
                     {item.slug}
@@ -67,7 +69,7 @@ export function RpcTestPage() {
               </select>
             </label>
             <label className="form-grid__wide">
-              Input
+              {t("field.input")}
               <textarea
                 rows={6}
                 value={input}
@@ -75,7 +77,7 @@ export function RpcTestPage() {
               />
             </label>
             <label>
-              Max Output Tokens
+              {t("field.maxOutputTokens")}
               <input
                 type="number"
                 value={maxTokens}
@@ -83,7 +85,7 @@ export function RpcTestPage() {
               />
             </label>
             <label>
-              Temperature
+              {t("field.temperature")}
               <input
                 type="number"
                 step="0.1"
@@ -92,13 +94,13 @@ export function RpcTestPage() {
               />
             </label>
             <div className="form-actions">
-              <button type="submit">Send</button>
+              <button type="submit">{t("action.send")}</button>
             </div>
           </form>
         </section>
         <section className="content-panel">
-          <h2>Response</h2>
-          {latency !== null ? <p className="feedback-inline">Latency: {latency}ms</p> : null}
+          <h2>{t("rpc.response")}</h2>
+          {latency !== null ? <p className="feedback-inline">{t("feedback.latency", { latency })}</p> : null}
           {error ? (
             <pre className="json-block">{JSON.stringify(error, null, 2)}</pre>
           ) : (

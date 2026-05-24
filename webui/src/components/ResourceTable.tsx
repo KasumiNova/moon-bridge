@@ -6,6 +6,7 @@ import {
   type ColumnDef
 } from "@tanstack/react-table";
 import type { ReactNode } from "react";
+import { useI18n } from "../i18n/I18nProvider";
 
 export type ResourceColumn<T> = {
   header: string;
@@ -21,8 +22,9 @@ type ResourceTableProps<T> = {
 export function ResourceTable<T>({
   columns,
   data,
-  emptyLabel = "No resources"
+  emptyLabel
 }: ResourceTableProps<T>) {
+  const { t } = useI18n();
   const columnHelper = createColumnHelper<T>();
   const table = useReactTable({
     data,
@@ -37,7 +39,7 @@ export function ResourceTable<T>({
   });
 
   if (data.length === 0) {
-    return <p className="empty-state">{emptyLabel}</p>;
+    return <p className="empty-state">{emptyLabel ?? t("empty.resources")}</p>;
   }
 
   return (

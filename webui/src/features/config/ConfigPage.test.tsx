@@ -1,20 +1,11 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { renderWithConsoleProviders } from "../../test/renderWithConsoleProviders";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import * as management from "../../rpc/management";
 import { ConfigPage } from "./ConfigPage";
 
-function renderPage() {
-  const client = new QueryClient({
-    defaultOptions: { queries: { retry: false } }
-  });
-  return render(
-    <QueryClientProvider client={client}>
-      <ConfigPage />
-    </QueryClientProvider>
-  );
-}
+
 
 describe("ConfigPage", () => {
   afterEach(() => {
@@ -33,7 +24,7 @@ describe("ConfigPage", () => {
       message: "imported"
     });
 
-    renderPage();
+    renderWithConsoleProviders(<ConfigPage />);
 
     await userEvent.clear(await screen.findByLabelText(/provider key/i));
     await userEvent.type(screen.getByLabelText(/provider key/i), "preview");
@@ -58,7 +49,7 @@ describe("ConfigPage", () => {
       message: "staged"
     });
 
-    renderPage();
+    renderWithConsoleProviders(<ConfigPage />);
 
     await userEvent.clear(await screen.findByLabelText(/yaml editor/i));
     await userEvent.type(screen.getByLabelText(/yaml editor/i), "mode: Transform");
@@ -101,7 +92,7 @@ describe("ConfigPage", () => {
       message: "staged"
     });
 
-    renderPage();
+    renderWithConsoleProviders(<ConfigPage />);
 
     const defaultModel = await screen.findByLabelText(/default model/i);
     await waitFor(() => expect(defaultModel).toHaveValue("moonbridge"));

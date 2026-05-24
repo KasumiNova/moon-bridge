@@ -8,9 +8,11 @@ import {
   getStatus
 } from "../../rpc/management";
 import { queryKeys } from "../../rpc/queryKeys";
+import { useI18n } from "../../i18n/I18nProvider";
 import { formatNumber, PageHeader, QueryErrorState } from "../shared";
 
 export function OverviewPage() {
+  const { t } = useI18n();
   const status = useQuery({ queryKey: queryKeys.status, queryFn: getStatus });
   const stats = useQuery({
     queryKey: queryKeys.statsSummary,
@@ -24,57 +26,56 @@ export function OverviewPage() {
     return <QueryErrorState error={firstError} />;
   }
   if (status.isLoading || stats.isLoading || sessions.isLoading || changes.isLoading) {
-    return <LoadingState label="Loading console overview" />;
+    return <LoadingState label={t("loading.overview")} />;
   }
 
   const pendingCount = changes.data?.length ?? 0;
 
   return (
     <section className="page-stack" aria-labelledby="overview-title">
-      <PageHeader eyebrow="Runtime" title="Overview">
-        Current Moon Bridge runtime health, usage, sessions, and staged
-        configuration changes.
+      <PageHeader eyebrow={t("pageEyebrow.runtime")} title={t("nav.overview")}>
+        {t("overview.description")}
       </PageHeader>
 
       <div className="metric-grid">
-        <MetricCard label="Mode" value={status.data?.mode ?? "unknown"} />
-        <MetricCard label="Providers" value={formatNumber(status.data?.provider_count)} />
-        <MetricCard label="Routes" value={formatNumber(status.data?.route_count)} />
-        <MetricCard label="Changes" value={`${pendingCount} pending`} />
-        <MetricCard label="Requests" value={formatNumber(stats.data?.requests)} />
-        <MetricCard label="Cache Hit Rate" value={`${Math.round((stats.data?.cache_hit_rate ?? 0) * 100)}%`} />
+        <MetricCard label={t("overview.mode")} value={status.data?.mode ?? t("common.unknown")} />
+        <MetricCard label={t("overview.providers")} value={formatNumber(status.data?.provider_count)} />
+        <MetricCard label={t("overview.routes")} value={formatNumber(status.data?.route_count)} />
+        <MetricCard label={t("app.changes")} value={t("overview.pendingCount", { count: pendingCount })} />
+        <MetricCard label={t("overview.requests")} value={formatNumber(stats.data?.requests)} />
+        <MetricCard label={t("overview.cacheHitRate")} value={`${Math.round((stats.data?.cache_hit_rate ?? 0) * 100)}%`} />
       </div>
 
       <div className="section-grid">
         <section className="content-panel">
-          <h2>Active Sessions</h2>
+          <h2>{t("overview.activeSessions")}</h2>
           {(sessions.data?.length ?? 0) > 0 ? (
             <ul className="compact-list">
               {sessions.data?.map((session) => (
                 <li key={`${session.key}-${session.created_at}`}>
                   <strong>{session.key}</strong>
-                  <span>{session.model ?? "No model selected"}</span>
+                  <span>{session.model ?? t("overview.noModel")}</span>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="empty-state">No active sessions</p>
+            <p className="empty-state">{t("overview.noActiveSessions")}</p>
           )}
         </section>
 
         <section className="content-panel">
-          <h2>Pending Changes</h2>
+          <h2>{t("overview.pendingChanges")}</h2>
           {(changes.data?.length ?? 0) > 0 ? (
             <ul className="compact-list">
               {changes.data?.slice(0, 6).map((change) => (
                 <li key={change.ID ?? change.change_id ?? change.TargetKey}>
-                  <strong>{change.TargetKey ?? change.target ?? "unknown"}</strong>
+                  <strong>{change.TargetKey ?? change.target ?? t("common.unknown")}</strong>
                   <span>{change.Resource ?? change.resource} / {change.Action ?? change.action}</span>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="empty-state">No staged changes</p>
+            <p className="empty-state">{t("changes.empty")}</p>
           )}
         </section>
       </div>

@@ -6,24 +6,28 @@ import { createElement, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { motion } from "motion/react";
 import { ChangeQueueDrawer } from "../components/ChangeQueueDrawer";
+import { type Locale } from "../i18n/messages";
+import { useI18n } from "../i18n/I18nProvider";
 import { useConsoleTheme } from "../theme/ThemeProvider";
 
 const navItems = [
-  { to: "/overview", icon: "dashboard", label: "Overview" },
-  { to: "/models", icon: "view_module", label: "Models" },
-  { to: "/providers", icon: "lan", label: "Providers" },
-  { to: "/routes", icon: "alt_route", label: "Routes" },
-  { to: "/extensions", icon: "extension", label: "Extensions" },
-  { to: "/changes", icon: "pending_actions", label: "Changes" },
-  { to: "/config", icon: "tune", label: "Config" },
-  { to: "/rpc-test", icon: "science", label: "RPC Test" }
-];
+  { to: "/overview", icon: "dashboard", labelKey: "nav.overview" },
+  { to: "/models", icon: "view_module", labelKey: "nav.models" },
+  { to: "/providers", icon: "lan", labelKey: "nav.providers" },
+  { to: "/routes", icon: "alt_route", labelKey: "nav.routes" },
+  { to: "/extensions", icon: "extension", labelKey: "nav.extensions" },
+  { to: "/changes", icon: "pending_actions", labelKey: "nav.changes" },
+  { to: "/config", icon: "tune", labelKey: "nav.config" },
+  { to: "/rpc-test", icon: "science", labelKey: "nav.rpcTest" }
+] as const;
 
 export function App() {
   const { theme, toggleTheme } = useConsoleTheme();
+  const { locale, setLocale, t } = useI18n();
   const [changeDrawerOpen, setChangeDrawerOpen] = useState(false);
   const nextTheme = theme === "dark" ? "light" : "dark";
   const themeIcon = theme === "dark" ? "light_mode" : "dark_mode";
+  const nextThemeLabel = t(nextTheme === "dark" ? "theme.dark" : "theme.light");
 
   return (
     <div className="app-shell">
@@ -31,22 +35,34 @@ export function App() {
       <header className="top-app-bar">
         <div>
           <p>Moon Bridge</p>
-          <strong>Console</strong>
+          <strong>{t("app.console")}</strong>
         </div>
         <div className="top-app-bar__meta">
-          <span>Same-origin API</span>
-          <span>Runtime API</span>
+          <span>{t("app.sameOriginApi")}</span>
+          <span>{t("app.runtimeApi")}</span>
           <button
             type="button"
             className="top-action-button"
             onClick={() => setChangeDrawerOpen(true)}
           >
-            Changes
+            {t("app.changes")}
           </button>
+          <label className="locale-switch">
+            <span>{t("app.language")}</span>
+            <select
+              id="console-locale"
+              name="console-locale"
+              value={locale}
+              onChange={(event) => setLocale(event.currentTarget.value as Locale)}
+            >
+              <option value="zh-CN">{t("app.language.zh")}</option>
+              <option value="en-US">{t("app.language.en")}</option>
+            </select>
+          </label>
           {createElement(
             "md-icon-button",
             {
-              "aria-label": `Switch to ${nextTheme} theme`,
+              "aria-label": t("app.switchTheme", { theme: nextThemeLabel }),
               onClick: toggleTheme
             },
             createElement("md-icon", null, themeIcon)
@@ -55,7 +71,7 @@ export function App() {
       </header>
 
       <div className="workspace">
-        <nav className="navigation-rail" aria-label="Console sections">
+        <nav className="navigation-rail" aria-label={t("app.consoleSections")}>
           {navItems.map((item) => (
             <NavLink
               key={item.to}
@@ -65,7 +81,7 @@ export function App() {
               }
             >
               {createElement("md-icon", null, item.icon)}
-              <span>{item.label}</span>
+              <span>{t(item.labelKey)}</span>
               {createElement("md-ripple")}
             </NavLink>
           ))}
@@ -174,6 +190,22 @@ const shellStyles = `
     border-radius: 8px;
     padding: 0 10px;
     background: var(--mb-color-surface-container);
+  }
+
+  .locale-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .locale-switch select {
+    min-height: 34px;
+    border: 1px solid color-mix(in srgb, var(--mb-color-outline) 45%, transparent);
+    border-radius: 8px;
+    padding: 0 8px;
+    color: var(--mb-color-on-surface);
+    background: var(--mb-color-surface-container);
+    font: inherit;
   }
 
   .top-action-button,
@@ -480,12 +512,20 @@ const shellStyles = `
     gap: 14px;
   }
 
-  .form-grid label {
+  .form-grid label,
+  .form-field {
     display: grid;
     gap: 6px;
     color: var(--mb-color-on-surface-variant);
     font-size: 0.82rem;
     font-weight: 650;
+  }
+
+  .form-field label {
+    display: grid;
+    gap: 6px;
+    color: inherit;
+    font: inherit;
   }
 
   .form-grid input,

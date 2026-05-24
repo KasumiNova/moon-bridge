@@ -1,20 +1,11 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, within } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { renderWithConsoleProviders } from "../../test/renderWithConsoleProviders";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import * as management from "../../rpc/management";
 import { ProvidersPage } from "./ProvidersPage";
 
-function renderPage() {
-  const client = new QueryClient({
-    defaultOptions: { queries: { retry: false } }
-  });
-  return render(
-    <QueryClientProvider client={client}>
-      <ProvidersPage />
-    </QueryClientProvider>
-  );
-}
+
 
 describe("ProvidersPage", () => {
   afterEach(() => {
@@ -44,7 +35,7 @@ describe("ProvidersPage", () => {
       offset: 0
     });
 
-    renderPage();
+    renderWithConsoleProviders(<ProvidersPage />);
 
     const table = await screen.findByRole("table");
     expect(within(table).getAllByText("anthropic")).toHaveLength(2);
@@ -67,12 +58,16 @@ describe("ProvidersPage", () => {
       .spyOn(management, "createOffer")
       .mockResolvedValue({ change_id: 13, status: "pending" });
 
-    renderPage();
+    renderWithConsoleProviders(<ProvidersPage />);
 
-    await userEvent.type(await screen.findByLabelText(/^key$/i), "preview");
-    await userEvent.type(screen.getByLabelText(/base url/i), "https://provider.test");
-    await userEvent.type(screen.getByLabelText(/api key/i), "secret");
-    await userEvent.selectOptions(screen.getByLabelText(/protocol/i), "anthropic");
+    const providerForm = (await screen.findByRole("heading", { name: /stage provider/i }))
+      .closest("section")!;
+    const providerArea = within(providerForm);
+
+    await userEvent.type(await providerArea.findByLabelText(/^key$/i), "preview");
+    await userEvent.type(providerArea.getByLabelText(/^base url$/i), "https://provider.test");
+    await userEvent.type(providerArea.getByLabelText(/^api key$/i), "secret");
+    await userEvent.selectOptions(providerArea.getByLabelText(/^protocol$/i), "anthropic");
     await userEvent.click(screen.getByRole("button", { name: /stage provider/i }));
 
     expect(putProvider).toHaveBeenCalledWith("preview", {
@@ -83,8 +78,12 @@ describe("ProvidersPage", () => {
       user_agent: ""
     });
 
-    await userEvent.type(screen.getByLabelText(/offer model/i), "claude-sonnet");
-    await userEvent.type(screen.getByLabelText(/upstream name/i), "claude-3-5-sonnet");
+    const offerForm = screen.getByRole("heading", { name: /stage offer/i })
+      .closest("section")!;
+    const offerArea = within(offerForm);
+
+    await userEvent.type(offerArea.getByLabelText(/^offer model$/i), "claude-sonnet");
+    await userEvent.type(offerArea.getByLabelText(/^upstream name$/i), "claude-3-5-sonnet");
     await userEvent.click(screen.getByRole("button", { name: /stage offer/i }));
 
     expect(createOffer).toHaveBeenCalledWith("preview", expect.objectContaining({

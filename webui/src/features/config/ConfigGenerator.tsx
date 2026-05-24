@@ -3,8 +3,11 @@ import {
   generateConfigYAML,
   type GeneratedConfigDraft
 } from "../../rpc/configGenerator";
+import { useI18n } from "../../i18n/I18nProvider";
+import { FieldWithHint } from "../shared";
 
 export function ConfigGenerator({ onGenerate }: { onGenerate: (yaml: string) => void }) {
+  const { t } = useI18n();
   const [draft, setDraft] = useState({
     mode: "Transform",
     addr: "127.0.0.1:38440",
@@ -68,56 +71,127 @@ export function ConfigGenerator({ onGenerate }: { onGenerate: (yaml: string) => 
 
   return (
     <form className="form-grid" onSubmit={submit}>
-      <label>
-        Mode
-        <select value={draft.mode} onChange={(event) => update("mode", event.currentTarget.value)}>
-          <option value="Transform">Transform</option>
-          <option value="CaptureResponse">CaptureResponse</option>
-          <option value="CaptureAnthropic">CaptureAnthropic</option>
-        </select>
-      </label>
-      <label>
-        Server Addr
-        <input value={draft.addr} onChange={(event) => update("addr", event.currentTarget.value)} />
-      </label>
-      <label>
-        Auth Token
-        <input value={draft.auth_token} onChange={(event) => update("auth_token", event.currentTarget.value)} />
-      </label>
-      <label>
-        Provider Key
-        <input value={draft.provider_key} onChange={(event) => update("provider_key", event.currentTarget.value)} />
-      </label>
-      <label className="form-grid__wide">
-        Base URL
-        <input value={draft.base_url} onChange={(event) => update("base_url", event.currentTarget.value)} />
-      </label>
-      <label>
-        API Key
-        <input value={draft.api_key} onChange={(event) => update("api_key", event.currentTarget.value)} />
-      </label>
-      <label>
-        Protocol
-        <select value={draft.protocol} onChange={(event) => update("protocol", event.currentTarget.value)}>
-          <option value="anthropic">anthropic</option>
-          <option value="openai-response">openai-response</option>
-          <option value="google">google</option>
-        </select>
-      </label>
-      <label>
-        Model Slug
-        <input value={draft.model_slug} onChange={(event) => update("model_slug", event.currentTarget.value)} />
-      </label>
-      <label>
-        Upstream Name
-        <input value={draft.upstream_name} onChange={(event) => update("upstream_name", event.currentTarget.value)} />
-      </label>
-      <label>
-        Route Alias
-        <input value={draft.route_alias} onChange={(event) => update("route_alias", event.currentTarget.value)} />
-      </label>
+      <FieldWithHint hintId="generator-mode-hint" hintPath="mode">
+        <label>
+          {t("field.mode")}
+          <select
+            aria-describedby="generator-mode-hint"
+            name="mode"
+            value={draft.mode}
+            onChange={(event) => update("mode", event.currentTarget.value)}
+          >
+            <option value="Transform">Transform</option>
+            <option value="CaptureResponse">CaptureResponse</option>
+            <option value="CaptureAnthropic">CaptureAnthropic</option>
+          </select>
+        </label>
+      </FieldWithHint>
+      <FieldWithHint hintId="generator-server-addr-hint" hintPath="server.addr">
+        <label>
+          {t("field.serverAddr")}
+          <input
+            aria-describedby="generator-server-addr-hint"
+            name="server.addr"
+            value={draft.addr}
+            onChange={(event) => update("addr", event.currentTarget.value)}
+          />
+        </label>
+      </FieldWithHint>
+      <FieldWithHint hintId="generator-auth-token-hint" hintPath="server.auth_token">
+        <label>
+          {t("field.authToken")}
+          <input
+            aria-describedby="generator-auth-token-hint"
+            name="server.auth_token"
+            value={draft.auth_token}
+            onChange={(event) => update("auth_token", event.currentTarget.value)}
+          />
+        </label>
+      </FieldWithHint>
+      <FieldWithHint hintId="generator-provider-key-hint" hintPath="providers.<key>.key">
+        <label>
+          {t("field.providerKey")}
+          <input
+            aria-describedby="generator-provider-key-hint"
+            name="provider.key"
+            value={draft.provider_key}
+            onChange={(event) => update("provider_key", event.currentTarget.value)}
+          />
+        </label>
+      </FieldWithHint>
+      <FieldWithHint className="form-grid__wide" hintId="generator-base-url-hint" hintPath="providers.<key>.base_url">
+        <label>
+          {t("field.baseUrl")}
+          <input
+            aria-describedby="generator-base-url-hint"
+            name="provider.base_url"
+            value={draft.base_url}
+            onChange={(event) => update("base_url", event.currentTarget.value)}
+          />
+        </label>
+      </FieldWithHint>
+      <FieldWithHint hintId="generator-api-key-hint" hintPath="providers.<key>.api_key">
+        <label>
+          {t("field.apiKey")}
+          <input
+            aria-describedby="generator-api-key-hint"
+            name="provider.api_key"
+            value={draft.api_key}
+            onChange={(event) => update("api_key", event.currentTarget.value)}
+          />
+        </label>
+      </FieldWithHint>
+      <FieldWithHint hintId="generator-protocol-hint" hintPath="providers.<key>.protocol">
+        <label>
+          {t("field.protocol")}
+          <select
+            aria-describedby="generator-protocol-hint"
+            name="provider.protocol"
+            value={draft.protocol}
+            onChange={(event) => update("protocol", event.currentTarget.value)}
+          >
+            <option value="anthropic">anthropic</option>
+            <option value="openai-response">openai-response</option>
+            <option value="google-genai">google-genai</option>
+            <option value="openai-chat">openai-chat</option>
+          </select>
+        </label>
+      </FieldWithHint>
+      <FieldWithHint hintId="generator-model-slug-hint" hintPath="models.<slug>.slug">
+        <label>
+          {t("field.slug")}
+          <input
+            aria-describedby="generator-model-slug-hint"
+            name="model.slug"
+            value={draft.model_slug}
+            onChange={(event) => update("model_slug", event.currentTarget.value)}
+          />
+        </label>
+      </FieldWithHint>
+      <FieldWithHint hintId="generator-upstream-name-hint" hintPath="providers.<key>.offers[].upstream_name">
+        <label>
+          {t("field.upstreamName")}
+          <input
+            aria-describedby="generator-upstream-name-hint"
+            name="offer.upstream_name"
+            value={draft.upstream_name}
+            onChange={(event) => update("upstream_name", event.currentTarget.value)}
+          />
+        </label>
+      </FieldWithHint>
+      <FieldWithHint hintId="generator-route-alias-hint" hintPath="routes.<alias>.alias">
+        <label>
+          {t("field.routeAlias")}
+          <input
+            aria-describedby="generator-route-alias-hint"
+            name="route.alias"
+            value={draft.route_alias}
+            onChange={(event) => update("route_alias", event.currentTarget.value)}
+          />
+        </label>
+      </FieldWithHint>
       <div className="form-actions">
-        <button type="submit">Generate YAML</button>
+        <button type="submit">{t("action.generateYaml")}</button>
       </div>
     </form>
   );

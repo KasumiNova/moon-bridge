@@ -1,20 +1,11 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { renderWithConsoleProviders } from "../../test/renderWithConsoleProviders";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import * as management from "../../rpc/management";
 import { ModelsPage } from "./ModelsPage";
 
-function renderPage() {
-  const client = new QueryClient({
-    defaultOptions: { queries: { retry: false } }
-  });
-  return render(
-    <QueryClientProvider client={client}>
-      <ModelsPage />
-    </QueryClientProvider>
-  );
-}
+
 
 describe("ModelsPage", () => {
   afterEach(() => {
@@ -36,7 +27,7 @@ describe("ModelsPage", () => {
       offset: 0
     });
 
-    renderPage();
+    renderWithConsoleProviders(<ModelsPage />);
 
     expect(await screen.findByText("claude-sonnet")).toBeInTheDocument();
     expect(screen.getByText("Claude Sonnet")).toBeInTheDocument();
@@ -55,7 +46,7 @@ describe("ModelsPage", () => {
       .spyOn(management, "putModel")
       .mockResolvedValue({ change_id: 10, status: "pending" });
 
-    renderPage();
+    renderWithConsoleProviders(<ModelsPage />);
 
     await userEvent.type(await screen.findByLabelText(/slug/i), "new-model");
     await userEvent.type(screen.getByLabelText(/display name/i), "New Model");

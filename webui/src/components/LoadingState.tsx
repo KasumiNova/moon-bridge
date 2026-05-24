@@ -1,8 +1,11 @@
-export function LoadingState({ label = "加载中" }: { label?: string }) {
+import { useI18n } from "../i18n/I18nProvider";
+
+export function LoadingState({ label }: { label?: string }) {
+  const { t } = useI18n();
   return (
     <section className="state-panel" aria-busy="true">
-      <p className="eyebrow">Loading</p>
-      <h2>{label}</h2>
+      <p className="eyebrow">{t("common.loading")}</p>
+      <h2>{label ?? t("common.loading")}</h2>
     </section>
   );
 }

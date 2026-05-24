@@ -1,20 +1,11 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { renderWithConsoleProviders } from "../../test/renderWithConsoleProviders";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import * as management from "../../rpc/management";
 import { RoutesPage } from "./RoutesPage";
 
-function renderPage() {
-  const client = new QueryClient({
-    defaultOptions: { queries: { retry: false } }
-  });
-  return render(
-    <QueryClientProvider client={client}>
-      <RoutesPage />
-    </QueryClientProvider>
-  );
-}
+
 
 describe("RoutesPage", () => {
   afterEach(() => {
@@ -36,7 +27,7 @@ describe("RoutesPage", () => {
       offset: 0
     });
 
-    renderPage();
+    renderWithConsoleProviders(<RoutesPage />);
 
     expect(await screen.findByText("moonbridge")).toBeInTheDocument();
     expect(screen.getByText("claude-sonnet")).toBeInTheDocument();
@@ -55,14 +46,18 @@ describe("RoutesPage", () => {
       .spyOn(management, "putRoute")
       .mockResolvedValue({ change_id: 14, status: "pending" });
 
-    renderPage();
+    renderWithConsoleProviders(<RoutesPage />);
 
-    await userEvent.type(await screen.findByLabelText(/alias/i), "moonbridge");
-    await userEvent.type(screen.getByLabelText(/^model$/i), "claude-sonnet");
-    await userEvent.type(screen.getByLabelText(/provider/i), "anthropic");
-    await userEvent.type(screen.getByLabelText(/display name/i), "Default Route");
-    await userEvent.clear(screen.getByLabelText(/context window/i));
-    await userEvent.type(screen.getByLabelText(/context window/i), "200000");
+    const routeForm = (await screen.findByRole("heading", { name: /stage route/i }))
+      .closest("section")!;
+    const routeArea = within(routeForm);
+
+    await userEvent.type(await routeArea.findByLabelText(/^alias$/i), "moonbridge");
+    await userEvent.type(routeArea.getByLabelText(/^model$/i), "claude-sonnet");
+    await userEvent.type(routeArea.getByLabelText(/^provider$/i), "anthropic");
+    await userEvent.type(routeArea.getByLabelText(/^display name$/i), "Default Route");
+    await userEvent.clear(routeArea.getByLabelText(/^context window$/i));
+    await userEvent.type(routeArea.getByLabelText(/^context window$/i), "200000");
     await userEvent.click(screen.getByRole("button", { name: /stage route/i }));
 
     expect(putRoute).toHaveBeenCalledWith("moonbridge", {

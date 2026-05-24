@@ -1,22 +1,13 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { renderWithConsoleProviders } from "../test/renderWithConsoleProviders";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { ConfigPage } from "../features/config/ConfigPage";
 import { OverviewPage } from "../features/overview/OverviewPage";
 import * as management from "../rpc/management";
-import { CONSOLE_THEME_STORAGE_KEY, ThemeProvider } from "../theme/ThemeProvider";
+import { CONSOLE_THEME_STORAGE_KEY } from "../theme/ThemeProvider";
 
-function renderWithProviders(ui: React.ReactElement) {
-  const client = new QueryClient({
-    defaultOptions: { queries: { retry: false } }
-  });
-  return render(
-    <QueryClientProvider client={client}>
-      <ThemeProvider>{ui}</ThemeProvider>
-    </QueryClientProvider>
-  );
-}
+
 
 describe("console smoke flow", () => {
   afterEach(() => {
@@ -45,7 +36,7 @@ describe("console smoke flow", () => {
     vi.spyOn(management, "getSessions").mockResolvedValue([]);
     vi.spyOn(management, "getChanges").mockResolvedValue([]);
 
-    renderWithProviders(<OverviewPage />);
+    renderWithConsoleProviders(<OverviewPage />);
 
     expect(document.documentElement.dataset.theme).toBe("dark");
     expect(localStorage.getItem(CONSOLE_THEME_STORAGE_KEY)).toBe("dark");
@@ -75,7 +66,7 @@ describe("console smoke flow", () => {
     });
     vi.spyOn(management, "exportConfig").mockResolvedValue("mode: Transform\n");
 
-    renderWithProviders(<ConfigPage />);
+    renderWithConsoleProviders(<ConfigPage />);
 
     await userEvent.click(await screen.findByRole("button", { name: /generate yaml/i }));
     expect(screen.getByDisplayValue(/providers:/i)).toBeInTheDocument();

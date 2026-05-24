@@ -1,6 +1,6 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { renderWithConsoleProviders } from "../test/renderWithConsoleProviders";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import {
   REMEMBER_TOKEN_STORAGE_KEY,
@@ -9,10 +9,7 @@ import {
 } from "../rpc/http";
 import { AuthGate } from "./AuthGate";
 
-function renderWithQueryClient(ui: React.ReactElement) {
-  const client = new QueryClient();
-  return render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
-}
+
 
 describe("AuthGate", () => {
   afterEach(() => {
@@ -22,7 +19,7 @@ describe("AuthGate", () => {
   });
 
   test("renders children when there is no auth error", () => {
-    renderWithQueryClient(<AuthGate>Console content</AuthGate>);
+    renderWithConsoleProviders(<AuthGate>Console content</AuthGate>);
 
     expect(screen.getByText("Console content")).toBeInTheDocument();
   });
@@ -30,7 +27,7 @@ describe("AuthGate", () => {
   test("saves token to session storage by default", async () => {
     const onTokenSaved = vi.fn();
 
-    renderWithQueryClient(
+    renderWithConsoleProviders(
       <AuthGate
         error={new ApiError(401, "invalid_auth", "missing token")}
         onTokenSaved={onTokenSaved}
@@ -48,7 +45,7 @@ describe("AuthGate", () => {
   });
 
   test("saves remembered token to local storage", async () => {
-    renderWithQueryClient(
+    renderWithConsoleProviders(
       <AuthGate error={new ApiError(401, "invalid_auth", "missing token")}>
         Console content
       </AuthGate>

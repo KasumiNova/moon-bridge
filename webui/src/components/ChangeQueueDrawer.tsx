@@ -6,6 +6,7 @@ import {
   discardChanges,
   getChanges
 } from "../rpc/management";
+import { useI18n } from "../i18n/I18nProvider";
 import { queryKeys } from "../rpc/queryKeys";
 import type { ChangeRow } from "../rpc/types";
 import { LoadingState } from "./LoadingState";
@@ -17,6 +18,7 @@ export function ChangeQueueDrawer({
   open: boolean;
   onClose: () => void;
 }) {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const [message, setMessage] = useState("");
   const changes = useQuery({ queryKey: queryKeys.changes, queryFn: getChanges });
@@ -46,7 +48,7 @@ export function ChangeQueueDrawer({
       {open ? (
         <motion.aside
           className="change-drawer"
-          aria-label="Pending changes"
+          aria-label={t("changes.drawerTitle")}
           initial={{ opacity: 0, x: 24 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: 24 }}
@@ -54,16 +56,16 @@ export function ChangeQueueDrawer({
         >
           <header className="drawer-header">
             <div>
-              <p className="eyebrow">Change Queue</p>
-              <h2>Pending Changes</h2>
+              <p className="eyebrow">{t("changes.drawerEyebrow")}</p>
+              <h2>{t("changes.drawerTitle")}</h2>
             </div>
             <button type="button" className="icon-text-button" onClick={onClose}>
-              Close
+              {t("action.close")}
             </button>
           </header>
 
           {changes.isLoading ? (
-            <LoadingState label="Loading changes" />
+            <LoadingState label={t("changes.loading")} />
           ) : (
             <ChangeList changes={changes.data ?? []} compact />
           )}
@@ -74,7 +76,7 @@ export function ChangeQueueDrawer({
               onClick={() => apply.mutate()}
               disabled={apply.isPending}
             >
-              Apply changes
+              {t("action.applyChanges")}
             </button>
             <button
               type="button"
@@ -82,7 +84,7 @@ export function ChangeQueueDrawer({
               onClick={() => discard.mutate()}
               disabled={discard.isPending}
             >
-              Discard changes
+              {t("action.discardChanges")}
             </button>
           </div>
           {message ? <p className="feedback-banner">{message}</p> : null}
@@ -99,8 +101,9 @@ export function ChangeList({
   changes: ChangeRow[];
   compact?: boolean;
 }) {
+  const { t } = useI18n();
   if (changes.length === 0) {
-    return <p className="empty-state">No staged changes</p>;
+    return <p className="empty-state">{t("changes.empty")}</p>;
   }
 
   return (
@@ -108,11 +111,11 @@ export function ChangeList({
       {changes.map((change) => (
         <li key={change.ID ?? change.change_id ?? change.TargetKey ?? change.target}>
           <div>
-            <span className="status-pill">{change.Resource ?? change.resource ?? "resource"}</span>
-            <span className="status-pill status-pill--muted">{change.Action ?? change.action ?? "change"}</span>
+            <span className="status-pill">{change.Resource ?? change.resource ?? t("common.resource")}</span>
+            <span className="status-pill status-pill--muted">{change.Action ?? change.action ?? t("common.change")}</span>
           </div>
-          <strong>{change.TargetKey ?? change.target ?? "unknown"}</strong>
-          <p>{summarizeChange(change)}</p>
+          <strong>{change.TargetKey ?? change.target ?? t("common.unknown")}</strong>
+          <p>{summarizeChange(change) || t("changes.noSummary")}</p>
         </li>
       ))}
     </ul>
@@ -122,7 +125,7 @@ export function ChangeList({
 function summarizeChange(change: ChangeRow) {
   const after = change.After ?? change.after;
   const before = change.Before ?? change.before;
-  return compactJSON(after) || compactJSON(before) || "No payload summary";
+  return compactJSON(after) || compactJSON(before);
 }
 
 function compactJSON(value: string | undefined) {
