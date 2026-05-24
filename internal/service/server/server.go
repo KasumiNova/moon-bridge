@@ -21,6 +21,7 @@ import (
 	"moonbridge/internal/service/runtime"
 	"moonbridge/internal/service/stats"
 	"moonbridge/internal/service/store"
+	"moonbridge/internal/service/webui"
 
 	"moonbridge/internal/service/server/session"
 	"moonbridge/internal/service/server/trace"
@@ -153,6 +154,7 @@ func New(cfg Config) *Server {
 	s.mux.HandleFunc("/responses", s.handleResponses)
 	s.mux.HandleFunc("/v1/models", s.handleModels)
 	s.mux.HandleFunc("/models", s.handleModels)
+	s.mux.Handle("/console/", webui.Embedded())
 	s.registerPluginRoutes()
 	if cfg.Runtime != nil && cfg.Store != nil {
 		apiRouter := api.NewRouter(s.store, s.runtime, s.stats, s.pluginRegistry, s)
