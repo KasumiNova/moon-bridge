@@ -42,5 +42,9 @@ export const themeTokens: Record<ConsoleTheme, ThemeTokens> = {
 export function applyThemeTokens(theme: ConsoleTheme, root: HTMLElement): void {
   Object.entries(themeTokens[theme]).forEach(([name, value]) => {
     root.style.setProperty(name, value);
+    if (name.startsWith("--mb-color-")) {
+      const mdSysName = name.replace("--mb-color-", "--md-sys-color-");
+      root.style.setProperty(mdSysName, value);
+    }
   });
 }

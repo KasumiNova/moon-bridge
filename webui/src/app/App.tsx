@@ -231,7 +231,7 @@ const shellStyles = `
   }
 
   .locale-switch select {
-    min-height: 34px;
+    min-height: 38px;
     border: 1px solid color-mix(in srgb, var(--mb-color-outline) 45%, transparent);
     border-radius: 8px;
     padding: 0 8px;
@@ -242,15 +242,16 @@ const shellStyles = `
 
   .top-action-button,
   button {
-    min-height: 38px;
+    min-height: 40px;
     border: 0;
-    border-radius: 8px;
+    border-radius: 999px; /* MD3 Pill */
     padding: 0 14px;
     color: var(--mb-color-on-primary);
     background: var(--mb-color-primary);
     font: inherit;
     font-weight: 650;
     cursor: pointer;
+    transition: background-color var(--mb-motion-standard), box-shadow var(--mb-motion-standard);
   }
 
   button:disabled {
@@ -260,6 +261,7 @@ const shellStyles = `
 
   .secondary-button,
   .icon-text-button {
+    border-radius: 999px;
     color: var(--mb-color-on-surface);
     background: var(--mb-color-surface-container-high);
   }
@@ -301,7 +303,7 @@ const shellStyles = `
     place-items: center;
     gap: 3px;
     padding: 8px 4px;
-    border-radius: 8px;
+    border-radius: 16px; /* MD3 Nav item shape */
     color: var(--mb-color-on-surface-variant);
     text-decoration: none;
     transition:
@@ -337,7 +339,7 @@ const shellStyles = `
     border-radius: 8px;
     padding: 32px;
     background: var(--mb-color-surface-container);
-    box-shadow: 0 20px 60px color-mix(in srgb, var(--mb-color-shadow) 22%, transparent);
+    box-shadow: 0 4px 8px color-mix(in srgb, var(--mb-color-shadow) 15%, transparent);
   }
 
   .placeholder-panel > div {
@@ -400,7 +402,7 @@ const shellStyles = `
     border: 1px solid color-mix(in srgb, var(--mb-color-outline) 34%, transparent);
     border-radius: 8px;
     background: var(--mb-color-surface-container);
-    box-shadow: 0 14px 42px color-mix(in srgb, var(--mb-color-shadow) 16%, transparent);
+    box-shadow: 0 1px 3px color-mix(in srgb, var(--mb-color-shadow) 15%, transparent);
   }
 
   .metric-card {
@@ -578,11 +580,12 @@ const shellStyles = `
   .textarea-field textarea {
     width: 100%;
     min-height: 48px;
-    border: 1px solid color-mix(in srgb, var(--mb-color-outline) 44%, transparent);
-    border-radius: 8px;
+    border: 0;
+    border-bottom: 1px solid var(--mb-color-on-surface-variant);
+    border-radius: 4px 4px 0 0;
     padding: 10px 12px;
     color: var(--mb-color-on-surface);
-    background: color-mix(in srgb, var(--mb-color-surface) 86%, var(--mb-color-primary) 4%);
+    background: var(--mb-color-surface-container-high);
     font: inherit;
     transition:
       border-color var(--mb-motion-standard),
@@ -603,7 +606,7 @@ const shellStyles = `
   .textarea-field textarea:focus {
     outline: 0;
     border-color: var(--mb-color-primary);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--mb-color-primary) 24%, transparent);
+    border-bottom: 2px solid var(--mb-color-primary);
   }
 
   .form-grid__wide,
