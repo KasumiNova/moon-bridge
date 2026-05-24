@@ -35,7 +35,7 @@ describe("RoutesPage", () => {
     expect(screen.getByText("Moon Bridge Default")).toBeInTheDocument();
   });
 
-  test("stages a route alias from the visual form", async () => {
+  test("saves a route alias for Apply", async () => {
     vi.spyOn(management, "listRoutes").mockResolvedValue({
       data: [],
       total: 0,
@@ -48,7 +48,7 @@ describe("RoutesPage", () => {
 
     renderWithConsoleProviders(<RoutesPage />);
 
-    const routeForm = (await screen.findByRole("heading", { name: /stage route/i }))
+    const routeForm = (await screen.findByRole("heading", { name: /save route/i }))
       .closest("section")!;
     const routeArea = within(routeForm);
 
@@ -58,7 +58,7 @@ describe("RoutesPage", () => {
     await userEvent.type(routeArea.getByLabelText(/^display name$/i), "Default Route");
     await userEvent.clear(routeArea.getByLabelText(/^context window$/i));
     await userEvent.type(routeArea.getByLabelText(/^context window$/i), "200000");
-    await userEvent.click(screen.getByRole("button", { name: /stage route/i }));
+    await userEvent.click(screen.getByRole("button", { name: /save route/i }));
 
     expect(putRoute).toHaveBeenCalledWith("moonbridge", {
       model: "claude-sonnet",
@@ -66,6 +66,6 @@ describe("RoutesPage", () => {
       display_name: "Default Route",
       context_window: 200000
     });
-    expect(await screen.findByText(/staged change #14/i)).toBeInTheDocument();
+    expect(await screen.findByText(/edit #14 ready to apply/i)).toBeInTheDocument();
   });
 });

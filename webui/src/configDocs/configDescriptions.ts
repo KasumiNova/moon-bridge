@@ -80,8 +80,8 @@ export const configDescriptions: Record<ConfigPath, ConfigDocEntry> = {
     "persistence.active_provider",
     "持久化提供商",
     "Persistence provider",
-    "选择配置存储后端。启用后控制台才能暂存、应用和丢弃配置变更。",
-    "Selects the configuration store backend. The console needs it to stage, apply, and discard config changes.",
+    "选择配置存储后端。启用后控制台才能保存、应用和丢弃配置编辑。",
+    "Selects the configuration store backend. The console needs it to save, apply, and discard config edits.",
     "db_sqlite | db_d1",
     "db_sqlite"
   ),
@@ -352,8 +352,8 @@ function entry(
     defaultValue,
     sensitive,
     apply: {
-      "zh-CN": "通过管理 API 暂存，执行 Apply 后重新加载运行时配置。",
-      "en-US": "Staged through the management API and loaded into runtime after Apply."
+      "zh-CN": "通过管理 API 保存，执行 Apply 后重新加载运行时配置。",
+      "en-US": "Saved through the management API and loaded into runtime after Apply."
     }
   };
 }

@@ -35,7 +35,7 @@ describe("ModelsPage", () => {
     expect(screen.getByText("anthropic")).toBeInTheDocument();
   });
 
-  test("stages a model definition from the visual form", async () => {
+  test("saves a model definition for Apply", async () => {
     vi.spyOn(management, "listModels").mockResolvedValue({
       data: [],
       total: 0,
@@ -55,7 +55,7 @@ describe("ModelsPage", () => {
     await userEvent.type(screen.getByLabelText(/context window/i), "32000");
     await userEvent.clear(screen.getByLabelText(/max output/i));
     await userEvent.type(screen.getByLabelText(/max output/i), "4096");
-    await userEvent.click(screen.getByRole("button", { name: /stage model/i }));
+    await userEvent.click(screen.getByRole("button", { name: /save model/i }));
 
     expect(putModel).toHaveBeenCalledWith("new-model", {
       display_name: "New Model",
@@ -63,6 +63,6 @@ describe("ModelsPage", () => {
       context_window: 32000,
       max_output_tokens: 4096
     });
-    expect(await screen.findByText(/staged change #10/i)).toBeInTheDocument();
+    expect(await screen.findByText(/edit #10 ready to apply/i)).toBeInTheDocument();
   });
 });

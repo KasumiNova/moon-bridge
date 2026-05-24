@@ -44,7 +44,7 @@ describe("console smoke flow", () => {
     expect(screen.getByText("0 pending")).toBeInTheDocument();
   });
 
-  test("config generator creates YAML and import stages changes", async () => {
+  test("config imports raw YAML as edits ready to apply", async () => {
     vi.spyOn(management, "getEffectiveConfig").mockResolvedValue({});
     vi.spyOn(management, "getDefaults").mockResolvedValue({
       model: "moonbridge",
@@ -62,17 +62,18 @@ describe("console smoke flow", () => {
     const importConfig = vi.spyOn(management, "importConfig").mockResolvedValue({
       changes: [{ change_id: 1, resource: "route", target: "moonbridge" }],
       count: 1,
-      message: "staged"
+      message: ""
     });
     vi.spyOn(management, "exportConfig").mockResolvedValue("mode: Transform\n");
 
     renderWithConsoleProviders(<ConfigPage />);
 
-    await userEvent.click(await screen.findByRole("button", { name: /generate yaml/i }));
-    expect(screen.getByDisplayValue(/providers:/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /generate yaml/i })).not.toBeInTheDocument();
+    await userEvent.clear(await screen.findByLabelText(/yaml editor/i));
+    await userEvent.type(screen.getByLabelText(/yaml editor/i), "mode: Transform");
     await userEvent.click(screen.getByRole("button", { name: /import/i }));
 
-    expect(importConfig).toHaveBeenCalledWith(expect.stringContaining("routes:"));
-    expect(await screen.findByText("staged")).toBeInTheDocument();
+    expect(importConfig).toHaveBeenCalledWith("mode: Transform");
+    expect(await screen.findByText(/1 edits ready to apply/i)).toBeInTheDocument();
   });
 });

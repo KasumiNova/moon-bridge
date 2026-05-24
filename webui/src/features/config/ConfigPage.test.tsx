@@ -12,7 +12,7 @@ describe("ConfigPage", () => {
     vi.restoreAllMocks();
   });
 
-  test("generates YAML and validates it", async () => {
+  test("hides the visual generator by default and validates raw YAML", async () => {
     vi.spyOn(management, "getEffectiveConfig").mockResolvedValue({});
     vi.spyOn(management, "exportConfig").mockResolvedValue("mode: Transform\n");
     const validate = vi
@@ -26,14 +26,13 @@ describe("ConfigPage", () => {
 
     renderWithConsoleProviders(<ConfigPage />);
 
-    await userEvent.clear(await screen.findByLabelText(/provider key/i));
-    await userEvent.type(screen.getByLabelText(/provider key/i), "preview");
-    await userEvent.click(screen.getByRole("button", { name: /generate yaml/i }));
-    expect(screen.getByDisplayValue(/providers:/i)).toBeInTheDocument();
-
+    expect(screen.queryByRole("button", { name: /generate yaml/i })).not.toBeInTheDocument();
+    const editor = await screen.findByLabelText(/yaml editor/i);
+    await userEvent.clear(editor);
+    await userEvent.type(editor, "mode: Transform");
     await userEvent.click(screen.getByRole("button", { name: /^validate$/i }));
 
-    expect(validate).toHaveBeenCalledWith(expect.stringContaining("preview:"));
+    expect(validate).toHaveBeenCalledWith("mode: Transform");
     expect(await screen.findByText(/valid config/i)).toBeInTheDocument();
   });
 
@@ -46,7 +45,7 @@ describe("ConfigPage", () => {
     const importConfig = vi.spyOn(management, "importConfig").mockResolvedValue({
       changes: [{ change_id: 1, resource: "model", target: "claude-sonnet" }],
       count: 1,
-      message: "staged"
+      message: ""
     });
 
     renderWithConsoleProviders(<ConfigPage />);
@@ -56,7 +55,7 @@ describe("ConfigPage", () => {
     await userEvent.click(screen.getByRole("button", { name: /import/i }));
 
     expect(importConfig).toHaveBeenCalledWith("mode: Transform");
-    expect(await screen.findByText("staged")).toBeInTheDocument();
+    expect(await screen.findByText(/1 edits ready to apply/i)).toBeInTheDocument();
 
     await userEvent.click(screen.getByLabelText(/include secrets/i));
     await userEvent.click(screen.getByRole("button", { name: /export/i }));
@@ -64,7 +63,7 @@ describe("ConfigPage", () => {
     expect(exportConfig).toHaveBeenLastCalledWith({ includeSecrets: true });
   });
 
-  test("stages defaults and web search settings", async () => {
+  test("keeps edited defaults and web search local for the global apply action", async () => {
     vi.spyOn(management, "getEffectiveConfig").mockResolvedValue({});
     vi.spyOn(management, "exportConfig").mockResolvedValue("mode: Transform\n");
     vi.spyOn(management, "getDefaults").mockResolvedValue({
@@ -89,7 +88,7 @@ describe("ConfigPage", () => {
     vi.spyOn(management, "importConfig").mockResolvedValue({
       changes: [],
       count: 0,
-      message: "staged"
+      message: ""
     });
 
     renderWithConsoleProviders(<ConfigPage />);
@@ -98,15 +97,14 @@ describe("ConfigPage", () => {
     await waitFor(() => expect(defaultModel).toHaveValue("moonbridge"));
     await userEvent.clear(defaultModel);
     await userEvent.type(defaultModel, "claude-sonnet");
-    await userEvent.click(screen.getByRole("button", { name: /stage defaults/i }));
-    expect(putDefaults).toHaveBeenCalledWith(expect.objectContaining({
-      model: "claude-sonnet"
-    }));
+    expect(putDefaults).not.toHaveBeenCalled();
+    expect(screen.getByText(/unsaved edits/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /stage defaults/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /send defaults/i })).not.toBeInTheDocument();
 
     await userEvent.selectOptions(screen.getByLabelText(/web search support/i), "enabled");
-    await userEvent.click(screen.getByRole("button", { name: /stage web search/i }));
-    expect(putWebSearch).toHaveBeenCalledWith(expect.objectContaining({
-      support: "enabled"
-    }));
+    expect(putWebSearch).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: /stage web search/i })).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/tavily api key/i)).toHaveValue("******");
   });
 });

@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { motion } from "motion/react";
 import { LoadingState } from "../../components/LoadingState";
 import {
   exportConfig,
@@ -11,14 +12,17 @@ import {
   putWebSearch,
   validateConfig
 } from "../../rpc/management";
+import { useApplyDrafts } from "../../app/ApplyDraftContext";
 import { FieldWithHint, PageHeader, QueryErrorState } from "../shared";
 import { useI18n } from "../../i18n/I18nProvider";
 import { ConfigGenerator } from "./ConfigGenerator";
 
 const defaultYAML = "mode: Transform\n";
+const secretSentinel = "******";
 
 export function ConfigPage() {
   const { t } = useI18n();
+  const { registerApplyTask } = useApplyDrafts();
   const [yaml, setYAML] = useState(defaultYAML);
   const [includeSecrets, setIncludeSecrets] = useState(false);
   const [feedback, setFeedback] = useState("");
@@ -46,6 +50,30 @@ export function ConfigPage() {
     queryKey: ["web-search"],
     queryFn: getWebSearch
   });
+  const showVisualGenerator = new URLSearchParams(window.location.search).has("debugConfigGenerator");
+  const defaultsDirty = useMemo(() => {
+    if (!defaults.data) {
+      return false;
+    }
+    return (
+      defaultsForm.model !== defaults.data.model ||
+      Number(defaultsForm.max_tokens) !== defaults.data.max_tokens ||
+      defaultsForm.system_prompt !== defaults.data.system_prompt
+    );
+  }, [defaults.data, defaultsForm]);
+  const webSearchDirty = useMemo(() => {
+    if (!webSearch.data) {
+      return false;
+    }
+    return (
+      webSearchForm.support !== webSearch.data.support ||
+      Number(webSearchForm.max_uses) !== webSearch.data.max_uses ||
+      webSearchForm.tavily_api_key !== normalizeSecretField(webSearch.data.tavily_api_key) ||
+      webSearchForm.firecrawl_api_key !== normalizeSecretField(webSearch.data.firecrawl_api_key) ||
+      Number(webSearchForm.search_max_rounds) !== webSearch.data.search_max_rounds
+    );
+  }, [webSearch.data, webSearchForm]);
+  const hasUnsavedEdits = defaultsDirty || webSearchDirty;
 
   useEffect(() => {
     if (defaults.data) {
@@ -62,12 +90,43 @@ export function ConfigPage() {
       setWebSearchForm({
         support: webSearch.data.support,
         max_uses: String(webSearch.data.max_uses),
-        tavily_api_key: "******",
-        firecrawl_api_key: "******",
+        tavily_api_key: normalizeSecretField(webSearch.data.tavily_api_key),
+        firecrawl_api_key: normalizeSecretField(webSearch.data.firecrawl_api_key),
         search_max_rounds: String(webSearch.data.search_max_rounds)
       });
     }
   }, [webSearch.data]);
+
+  useEffect(() => registerApplyTask("config", async () => {
+    const tasks: Promise<unknown>[] = [];
+    if (defaultsDirty) {
+      tasks.push(putDefaults({
+        model: defaultsForm.model,
+        max_tokens: Number(defaultsForm.max_tokens),
+        system_prompt: defaultsForm.system_prompt
+      }));
+    }
+    if (webSearchDirty) {
+      tasks.push(putWebSearch({
+        support: webSearchForm.support,
+        max_uses: Number(webSearchForm.max_uses),
+        tavily_api_key: webSearchForm.tavily_api_key,
+        firecrawl_api_key: webSearchForm.firecrawl_api_key,
+        search_max_rounds: Number(webSearchForm.search_max_rounds)
+      }));
+    }
+    if (tasks.length > 0) {
+      await Promise.all(tasks);
+      setFeedback(t("feedback.readyToApply", { count: tasks.length }));
+    }
+  }), [
+    defaultsDirty,
+    defaultsForm,
+    registerApplyTask,
+    t,
+    webSearchDirty,
+    webSearchForm
+  ]);
 
   async function validate() {
     const result = await validateConfig(yaml);
@@ -76,7 +135,7 @@ export function ConfigPage() {
 
   async function importYAML() {
     const result = await importConfig(yaml);
-    setFeedback(result.message || t("feedback.changesStaged", { count: result.count }));
+    setFeedback(result.message || t("feedback.readyToApply", { count: result.count }));
   }
 
   async function exportYAML() {
@@ -85,38 +144,30 @@ export function ConfigPage() {
     setFeedback(includeSecrets ? t("config.exportedSecrets") : t("config.exportedMasked"));
   }
 
-  async function stageDefaults() {
-    const result = await putDefaults({
-      model: defaultsForm.model,
-      max_tokens: Number(defaultsForm.max_tokens),
-      system_prompt: defaultsForm.system_prompt
-    });
-    setFeedback(t("feedback.stagedChange", { id: result.change_id }));
-  }
-
-  async function stageWebSearch() {
-    const result = await putWebSearch({
-      support: webSearchForm.support,
-      max_uses: Number(webSearchForm.max_uses),
-      tavily_api_key: webSearchForm.tavily_api_key,
-      firecrawl_api_key: webSearchForm.firecrawl_api_key,
-      search_max_rounds: Number(webSearchForm.search_max_rounds)
-    });
-    setFeedback(t("feedback.stagedChange", { id: result.change_id }));
-  }
-
   return (
     <section className="page-stack" aria-labelledby="config-title">
-      <PageHeader eyebrow={t("config.visualGenerator")} title={t("nav.config")}>
+      <PageHeader eyebrow={t("pageEyebrow.config")} title={t("nav.config")}>
         {t("config.description")}
       </PageHeader>
 
-      <section className="content-panel">
-        <h2>{t("config.visualGenerator")}</h2>
-        <ConfigGenerator onGenerate={setYAML} />
-      </section>
+      {showVisualGenerator ? (
+        <motion.section
+          className="content-panel"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.18 }}
+        >
+          <h2>{t("config.visualGenerator")}</h2>
+          <ConfigGenerator onGenerate={setYAML} />
+        </motion.section>
+      ) : null}
 
-      <section className="content-panel">
+      <motion.section
+        className="content-panel content-panel--subtle"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.18 }}
+      >
         <h2>{t("config.yamlImport")}</h2>
         <label className="textarea-field">
           {t("field.yamlEditor")}
@@ -147,10 +198,26 @@ export function ConfigPage() {
           </label>
           {feedback ? <span className="feedback-inline">{feedback}</span> : null}
         </div>
-      </section>
+      </motion.section>
+
+      {hasUnsavedEdits ? (
+        <motion.p
+          className="feedback-banner edit-state-banner"
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.16 }}
+        >
+          {t("feedback.unsavedEdits")}
+        </motion.p>
+      ) : null}
 
       <div className="section-grid">
-        <section className="content-panel">
+        <motion.section
+          className="content-panel config-edit-panel"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2, delay: 0.02 }}
+        >
           <h2>{t("config.defaults")}</h2>
           <div className="form-grid">
             <FieldWithHint hintId="defaults-model-hint" hintPath="defaults.model">
@@ -188,15 +255,15 @@ export function ConfigPage() {
                 />
               </label>
             </FieldWithHint>
-            <div className="form-actions">
-              <button type="button" onClick={stageDefaults}>
-                {t("action.stageDefaults")}
-              </button>
-            </div>
           </div>
-        </section>
+        </motion.section>
 
-        <section className="content-panel">
+        <motion.section
+          className="content-panel config-edit-panel"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2, delay: 0.04 }}
+        >
           <h2>{t("config.webSearch")}</h2>
           <div className="form-grid">
             <FieldWithHint hintId="web-search-support-hint" hintPath="web_search.support">
@@ -261,16 +328,16 @@ export function ConfigPage() {
                 />
               </label>
             </FieldWithHint>
-            <div className="form-actions">
-              <button type="button" onClick={stageWebSearch}>
-                {t("action.stageWebSearch")}
-              </button>
-            </div>
           </div>
-        </section>
+        </motion.section>
       </div>
 
-      <section className="content-panel">
+      <motion.section
+        className="content-panel"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2, delay: 0.06 }}
+      >
         <h2>{t("config.effectiveSnapshot")}</h2>
         {effective.isLoading ? (
           <LoadingState label={t("config.loadingEffective")} />
@@ -279,7 +346,7 @@ export function ConfigPage() {
         ) : (
           <pre className="json-block">{JSON.stringify(effective.data ?? {}, null, 2)}</pre>
         )}
-      </section>
+      </motion.section>
     </section>
   );
 
@@ -290,4 +357,11 @@ export function ConfigPage() {
   function updateWebSearch(field: keyof typeof webSearchForm, value: string) {
     setWebSearchForm((current) => ({ ...current, [field]: value }));
   }
+}
+
+function normalizeSecretField(value: string | undefined) {
+  if (!value || value.includes("*")) {
+    return secretSentinel;
+  }
+  return value;
 }

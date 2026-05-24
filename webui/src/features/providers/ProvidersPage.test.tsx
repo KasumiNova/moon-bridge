@@ -44,7 +44,7 @@ describe("ProvidersPage", () => {
     expect(screen.getByText("Not available")).toBeInTheDocument();
   });
 
-  test("stages a provider definition and offer from visual forms", async () => {
+  test("saves a provider definition and offer for Apply", async () => {
     vi.spyOn(management, "listProviders").mockResolvedValue({
       data: [],
       total: 0,
@@ -60,7 +60,7 @@ describe("ProvidersPage", () => {
 
     renderWithConsoleProviders(<ProvidersPage />);
 
-    const providerForm = (await screen.findByRole("heading", { name: /stage provider/i }))
+    const providerForm = (await screen.findByRole("heading", { name: /save provider/i }))
       .closest("section")!;
     const providerArea = within(providerForm);
 
@@ -68,7 +68,7 @@ describe("ProvidersPage", () => {
     await userEvent.type(providerArea.getByLabelText(/^base url$/i), "https://provider.test");
     await userEvent.type(providerArea.getByLabelText(/^api key$/i), "secret");
     await userEvent.selectOptions(providerArea.getByLabelText(/^protocol$/i), "anthropic");
-    await userEvent.click(screen.getByRole("button", { name: /stage provider/i }));
+    await userEvent.click(screen.getByRole("button", { name: /save provider/i }));
 
     expect(putProvider).toHaveBeenCalledWith("preview", {
       base_url: "https://provider.test",
@@ -78,18 +78,18 @@ describe("ProvidersPage", () => {
       user_agent: ""
     });
 
-    const offerForm = screen.getByRole("heading", { name: /stage offer/i })
+    const offerForm = screen.getByRole("heading", { name: /save offer/i })
       .closest("section")!;
     const offerArea = within(offerForm);
 
     await userEvent.type(offerArea.getByLabelText(/^offer model$/i), "claude-sonnet");
     await userEvent.type(offerArea.getByLabelText(/^upstream name$/i), "claude-3-5-sonnet");
-    await userEvent.click(screen.getByRole("button", { name: /stage offer/i }));
+    await userEvent.click(screen.getByRole("button", { name: /save offer/i }));
 
     expect(createOffer).toHaveBeenCalledWith("preview", expect.objectContaining({
       model: "claude-sonnet",
       upstream_name: "claude-3-5-sonnet"
     }));
-    expect(await screen.findByText(/staged change #13/i)).toBeInTheDocument();
+    expect(await screen.findByText(/edit #13 ready to apply/i)).toBeInTheDocument();
   });
 });

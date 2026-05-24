@@ -12,7 +12,7 @@ describe("ExtensionsPage", () => {
     vi.restoreAllMocks();
   });
 
-  test("loads extension JSON and stages updates", async () => {
+  test("loads extension JSON and saves edits for Apply", async () => {
     vi.spyOn(management, "listExtensions").mockResolvedValue(["deepseek_v4"]);
     vi.spyOn(management, "getExtension").mockResolvedValue({
       enabled: true,
@@ -26,12 +26,12 @@ describe("ExtensionsPage", () => {
 
     await userEvent.click(await screen.findByRole("button", { name: "deepseek_v4" }));
     expect(await screen.findByDisplayValue(/reinforce_instructions/)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: /stage extension/i }));
+    await userEvent.click(screen.getByRole("button", { name: /save extension/i }));
 
     expect(putExtension).toHaveBeenCalledWith("deepseek_v4", {
       enabled: true,
       config: { reinforce_instructions: true }
     });
-    expect(await screen.findByText(/staged change #22/i)).toBeInTheDocument();
+    expect(await screen.findByText(/edit #22 ready to apply/i)).toBeInTheDocument();
   });
 });

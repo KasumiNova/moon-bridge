@@ -1,11 +1,13 @@
 import "@material/web/button/text-button.js";
+import "@material/web/button/filled-button.js";
 import "@material/web/icon/icon.js";
 import "@material/web/iconbutton/icon-button.js";
 import "@material/web/ripple/ripple.js";
-import { createElement, useState } from "react";
+import { createElement, type ReactNode, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { motion } from "motion/react";
-import { ChangeQueueDrawer } from "../components/ChangeQueueDrawer";
+import { ApplyChangesDialog } from "./ApplyChangesDialog";
+import { ApplyDraftProvider, useApplyDrafts } from "./ApplyDraftContext";
 import { type Locale } from "../i18n/messages";
 import { useI18n } from "../i18n/I18nProvider";
 import { useConsoleTheme } from "../theme/ThemeProvider";
@@ -16,18 +18,41 @@ const navItems = [
   { to: "/providers", icon: "lan", labelKey: "nav.providers" },
   { to: "/routes", icon: "alt_route", labelKey: "nav.routes" },
   { to: "/extensions", icon: "extension", labelKey: "nav.extensions" },
-  { to: "/changes", icon: "pending_actions", labelKey: "nav.changes" },
   { to: "/config", icon: "tune", labelKey: "nav.config" },
   { to: "/rpc-test", icon: "science", labelKey: "nav.rpcTest" }
 ] as const;
 
 export function App() {
+  return <AppShell content={<Outlet />} />;
+}
+
+export function AppShell({ content }: { content?: ReactNode }) {
+  return (
+    <ApplyDraftProvider>
+      <AppShellContent content={content} />
+    </ApplyDraftProvider>
+  );
+}
+
+function AppShellContent({ content }: { content?: ReactNode }) {
   const { theme, toggleTheme } = useConsoleTheme();
   const { locale, setLocale, t } = useI18n();
-  const [changeDrawerOpen, setChangeDrawerOpen] = useState(false);
+  const { runApplyTasks } = useApplyDrafts();
+  const [applyDialogOpen, setApplyDialogOpen] = useState(false);
+  const [isPreparingApply, setIsPreparingApply] = useState(false);
   const nextTheme = theme === "dark" ? "light" : "dark";
   const themeIcon = theme === "dark" ? "light_mode" : "dark_mode";
   const nextThemeLabel = t(nextTheme === "dark" ? "theme.dark" : "theme.light");
+
+  async function openApplyPreview() {
+    setIsPreparingApply(true);
+    try {
+      await runApplyTasks();
+      setApplyDialogOpen(true);
+    } finally {
+      setIsPreparingApply(false);
+    }
+  }
 
   return (
     <div className="app-shell">
@@ -40,13 +65,16 @@ export function App() {
         <div className="top-app-bar__meta">
           <span>{t("app.sameOriginApi")}</span>
           <span>{t("app.runtimeApi")}</span>
-          <button
-            type="button"
-            className="top-action-button"
-            onClick={() => setChangeDrawerOpen(true)}
-          >
-            {t("app.changes")}
-          </button>
+          {createElement(
+            "md-filled-button",
+            {
+              "aria-label": t("action.apply"),
+              disabled: isPreparingApply,
+              role: "button",
+              onClick: openApplyPreview
+            },
+            t("action.apply")
+          )}
           <label className="locale-switch">
             <span>{t("app.language")}</span>
             <select
@@ -93,12 +121,12 @@ export function App() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.18 }}
         >
-          <Outlet />
+          {content ?? <Outlet />}
         </motion.main>
       </div>
-      <ChangeQueueDrawer
-        open={changeDrawerOpen}
-        onClose={() => setChangeDrawerOpen(false)}
+      <ApplyChangesDialog
+        open={applyDialogOpen}
+        onClose={() => setApplyDialogOpen(false)}
       />
     </div>
   );
@@ -192,6 +220,10 @@ const shellStyles = `
     background: var(--mb-color-surface-container);
   }
 
+  .top-app-bar__meta md-filled-button {
+    flex: 0 0 auto;
+  }
+
   .locale-switch {
     display: inline-flex;
     align-items: center;
@@ -230,6 +262,12 @@ const shellStyles = `
   .icon-text-button {
     color: var(--mb-color-on-surface);
     background: var(--mb-color-surface-container-high);
+  }
+
+  md-filled-button {
+    --md-filled-button-container-color: var(--mb-color-primary);
+    --md-filled-button-label-text-color: var(--mb-color-on-primary);
+    --md-filled-button-container-shape: 999px;
   }
 
   md-icon-button {
@@ -389,8 +427,8 @@ const shellStyles = `
 
   .section-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+    gap: 16px;
   }
 
   .content-panel,
@@ -410,6 +448,10 @@ const shellStyles = `
     margin: 0 0 14px;
     font-size: 1rem;
     line-height: 1.3;
+  }
+
+  .content-panel--subtle {
+    background: color-mix(in srgb, var(--mb-color-surface-container) 74%, var(--mb-color-surface));
   }
 
   .state-panel p:last-child {
@@ -508,17 +550,19 @@ const shellStyles = `
 
   .form-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 14px;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+    gap: 18px;
+    align-items: start;
   }
 
   .form-grid label,
   .form-field {
     display: grid;
-    gap: 6px;
+    gap: 8px;
     color: var(--mb-color-on-surface-variant);
     font-size: 0.82rem;
     font-weight: 650;
+    min-width: 0;
   }
 
   .form-field label {
@@ -533,13 +577,33 @@ const shellStyles = `
   .form-grid textarea,
   .textarea-field textarea {
     width: 100%;
-    min-height: 42px;
+    min-height: 48px;
     border: 1px solid color-mix(in srgb, var(--mb-color-outline) 44%, transparent);
     border-radius: 8px;
-    padding: 8px 10px;
+    padding: 10px 12px;
     color: var(--mb-color-on-surface);
-    background: var(--mb-color-surface);
+    background: color-mix(in srgb, var(--mb-color-surface) 86%, var(--mb-color-primary) 4%);
     font: inherit;
+    transition:
+      border-color var(--mb-motion-standard),
+      box-shadow var(--mb-motion-standard),
+      background var(--mb-motion-standard);
+  }
+
+  .form-grid input:hover,
+  .form-grid select:hover,
+  .form-grid textarea:hover,
+  .textarea-field textarea:hover {
+    border-color: color-mix(in srgb, var(--mb-color-primary) 72%, var(--mb-color-outline));
+  }
+
+  .form-grid input:focus,
+  .form-grid select:focus,
+  .form-grid textarea:focus,
+  .textarea-field textarea:focus {
+    outline: 0;
+    border-color: var(--mb-color-primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--mb-color-primary) 24%, transparent);
   }
 
   .form-grid__wide,
@@ -560,6 +624,14 @@ const shellStyles = `
     font-weight: 650;
   }
 
+  .edit-state-banner {
+    margin: 0;
+    border: 1px solid color-mix(in srgb, var(--mb-color-primary) 40%, transparent);
+    border-radius: 8px;
+    padding: 12px 14px;
+    background: color-mix(in srgb, var(--mb-color-primary-container) 42%, var(--mb-color-surface));
+  }
+
   .textarea-field {
     display: grid;
     gap: 8px;
@@ -573,6 +645,19 @@ const shellStyles = `
     resize: vertical;
     font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
     line-height: 1.45;
+  }
+
+  .field-hint {
+    display: block;
+    color: var(--mb-color-on-surface-variant);
+    font-size: 0.76rem;
+    line-height: 1.45;
+    font-weight: 450;
+    overflow-wrap: anywhere;
+  }
+
+  .field-hint span {
+    display: inline-block;
   }
 
   .checkbox-inline {
@@ -621,6 +706,27 @@ const shellStyles = `
     padding: 18px;
     background: var(--mb-color-surface-container-high);
     box-shadow: 0 24px 80px color-mix(in srgb, var(--mb-color-shadow) 34%, transparent);
+  }
+
+  .dialog-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 4;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: rgba(0, 0, 0, 0.42);
+  }
+
+  .apply-dialog {
+    width: min(640px, 100%);
+    max-height: min(720px, calc(100vh - 48px));
+    overflow: auto;
+    border: 1px solid color-mix(in srgb, var(--mb-color-outline) 38%, transparent);
+    border-radius: 28px;
+    padding: 22px;
+    background: var(--mb-color-surface-container);
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.34);
   }
 
   .drawer-header,
