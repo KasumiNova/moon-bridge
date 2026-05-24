@@ -33,7 +33,8 @@ export type ProviderSummary = {
   health_status: string;
 };
 
-export type ProviderDetail = ProviderSummary & {
+export type ProviderDetail = Omit<ProviderSummary, "health_status"> & {
+  health_status?: string;
   api_key: string;
   version: string;
   user_agent: string;
@@ -89,10 +90,22 @@ export type RouteUpsert = {
 };
 
 export type ChangeRow = {
+  ID?: number;
+  BatchID?: string;
+  Action?: string;
+  Resource?: string;
+  TargetKey?: string;
+  Before?: string;
+  After?: string;
+  Applied?: boolean;
+  Error?: string;
+  Revision?: number;
+  CreatedAt?: string;
+  AppliedAt?: string;
   id?: number;
   change_id?: number;
-  action: string;
-  resource: string;
+  action?: string;
+  resource?: string;
   target_key?: string;
   target?: string;
   before?: string;

@@ -2,6 +2,8 @@ export const API_BASE = "/api/v1";
 export const TOKEN_STORAGE_KEY = "moonbridge.console.token";
 export const REMEMBER_TOKEN_STORAGE_KEY = "moonbridge.console.rememberedToken";
 
+let volatileToken = "";
+
 export type ApiFetchOptions = Omit<RequestInit, "body" | "headers"> & {
   body?: unknown;
   headers?: HeadersInit;
@@ -31,10 +33,11 @@ export function readStoredToken(): string {
   if (sessionToken) {
     return sessionToken;
   }
-  return safeGetStorage(getStorage("localStorage"), REMEMBER_TOKEN_STORAGE_KEY) ?? "";
+  return safeGetStorage(getStorage("localStorage"), REMEMBER_TOKEN_STORAGE_KEY) ?? volatileToken;
 }
 
 export function saveToken(token: string, remember: boolean) {
+  volatileToken = token;
   safeSetStorage(getStorage("sessionStorage"), TOKEN_STORAGE_KEY, token);
   if (remember) {
     safeSetStorage(getStorage("localStorage"), REMEMBER_TOKEN_STORAGE_KEY, token);
@@ -74,7 +77,12 @@ export function normalizeURL(path: string): string {
   if (/^https?:\/\//.test(path)) {
     return path;
   }
-  if (path.startsWith("/api/v1/") || path === "/api/v1") {
+  if (
+    path.startsWith("/api/v1/") ||
+    path === "/api/v1" ||
+    path.startsWith("/v1/") ||
+    path === "/v1"
+  ) {
     return path;
   }
   if (path.startsWith("/")) {
@@ -85,10 +93,18 @@ export function normalizeURL(path: string): string {
 
 async function readPayload(response: Response): Promise<unknown> {
   const contentType = response.headers.get("Content-Type") ?? "";
-  if (contentType.includes("application/json")) {
-    return response.json();
+  const text = await response.text();
+  if (!text) {
+    return undefined;
   }
-  return response.text();
+  if (contentType.includes("application/json")) {
+    try {
+      return JSON.parse(text);
+    } catch {
+      return text;
+    }
+  }
+  return text;
 }
 
 function normalizeError(status: number, raw: unknown): ApiError {

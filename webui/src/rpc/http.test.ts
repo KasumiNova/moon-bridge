@@ -3,7 +3,9 @@ import {
   ApiError,
   REMEMBER_TOKEN_STORAGE_KEY,
   TOKEN_STORAGE_KEY,
-  apiFetch
+  apiFetch,
+  readStoredToken,
+  saveToken
 } from "./http";
 
 function jsonResponse(body: unknown, init?: ResponseInit) {
@@ -103,5 +105,48 @@ describe("apiFetch", () => {
 
     await expect(apiFetch("/status")).resolves.toEqual({ ok: true });
     expect(fetchMock.mock.calls[0][1]?.headers).not.toHaveProperty("Authorization");
+  });
+
+  test("keeps a session token in memory when storage writes are blocked", () => {
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+
+    saveToken("volatile-token", false);
+
+    expect(readStoredToken()).toBe("volatile-token");
+  });
+
+  test("normalizes empty error responses", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response("", {
+        status: 401,
+        headers: { "Content-Type": "application/json" }
+      })
+    );
+
+    await expect(apiFetch("/status")).rejects.toMatchObject({
+      status: 401,
+      code: "request_error",
+      message: "Request failed with status 401"
+    });
+  });
+
+  test("normalizes malformed JSON error responses", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response("{", {
+        status: 502,
+        headers: { "Content-Type": "application/json" }
+      })
+    );
+
+    await expect(apiFetch("/status")).rejects.toMatchObject({
+      status: 502,
+      code: "request_error",
+      message: "Request failed with status 502"
+    });
   });
 });

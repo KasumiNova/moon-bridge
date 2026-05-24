@@ -282,6 +282,7 @@ func runTransform(ctx context.Context, cfg config.Config, errors io.Writer) erro
 		PluginRegistry:  plugins,
 		AppConfig:       serverCfg,
 		Runtime:         rt,
+		Store:           cs,
 		AdapterRegistry: adapterReg,
 		SessionManager:  sessMgr,
 		UsageTracker:    usageTrk,

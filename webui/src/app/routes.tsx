@@ -1,20 +1,14 @@
 import { Navigate, Outlet, createBrowserRouter } from "react-router-dom";
 import { App } from "./App";
-
-function PlaceholderPage({ title }: { title: string }) {
-  return (
-    <section className="placeholder-panel" aria-labelledby="page-title">
-      <div>
-        <p className="eyebrow">Console workspace</p>
-        <h1 id="page-title">{title}</h1>
-        <p>
-          This surface is ready for Moon Bridge API data, staged changes, and
-          operational controls.
-        </p>
-      </div>
-    </section>
-  );
-}
+import { ChangesPage } from "../features/changes/ChangesPage";
+import { ConfigPage } from "../features/config/ConfigPage";
+import { ExtensionsPage } from "../features/extensions/ExtensionsPage";
+import { ModelsPage } from "../features/models/ModelsPage";
+import { OverviewPage } from "../features/overview/OverviewPage";
+import { ProvidersPage } from "../features/providers/ProvidersPage";
+import { RpcTestPage } from "../features/rpcTest/RpcTestPage";
+import { RoutesPage } from "../features/routes/RoutesPage";
+import { PlaceholderPage } from "./PlaceholderPage";
 
 export function RouteOutlet() {
   return <Outlet />;
@@ -22,14 +16,14 @@ export function RouteOutlet() {
 
 export const routes = [
   { index: true, element: <Navigate to="/overview" replace /> },
-  { path: "overview", element: <PlaceholderPage title="Overview" /> },
-  { path: "models", element: <PlaceholderPage title="Models" /> },
-  { path: "providers", element: <PlaceholderPage title="Providers" /> },
-  { path: "routes", element: <PlaceholderPage title="Routes" /> },
-  { path: "extensions", element: <PlaceholderPage title="Extensions" /> },
-  { path: "changes", element: <PlaceholderPage title="Changes" /> },
-  { path: "config", element: <PlaceholderPage title="Config" /> },
-  { path: "rpc-test", element: <PlaceholderPage title="RPC Test" /> }
+  { path: "overview", element: <OverviewPage /> },
+  { path: "models", element: <ModelsPage /> },
+  { path: "providers", element: <ProvidersPage /> },
+  { path: "routes", element: <RoutesPage /> },
+  { path: "extensions", element: <ExtensionsPage /> },
+  { path: "changes", element: <ChangesPage /> },
+  { path: "config", element: <ConfigPage /> },
+  { path: "rpc-test", element: <RpcTestPage /> }
 ];
 
 export const router = createBrowserRouter(
