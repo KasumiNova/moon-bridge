@@ -69,4 +69,26 @@ describe("ThemeProvider", () => {
 
     expect(localStorage.getItem(CONSOLE_THEME_STORAGE_KEY)).toBe("light");
   });
+
+  it("falls back to dark when localStorage is unavailable", () => {
+    const original = Object.getOwnPropertyDescriptor(window, "localStorage");
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      get() {
+        throw new DOMException("blocked", "SecurityError");
+      }
+    });
+
+    render(
+      <ThemeProvider>
+        <ThemeProbe />
+      </ThemeProvider>
+    );
+
+    expect(screen.getByTestId("theme-value")).toHaveTextContent("dark");
+
+    if (original) {
+      Object.defineProperty(window, "localStorage", original);
+    }
+  });
 });

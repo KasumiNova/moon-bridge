@@ -22,11 +22,14 @@ const ConsoleThemeContext = createContext<ConsoleThemeContextValue | undefined>(
 );
 
 function readStoredTheme(): ConsoleTheme {
-  if (typeof window === "undefined" || !window.localStorage) {
+  if (typeof window === "undefined") {
     return "dark";
   }
 
   try {
+    if (!window.localStorage) {
+      return "dark";
+    }
     const stored = window.localStorage.getItem(CONSOLE_THEME_STORAGE_KEY);
     return stored === "light" || stored === "dark" ? stored : "dark";
   } catch {
