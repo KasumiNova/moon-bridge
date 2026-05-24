@@ -7,7 +7,7 @@ Status: Approved direction, pending implementation plan
 
 Moon Bridge is a Go HTTP proxy and protocol conversion server. It exposes OpenAI-compatible endpoints such as `/v1/responses` and `/v1/models`, and, when persistence is enabled, a management API under `/api/v1/`.
 
-This design adds an embedded Web frontend at `/console/`. The frontend is an operations console, not a chat product or marketing page. Its primary job is to make Moon Bridge's runtime configuration visible and editable: status, providers, models, offers, routes, extensions, pending changes, import/export, and a small RPC smoke-test panel.
+This design adds an embedded Web frontend at `/console/`. The frontend is an operations console, not a chat product or marketing page. Its primary job is to make Moon Bridge's runtime configuration visible and editable: status, providers, models, offers, routes, extensions, pending changes, config generation/import/apply, visual config editing, and a small RPC smoke-test panel.
 
 Confirmed product direction:
 
@@ -51,11 +51,18 @@ The console should respect this shape: it should consume existing API boundaries
    - After apply/discard, invalidate status, providers, models, routes, defaults, web search, extensions, and changes queries.
 
 4. Import/export configuration.
+   - Generate a valid Moon Bridge YAML config from a guided visual form.
    - Import YAML through `POST /api/v1/config/import`, then review generated staged changes.
    - Validate YAML through `POST /api/v1/config/validate`.
    - Export masked or secret-including YAML through `GET /api/v1/config/export`, with the required `X-Confirm-Secrets: true` confirmation for secret export.
+   - Apply an imported/generated config by staging its changes first, then using the existing change queue apply flow.
 
-5. Run a lightweight RPC smoke test.
+5. Visually edit configuration.
+   - Provide visual CRUD screens for models, providers, offers, routes, defaults, web search, and selected extension settings.
+   - Treat visual edits and YAML import/generation as equivalent sources of staged changes.
+   - Always show the active runtime config separately from the pending staged config.
+
+6. Run a lightweight RPC smoke test.
    - Select a route/model and send a minimal `POST /v1/responses` request.
    - Support non-streaming first.
    - Add streaming SSE inspection after the basic console is stable.
@@ -143,8 +150,18 @@ Controls:
 Controls:
 
 - Effective masked config from `GET /api/v1/config/effective`.
+- Guided config generator:
+  - choose mode
+  - set server address/auth
+  - add provider credentials and protocol
+  - add model metadata
+  - create offers and route aliases
+  - configure persistence, cache, web search, and common extensions
+  - preview generated YAML before staging
 - YAML import and validation.
+- YAML apply flow: generate or paste YAML, validate it, stage changes through `POST /api/v1/config/import`, review pending changes, then apply through `POST /api/v1/changes/apply`.
 - YAML export, with explicit confirmation for secret export.
+- Visual editor entry points for the same resources. The Config page should not become a separate raw-only editor; it should link to Models, Providers, Routes, Extensions, Defaults, and Web Search visual forms.
 
 ### RPC Test
 
@@ -196,6 +213,7 @@ Required backend additions:
 - Optionally add `GET /api/v1/capabilities` or include capability flags in `GET /api/v1/status`, so the UI can show whether persistence, metrics, logs, and RPC test are available.
 - Implement a real recent log buffer before making `/api/v1/logs` prominent; the current handler returns an empty list.
 - Consider broadening `POST /api/v1/providers/{key}/test` beyond Anthropic-only probing before presenting it as protocol-neutral. Until then, hide or label it for non-Anthropic protocols.
+- Consider adding a non-mutating config generation/normalization endpoint later if frontend-only YAML generation becomes hard to keep aligned with Go config serialization. v1 can generate YAML in the frontend and rely on `POST /api/v1/config/validate` plus `POST /api/v1/config/import` as the source of truth.
 
 ### Frontend Stack
 
@@ -231,6 +249,7 @@ Recommended modules:
 - `http.ts`: base URL resolution, auth header injection, JSON parsing, error normalization.
 - `management.ts`: `/api/v1` endpoints.
 - `responses.ts`: `/v1/responses` smoke-test client, including optional SSE reader.
+- `config-generator.ts`: convert visual generator state into Moon Bridge YAML.
 - `types.ts`: DTOs for status, providers, models, offers, routes, changes, settings, stats, sessions, and OpenAI error shape.
 
 Error handling:
@@ -273,6 +292,8 @@ Motion:
 
 - Treat runtime configuration as server-owned.
 - All write operations produce staged changes. The UI must not pretend a staged change is active.
+- Generated YAML is not active configuration until it has been validated, imported into pending changes, reviewed, and applied.
+- Visual edits, YAML import, and generated YAML must all converge on the same pending-change queue.
 - After any staged mutation, invalidate only `changes` plus the affected resource detail if needed.
 - After apply/discard, invalidate all config-derived queries.
 - For forms editing masked secrets, preserve `"******"` semantics where existing APIs support it.
@@ -283,10 +304,13 @@ Motion:
 Frontend:
 
 - Unit test RPC client error normalization and query key builders.
+- Unit test config generator output for representative Transform, CaptureResponse, and CaptureAnthropic configs.
 - Component test forms for provider, model, route, offers, and change queue.
+- Component test the config generation/apply flow: fill wizard, preview YAML, validate, import, review changes, apply.
 - E2E smoke tests with a mock Moon Bridge server:
   - overview loads
   - provider edit stages a change
+  - generated config validates and creates staged changes
   - apply refreshes status/resources
   - auth prompt appears on 401
   - store unavailable state appears on 503
@@ -313,6 +337,7 @@ Manual verification:
 - Should `/console/` be served in Capture modes, where the management API may not be meaningful?
 - Should the first implementation include streaming SSE inspection, or defer it after CRUD/config flows?
 - Should extension config specs be exposed over API to support generated typed forms?
+- Should config generation initially support only common Transform-mode provider/model/route setups, or also full CaptureResponse/CaptureAnthropic proxy setups?
 
 ## Non-Goals for v1
 
@@ -329,6 +354,7 @@ Manual verification:
 2. Add typed RPC client and overview/status page.
 3. Add provider/model/route read-only pages.
 4. Add staged mutations and change queue apply/discard.
-5. Add config import/export and validation.
-6. Add RPC smoke-test panel.
-7. Add animation polish and responsive navigation.
+5. Add visual config generator, YAML preview, validation, import, and apply flow.
+6. Add config export and effective-config viewer.
+7. Add RPC smoke-test panel.
+8. Add animation polish and responsive navigation.
