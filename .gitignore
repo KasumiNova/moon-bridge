@@ -9,6 +9,7 @@ __pycache__/
 # Agent / AI assistant local files
 .planning/
 .superpowers/
+.worktrees/
 helloagents/
 AGENTS.md
 CLAUDE.md
