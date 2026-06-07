@@ -4,6 +4,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { AppShell } from "../app/App";
 import { DefaultsPage } from "../features/defaults/DefaultsPage";
 import { LogsPage } from "../features/logs/LogsPage";
+import { ModelsProvidersPage } from "../features/modelProviders/ModelsProvidersPage";
 import { OverviewPage } from "../features/overview/OverviewPage";
 import { SecurityPage } from "../features/security/SecurityPage";
 import { CONSOLE_THEME_STORAGE_KEY } from "../theme/ThemeProvider";
@@ -39,8 +40,22 @@ describe("config graph console smoke flow", () => {
     expect(nav).toHaveTextContent("Logs");
     expect(nav).not.toHaveTextContent("Config");
     expect(nav).not.toHaveTextContent("YAML");
+    expect(nav).not.toHaveTextContent("Diagnostics");
+    expect(screen.getByRole("main", { name: "Console route content" })).toHaveTextContent("Console content");
     expect(screen.queryByRole("button", { name: /^apply$/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /apply changes/i })).not.toBeInTheDocument();
+  });
+
+  test("models and providers render shared resource cards", async () => {
+    mockFetch({
+      graph: configGraphFixture()
+    });
+
+    renderWithConsoleProviders(<ModelsProvidersPage />);
+
+    expect(await screen.findByRole("heading", { name: "Providers (1)" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 3, name: "anthropic" })).toBeInTheDocument();
+    expect(screen.getByLabelText("anthropic status")).toHaveTextContent("Saved");
   });
 
   test("overview loads runtime state from the config graph", async () => {
@@ -132,7 +147,7 @@ describe("config graph console smoke flow", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Runtime rejected");
   });
 
-  test("logs page renders recent backend log lines", async () => {
+  test("logs page renders recent backend log lines and level filters", async () => {
     mockFetch({
       graph: configGraphFixture(),
       logs: [
@@ -141,6 +156,12 @@ describe("config graph console smoke flow", () => {
           level: "INFO",
           message: "server started",
           raw: "time=2026-06-07T00:00:00Z level=INFO msg=server-started"
+        },
+        {
+          timestamp: "2026-06-07T00:00:01Z",
+          level: "ERROR",
+          message: "database unavailable",
+          raw: "time=2026-06-07T00:00:01Z level=ERROR msg=database-unavailable"
         }
       ]
     });
@@ -148,6 +169,13 @@ describe("config graph console smoke flow", () => {
     renderWithConsoleProviders(<LogsPage />);
 
     expect(await screen.findByText(/server-started/)).toBeInTheDocument();
+    expect(screen.getByText(/database-unavailable/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "ERROR" }));
+
+    expect(screen.queryByText(/server-started/)).not.toBeInTheDocument();
+    expect(screen.getByText(/database-unavailable/)).toBeInTheDocument();
+    expect(screen.getByText("1 of 2 logs")).toBeInTheDocument();
   });
 });
 

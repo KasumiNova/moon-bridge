@@ -89,6 +89,7 @@ function AppShellContent({ content }: { content?: ReactNode }) {
         </nav>
 
         <motion.main
+          aria-label={t("app.routeContent")}
           className="content-surface"
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
@@ -144,8 +145,8 @@ const shellStyles = `
     align-items: center;
     justify-content: space-between;
     gap: 24px;
-    min-height: 72px;
-    padding: 12px 24px;
+    min-height: 68px;
+    padding: 10px 24px;
     border-bottom: 1px solid color-mix(in srgb, var(--mb-color-outline) 36%, transparent);
     background: color-mix(in srgb, var(--mb-color-surface) 92%, transparent);
     backdrop-filter: blur(16px);
@@ -273,7 +274,25 @@ const shellStyles = `
     text-decoration: none;
     transition:
       background var(--mb-motion-standard),
-      color var(--mb-motion-standard);
+      color var(--mb-motion-standard),
+      transform var(--mb-motion-standard);
+  }
+
+  .nav-item::before {
+    content: "";
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    bottom: 10px;
+    width: 3px;
+    border-radius: 999px;
+    background: transparent;
+    transition: background var(--mb-motion-standard);
+  }
+
+  .nav-item:hover {
+    color: var(--mb-color-on-surface);
+    background: color-mix(in srgb, var(--mb-color-primary-container) 46%, transparent);
   }
 
   .nav-item span {
@@ -287,6 +306,10 @@ const shellStyles = `
   .nav-item--active {
     color: var(--mb-color-on-primary-container);
     background: var(--mb-color-primary-container);
+  }
+
+  .nav-item--active::before {
+    background: var(--mb-color-primary);
   }
 
   .content-surface {
@@ -334,7 +357,7 @@ const shellStyles = `
 
   .page-stack {
     display: grid;
-    gap: 18px;
+    gap: 20px;
   }
 
   .page-header {
@@ -550,6 +573,13 @@ const shellStyles = `
     border-color: color-mix(in srgb, var(--mb-color-primary) 40%, var(--mb-color-outline));
     box-shadow: 0 8px 24px color-mix(in srgb, var(--mb-color-shadow) 18%, transparent);
     transform: translateY(-1px);
+  }
+
+  .resource-editor-card:focus-within {
+    border-color: var(--mb-color-primary);
+    box-shadow:
+      0 0 0 2px color-mix(in srgb, var(--mb-color-primary) 28%, transparent),
+      0 8px 24px color-mix(in srgb, var(--mb-color-shadow) 18%, transparent);
   }
 
   .resource-editor-card__header {
@@ -1091,10 +1121,12 @@ const shellStyles = `
       padding: 10px 12px;
       border-right: 0;
       border-bottom: 1px solid color-mix(in srgb, var(--mb-color-outline) 34%, transparent);
+      scroll-snap-type: x proximity;
     }
 
     .nav-item {
       flex: 0 0 108px;
+      scroll-snap-align: start;
     }
 
     .content-surface {
@@ -1139,6 +1171,21 @@ const shellStyles = `
       left: 12px;
       width: auto;
       max-height: calc(100vh - 24px);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      scroll-behavior: auto !important;
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+    }
+
+    .resource-editor-card:hover {
+      transform: none;
     }
   }
 `;

@@ -10,6 +10,7 @@ export const zh = {
   "app.language": "语言",
   "app.language.en": "English",
   "app.language.zh": "中文",
+  "app.routeContent": "控制台路由内容",
   "app.switchTheme": "切换到{theme}主题",
   "theme.dark": "暗色",
   "theme.light": "亮色",

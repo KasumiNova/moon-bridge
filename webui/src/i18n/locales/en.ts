@@ -8,6 +8,7 @@ export const en = {
   "app.language": "Language",
   "app.language.en": "English",
   "app.language.zh": "中文",
+  "app.routeContent": "Console route content",
   "app.switchTheme": "Switch to {theme} theme",
   "theme.dark": "dark",
   "theme.light": "light",

@@ -48,4 +48,18 @@ describe("AppShell", () => {
     expect(screen.getByRole("button", { name: /switch to/i })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /apply/i })).not.toBeInTheDocument();
   });
+
+  test("keeps route content in a named main landmark with mobile-safe nav labels", () => {
+    renderWithConsoleProviders(
+      <MemoryRouter>
+        <AppShell content={<div>Console content</div>} />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByRole("main", { name: "Console route content" })).toHaveTextContent("Console content");
+    expect(screen.getByRole("link", { name: /models & providers/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /search & tools/i })).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: /console sections/i })).not.toHaveTextContent("YAML");
+    expect(screen.getByRole("navigation", { name: /console sections/i })).not.toHaveTextContent("Diagnostics");
+  });
 });
