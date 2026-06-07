@@ -27,42 +27,42 @@ export function ModelsProvidersPage() {
       </PageHeader>
 
       <section className="content-panel" aria-labelledby="providers-heading">
-        <h2 id="providers-heading">Providers ({providers.length})</h2>
+        <h2 id="providers-heading">{t("modelsProviders.providers", { count: providers.length })}</h2>
         <div className="resource-card-list">
           {providers.map((provider) => (
             <ResourceEditorCard
               key={provider.id}
               resource={provider}
               revision={graph.data.revision}
-              title="Provider"
+              title={t("resource.kind.provider")}
             />
           ))}
         </div>
       </section>
 
       <section className="content-panel" aria-labelledby="offers-heading">
-        <h2 id="offers-heading">Provider Offers ({offers.length})</h2>
+        <h2 id="offers-heading">{t("modelsProviders.offers", { count: offers.length })}</h2>
         <div className="resource-card-list">
           {offers.map((offer) => (
             <ResourceEditorCard
               key={offer.id}
               resource={offer}
               revision={graph.data.revision}
-              title="Offer"
+              title={t("resource.kind.offer")}
             />
           ))}
         </div>
       </section>
 
       <section className="content-panel" aria-labelledby="models-heading">
-        <h2 id="models-heading">Models ({models.length})</h2>
+        <h2 id="models-heading">{t("modelsProviders.models", { count: models.length })}</h2>
         <div className="resource-card-list">
           {models.map((model) => (
             <ResourceEditorCard
               key={model.id}
               resource={model}
               revision={graph.data.revision}
-              title="Model"
+              title={t("resource.kind.model")}
             />
           ))}
         </div>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { motion } from "motion/react";
 import { LoadingState } from "../../components/LoadingState";
 import { useI18n } from "../../i18n/I18nProvider";
 import { createLogStream, getRecentLogs } from "../../rpc/logs";
@@ -83,14 +84,29 @@ export function LogsPage() {
 
       <section className="content-panel">
         <div className="logs-toolbar">
-          <div className="drawer-actions">
-            <button type="button" onClick={() => setFollow((current) => !current)}>
-              {follow ? t("logs.pause") : t("logs.follow")}
-            </button>
-            <button type="button" onClick={() => copyLogs(visibleEntries)}>
+          <div className="logs-toolbar__actions">
+            <div className="segmented-control" role="group" aria-label={t("logs.followMode")}>
+              <button
+                aria-pressed={follow}
+                className={follow ? "active-button" : undefined}
+                type="button"
+                onClick={() => setFollow(true)}
+              >
+                {t("logs.follow")}
+              </button>
+              <button
+                aria-pressed={!follow}
+                className={!follow ? "active-button" : undefined}
+                type="button"
+                onClick={() => setFollow(false)}
+              >
+                {t("logs.pause")}
+              </button>
+            </div>
+            <button type="button" disabled={visibleEntries.length === 0} onClick={() => copyLogs(visibleEntries)}>
               {t("logs.copy")}
             </button>
-            <button type="button" onClick={() => downloadLogs(visibleEntries)}>
+            <button type="button" disabled={visibleEntries.length === 0} onClick={() => downloadLogs(visibleEntries)}>
               {t("logs.download")}
             </button>
           </div>
@@ -99,11 +115,12 @@ export function LogsPage() {
           </p>
         </div>
 
-        <div className="log-level-filter" aria-label={t("logs.levelFilter")}>
+        <div className="log-level-filter" role="group" aria-label={t("logs.levelFilter")}>
           {logLevels.map((level) => (
             <button
               className={levelFilter === level ? "active-button" : undefined}
               key={level}
+              aria-pressed={levelFilter === level}
               type="button"
               onClick={() => setLevelFilter(level)}
             >
@@ -127,9 +144,15 @@ export function LogsPage() {
         </label>
 
         <div className="log-output" aria-label={t("logs.output")}>
-          {visibleEntries.map((entry, index) => (
-            <LogRow entry={entry} index={index} key={`${entry.timestamp}-${index}-${logLine(entry)}`} />
-          ))}
+          {visibleEntries.length === 0 ? (
+            <p className="log-empty-state" role="status">
+              {entries.length === 0 ? t("logs.empty") : t("logs.emptyFiltered")}
+            </p>
+          ) : (
+            visibleEntries.map((entry, index) => (
+              <LogRow entry={entry} index={index} key={`${entry.timestamp}-${index}-${logLine(entry)}`} />
+            ))
+          )}
         </div>
       </section>
     </section>
@@ -139,13 +162,19 @@ export function LogsPage() {
 function LogRow({ entry, index }: { entry: LogEntry; index: number }) {
   const level = normalizeLevel(entry.level);
   return (
-    <article className={`log-row log-row--${level}`} aria-label={`Log ${index + 1}`}>
+    <motion.article
+      className={`log-row log-row--${level}`}
+      aria-label={`Log ${index + 1}`}
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.14 }}
+    >
       <div className="log-row__meta">
         <span>{entry.timestamp}</span>
         <strong>{entry.level}</strong>
       </div>
       <pre>{logLine(entry)}</pre>
-    </article>
+    </motion.article>
   );
 }
 

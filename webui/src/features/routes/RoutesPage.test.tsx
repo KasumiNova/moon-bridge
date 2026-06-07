@@ -16,7 +16,10 @@ describe("RoutesPage", () => {
 
     renderWithConsoleProviders(<RoutesPage />);
 
-    expect(await screen.findByText("primary")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 3, name: "primary" })).toBeInTheDocument();
+    expect(within(screen.getByLabelText("Route primary status")).getByText("Saved")).toBeInTheDocument();
+    expect(screen.getByText("8 fields")).toBeInTheDocument();
+    expect(screen.getByText("Hot reload")).toBeInTheDocument();
     expect(screen.getByLabelText("Model")).toBeInTheDocument();
     expect(screen.getByLabelText("Provider")).toBeInTheDocument();
     expect(screen.getByLabelText("Display Name")).toBeInTheDocument();
@@ -36,7 +39,7 @@ describe("RoutesPage", () => {
 
     renderWithConsoleProviders(<RoutesPage />);
 
-    const routePanel = (await screen.findByText("primary")).closest("section")!;
+    const routePanel = await screen.findByLabelText("Route primary");
     vi.useFakeTimers();
     fireEvent.change(within(routePanel).getByLabelText("Provider"), {
       target: { value: "openai" }

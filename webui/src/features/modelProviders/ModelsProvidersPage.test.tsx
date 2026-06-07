@@ -30,6 +30,21 @@ describe("ModelsProvidersPage", () => {
     expect(screen.queryByLabelText(/^enabled$/i)).not.toBeInTheDocument();
   });
 
+  test("localizes section headings and resource metadata in Chinese locale", async () => {
+    vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
+    vi.spyOn(configGraph, "patchConfigGraph").mockResolvedValue({
+      result: "committed",
+      revision: "rev-2"
+    });
+
+    renderWithConsoleProviders(<ModelsProvidersPage />, { locale: "zh-CN" });
+
+    expect(await screen.findByRole("heading", { name: "提供商 (1)" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "提供商能力 (1)" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "模型 (1)" })).toBeInTheDocument();
+    expect(within(screen.getByLabelText("anthropic status")).getByText("已保存")).toBeInTheDocument();
+  });
+
   test("autosaves provider fields and offer priority through graph patches", async () => {
     vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
     const patch = vi.spyOn(configGraph, "patchConfigGraph").mockResolvedValue({

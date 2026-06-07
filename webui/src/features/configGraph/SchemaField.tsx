@@ -1,5 +1,6 @@
 import { type ChangeEvent, type ReactNode, useEffect, useMemo, useState } from "react";
 import type { FieldSchema } from "../../rpc/types";
+import { useI18n } from "../../i18n/I18nProvider";
 import { FieldStatus } from "./FieldStatus";
 import type { AutosaveFieldStatus } from "./useAutosaveField";
 
@@ -22,6 +23,7 @@ export function SchemaField({
   status,
   error
 }: SchemaFieldProps) {
+  const { t } = useI18n();
   const id = useMemo(() => {
     const prefix = idPrefix ? `${idPrefix}-` : "";
     return `schema-field-${prefix}${field.path}`.replace(/[^a-zA-Z0-9_-]/g, "-");
@@ -143,7 +145,7 @@ export function SchemaField({
       setParseError("");
       onChange(parsed);
     } catch (cause) {
-      setParseError(cause instanceof Error ? cause.message : "Invalid JSON");
+      setParseError(cause instanceof Error ? cause.message : t("field.invalidJson"));
     }
   }
 
@@ -193,16 +195,17 @@ function FieldMessages({
   parseError: string;
   secret?: boolean;
 }) {
+  const { t } = useI18n();
   return (
     <>
       {secret ? (
         <p className="field-hint" id={hintId}>
-          Enter a new value to replace the saved secret.
+          {t("field.secretReplacementHint")}
         </p>
       ) : null}
       {parseError ? (
         <p className="field-error" id={errorId} role="alert">
-          Invalid JSON: {parseError}
+          {t("field.invalidJsonWithMessage", { message: parseError })}
         </p>
       ) : null}
     </>

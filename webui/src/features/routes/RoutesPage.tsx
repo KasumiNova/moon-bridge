@@ -1,7 +1,7 @@
 import { LoadingState } from "../../components/LoadingState";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { ConfigResource } from "../../rpc/types";
-import { GraphResourceField } from "../configGraph/GraphResourceField";
+import { ResourceEditorCard } from "../configGraph/ResourceEditorCard";
 import { useConfigGraph } from "../configGraph/useConfigGraph";
 import { PageHeader, QueryErrorState } from "../shared";
 
@@ -38,19 +38,17 @@ function RouteEditor({
   resource: ConfigResource;
   revision: string;
 }) {
+  const { t } = useI18n();
+  const title = t("routes.resourceTitle");
   return (
     <section className="content-panel" aria-label={resource.id}>
       <h2>{resource.id}</h2>
-      <div className="form-grid">
-        {resource.schema.fields.map((field) => (
-          <GraphResourceField
-            field={field}
-            key={`${resource.id}-${field.path}`}
-            resource={resource}
-            revision={revision}
-          />
-        ))}
-      </div>
+      <ResourceEditorCard
+        ariaLabel={`${title} ${resource.id}`}
+        resource={resource}
+        revision={revision}
+        title={title}
+      />
     </section>
   );
 }

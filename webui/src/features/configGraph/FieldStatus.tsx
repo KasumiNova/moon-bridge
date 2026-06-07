@@ -1,11 +1,13 @@
+import { useI18n } from "../../i18n/I18nProvider";
+import type { MessageKey } from "../../i18n/messages";
 import type { AutosaveFieldStatus } from "./useAutosaveField";
 
-const statusLabels: Record<AutosaveFieldStatus, string> = {
-  idle: "Saved",
-  dirty: "Unsaved",
-  saving: "Saving",
-  saved: "Saved",
-  error: "Error"
+const statusLabelKeys: Record<AutosaveFieldStatus, MessageKey> = {
+  idle: "saveStatus.idle",
+  dirty: "saveStatus.dirty",
+  saving: "saveStatus.saving",
+  saved: "saveStatus.saved",
+  error: "saveStatus.error"
 };
 
 export function FieldStatus({
@@ -15,7 +17,8 @@ export function FieldStatus({
   status: AutosaveFieldStatus;
   message?: string;
 }) {
-  const label = status === "error" && message ? message : statusLabels[status];
+  const { t } = useI18n();
+  const label = status === "error" && message ? message : t(statusLabelKeys[status]);
   return (
     <span
       aria-live="polite"

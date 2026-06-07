@@ -40,6 +40,21 @@ describe("OverviewPage", () => {
     expect(screen.queryByText(/pending/i)).not.toBeInTheDocument();
   });
 
+  test("localizes runtime and validation overview labels in Chinese locale", async () => {
+    vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
+
+    renderWithConsoleProviders(<OverviewPage />, { locale: "zh-CN" });
+
+    expect(await screen.findByText("模式")).toBeInTheDocument();
+    expect(screen.getAllByText("运行时").length).toBeGreaterThan(0);
+    expect(screen.getByText("配置图")).toBeInTheDocument();
+    expect(screen.getByText("重启")).toBeInTheDocument();
+    expect(screen.getByText("模型")).toBeInTheDocument();
+    expect(screen.getByText("修订版本")).toBeInTheDocument();
+    expect(screen.getAllByText("有效").length).toBeGreaterThan(0);
+    expect(screen.getByText("1 个需要重启")).toBeInTheDocument();
+  });
+
   test("shows setup state when graph API store is unavailable", async () => {
     vi.spyOn(configGraph, "getConfigGraph").mockRejectedValue(
       new ApiError(503, "store_unavailable", "配置存储不可用")

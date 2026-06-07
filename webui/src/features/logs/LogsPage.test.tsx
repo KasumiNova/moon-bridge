@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { renderWithConsoleProviders } from "../../test/renderWithConsoleProviders";
 import * as logs from "../../rpc/logs";
@@ -60,6 +60,58 @@ describe("LogsPage", () => {
     await waitFor(() => {
       expect(writeText).toHaveBeenCalledWith("time=2026-06-07T00:00:01Z level=ERROR msg=database-unavailable");
     });
+  });
+
+  test("uses a segmented follow control with clear pressed state", async () => {
+    vi.spyOn(logs, "getRecentLogs").mockResolvedValue(logEntries());
+    vi.spyOn(logs, "createLogStream").mockResolvedValue(
+      new Response(new ReadableStream<Uint8Array>())
+    );
+
+    renderWithConsoleProviders(<LogsPage />);
+
+    expect(await screen.findByText(/server-started/)).toBeInTheDocument();
+
+    const followMode = screen.getByRole("group", { name: "Live follow mode" });
+    expect(within(followMode).getByRole("button", { name: "Follow" })).toHaveAttribute("aria-pressed", "true");
+    expect(within(followMode).getByRole("button", { name: "Pause" })).toHaveAttribute("aria-pressed", "false");
+
+    fireEvent.click(within(followMode).getByRole("button", { name: "Pause" }));
+
+    expect(within(followMode).getByRole("button", { name: "Follow" })).toHaveAttribute("aria-pressed", "false");
+    expect(within(followMode).getByRole("button", { name: "Pause" })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  test("shows empty feedback and disables log actions when filters hide every row", async () => {
+    vi.spyOn(logs, "getRecentLogs").mockResolvedValue(logEntries());
+    vi.spyOn(logs, "createLogStream").mockResolvedValue(
+      new Response(new ReadableStream<Uint8Array>())
+    );
+
+    renderWithConsoleProviders(<LogsPage />);
+
+    expect(await screen.findByText(/server-started/)).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Search logs"), {
+      target: { value: "no matching backend event" }
+    });
+
+    expect(screen.getByText("No logs match the current filters.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Copy" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Download" })).toBeDisabled();
+    expect(screen.getByText("0 of 3 logs")).toBeInTheDocument();
+  });
+
+  test("shows a calm empty state when no recent logs are available", async () => {
+    vi.spyOn(logs, "getRecentLogs").mockResolvedValue([]);
+    vi.spyOn(logs, "createLogStream").mockResolvedValue(
+      new Response(new ReadableStream<Uint8Array>())
+    );
+
+    renderWithConsoleProviders(<LogsPage />);
+
+    expect(await screen.findByText("No log entries yet.")).toBeInTheDocument();
+    expect(screen.getByText("0 of 0 logs")).toBeInTheDocument();
   });
 
   test("downloads only visible raw lines", async () => {

@@ -21,7 +21,7 @@ export function SecurityPage() {
   return (
     <section className="page-stack" aria-labelledby="security-title">
       <PageHeader eyebrow={t("pageEyebrow.config")} title={t("nav.security")}>
-        Server access and session controls.
+        {t("security.description")}
       </PageHeader>
 
       {server ? <ServerSection resource={server} revision={graph.data.revision} /> : null}
@@ -36,14 +36,16 @@ function ServerSection({
   resource: ConfigResource;
   revision: string;
 }) {
+  const { t } = useI18n();
+  const title = t("security.server");
   return (
-    <section className="content-panel" aria-label="Server">
-      <h2>Server</h2>
+    <section className="content-panel" aria-label={title}>
+      <h2>{title}</h2>
       <ResourceEditorCard
-        ariaLabel={`Server ${resource.id}`}
+        ariaLabel={`${title} ${resource.id}`}
         resource={resource}
         revision={revision}
-        title="Server"
+        title={title}
       />
     </section>
   );

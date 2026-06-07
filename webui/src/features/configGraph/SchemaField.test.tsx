@@ -1,7 +1,8 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
 import type { FieldSchema } from "../../rpc/types";
+import { renderWithConsoleProviders } from "../../test/renderWithConsoleProviders";
 import { SchemaField } from "./SchemaField";
 
 describe("SchemaField", () => {
@@ -15,7 +16,7 @@ describe("SchemaField", () => {
       hotReloadable: true
     };
     const onChange = vi.fn();
-    render(<SchemaField field={field} value="anthropic" onChange={onChange} />);
+    renderWithConsoleProviders(<SchemaField field={field} value="anthropic" onChange={onChange} />);
 
     await userEvent.selectOptions(screen.getByLabelText("Protocol"), "openai-response");
 
@@ -31,7 +32,7 @@ describe("SchemaField", () => {
       hotReloadable: true
     };
 
-    render(<SchemaField field={field} value="sk-secret" onChange={() => undefined} />);
+    renderWithConsoleProviders(<SchemaField field={field} value="sk-secret" onChange={() => undefined} />);
 
     expect(screen.getByLabelText("API key")).toHaveAttribute("type", "password");
     expect(screen.getByLabelText("API key")).toHaveValue("");
@@ -46,7 +47,7 @@ describe("SchemaField", () => {
       hotReloadable: true
     };
 
-    render(<SchemaField field={field} value="sk-secret" onChange={() => undefined} />);
+    renderWithConsoleProviders(<SchemaField field={field} value="sk-secret" onChange={() => undefined} />);
 
     expect(screen.getByText("Enter a new value to replace the saved secret.")).toBeInTheDocument();
     expect(screen.queryByDisplayValue("sk-secret")).not.toBeInTheDocument();
@@ -60,7 +61,7 @@ describe("SchemaField", () => {
       hotReloadable: true
     };
     const onChange = vi.fn();
-    render(<SchemaField field={field} value={1024} onChange={onChange} />);
+    renderWithConsoleProviders(<SchemaField field={field} value={1024} onChange={onChange} />);
 
     await userEvent.clear(screen.getByLabelText("Max tokens"));
     await userEvent.type(screen.getByLabelText("Max tokens"), "2048");
@@ -77,7 +78,7 @@ describe("SchemaField", () => {
       hotReloadable: true
     };
     const onChange = vi.fn();
-    render(<SchemaField field={field} value={{ input_price: 3 }} onChange={onChange} />);
+    renderWithConsoleProviders(<SchemaField field={field} value={{ input_price: 3 }} onChange={onChange} />);
 
     await userEvent.clear(screen.getByLabelText("Pricing"));
     await userEvent.type(screen.getByLabelText("Pricing"), "{{");
@@ -96,13 +97,14 @@ describe("SchemaField", () => {
       hotReloadable: true
     };
 
-    const { rerender } = render(
+    const { unmount } = renderWithConsoleProviders(
       <SchemaField field={field} value="Be concise." onChange={() => undefined} />
     );
 
     expect(screen.getByLabelText("System prompt").closest(".schema-field")).toHaveClass("schema-field--wide");
 
-    rerender(
+    unmount();
+    renderWithConsoleProviders(
       <SchemaField
         field={{ ...field, path: "extensions", type: "object", label: "Extensions", control: "object" }}
         value={{}}

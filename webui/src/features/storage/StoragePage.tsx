@@ -27,22 +27,33 @@ export function StoragePage() {
   return (
     <section className="page-stack" aria-labelledby="storage-title">
       <PageHeader eyebrow={t("pageEyebrow.config")} title={t("nav.storage")}>
-        Storage and persistence controls.
+        {t("storage.description")}
       </PageHeader>
 
       {storageErrors.length > 0 ? <ErrorList errors={storageErrors} /> : null}
-      {cache ? <ResourceSection resource={cache} revision={graph.data.revision} title="Cache" /> : null}
+      {cache ? (
+        <ResourceSection
+          resource={cache}
+          revision={graph.data.revision}
+          title={t("storage.cache")}
+        />
+      ) : null}
       {persistence ? (
-        <ResourceSection resource={persistence} revision={graph.data.revision} title="Persistence" />
+        <ResourceSection
+          resource={persistence}
+          revision={graph.data.revision}
+          title={t("storage.persistence")}
+        />
       ) : null}
     </section>
   );
 }
 
 function ErrorList({ errors }: { errors: FieldError[] }) {
+  const { t } = useI18n();
   return (
-    <section className="content-panel" aria-label="Storage errors">
-      <h2>Storage Status</h2>
+    <section className="content-panel" aria-label={t("storage.errors")}>
+      <h2>{t("storage.status")}</h2>
       <ul className="compact-list">
         {errors.map((error) => (
           <li key={`${error.resourceKind}-${error.resourceId}-${error.field}-${error.code}`}>

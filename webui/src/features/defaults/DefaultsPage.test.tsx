@@ -19,6 +19,10 @@ describe("DefaultsPage", () => {
     expect(await screen.findByRole("heading", { level: 2, name: "Defaults" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Trace" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Log" })).toBeInTheDocument();
+    expect(within(screen.getByLabelText("Defaults main status")).getByText("Saved")).toBeInTheDocument();
+    expect(within(screen.getByLabelText("Trace main status")).getByText("Saved")).toBeInTheDocument();
+    expect(within(screen.getByLabelText("Log main status")).getByText("Saved")).toBeInTheDocument();
+    expect(screen.getAllByText("Hot reload").length).toBeGreaterThan(0);
     expect(screen.getByLabelText("Model")).toHaveValue("claude-sonnet");
     expect(screen.getByLabelText("Level")).toHaveValue("info");
   });

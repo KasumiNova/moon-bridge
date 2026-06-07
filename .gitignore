@@ -53,6 +53,7 @@ node_modules/
 build/
 .wrangler/
 # WebUI build artifacts (source in webui/)
+webui/node_modules
 webui/node_modules/
 webui/dist/
 webui/coverage/

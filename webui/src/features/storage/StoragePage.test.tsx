@@ -39,4 +39,14 @@ describe("StoragePage", () => {
     expect(screen.getByLabelText("Active Provider")).toHaveValue("db_sqlite");
     expect(screen.getByText("database unavailable")).toBeInTheDocument();
   });
+
+  test("localizes page chrome in Chinese locale", async () => {
+    vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
+
+    renderWithConsoleProviders(<StoragePage />, { locale: "zh-CN" });
+
+    expect(await screen.findByRole("heading", { level: 2, name: "缓存" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "持久化" })).toBeInTheDocument();
+    expect(within(screen.getByLabelText("缓存 main status")).getByText("已保存")).toBeInTheDocument();
+  });
 });

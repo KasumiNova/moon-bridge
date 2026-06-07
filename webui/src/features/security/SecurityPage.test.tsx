@@ -26,4 +26,14 @@ describe("SecurityPage", () => {
     expect(screen.queryByDisplayValue("******")).not.toBeInTheDocument();
     expect(screen.getByText("Restart required")).toBeInTheDocument();
   });
+
+  test("localizes page chrome in Chinese locale", async () => {
+    vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
+
+    renderWithConsoleProviders(<SecurityPage />, { locale: "zh-CN" });
+
+    expect(await screen.findByRole("heading", { level: 2, name: "服务访问" })).toBeInTheDocument();
+    expect(within(screen.getByLabelText("服务访问 main status")).getByText("需要重启")).toBeInTheDocument();
+    expect(screen.getByText("输入新值以替换已保存的密钥。")).toBeInTheDocument();
+  });
 });

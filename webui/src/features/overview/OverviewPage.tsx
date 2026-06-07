@@ -23,6 +23,10 @@ export function OverviewPage() {
   const restartCount = graph.data.resources.filter((resource) => resource.status === "restartRequired").length;
   const runtimeErrors = graph.data.runtime.errors ?? [];
   const validationErrors = graph.data.validation.errors ?? [];
+  const graphValidity = graph.data.validation.valid ? t("overview.valid") : t("overview.invalid");
+  const restartLabel = t(restartCount === 1 ? "overview.restartCount.one" : "overview.restartCount.many", {
+    count: restartCount
+  });
 
   return (
     <section className="page-stack" aria-labelledby="overview-title">
@@ -32,18 +36,18 @@ export function OverviewPage() {
 
       <div className="metric-grid">
         <MetricCard label={t("overview.mode")} value={String(mode)} />
-        <MetricCard label="Runtime" value={graph.data.runtime.status} />
-        <MetricCard label="Graph" value={graph.data.validation.valid ? "Valid" : "Invalid"} />
-        <MetricCard label="Restart" value={`${restartCount} restart`} />
+        <MetricCard label={t("overview.runtime")} value={graph.data.runtime.status} />
+        <MetricCard label={t("overview.graph")} value={graphValidity} />
+        <MetricCard label={t("overview.restart")} value={restartLabel} />
         <MetricCard label={t("overview.providers")} value={formatNumber(providerCount)} />
-        <MetricCard label="Models" value={formatNumber(modelCount)} />
+        <MetricCard label={t("overview.models")} value={formatNumber(modelCount)} />
         <MetricCard label={t("overview.routes")} value={formatNumber(routeCount)} />
-        <MetricCard label="Revision" value={graph.data.revision} />
+        <MetricCard label={t("overview.revision")} value={graph.data.revision} />
       </div>
 
       <div className="section-grid">
         <section className="content-panel">
-          <h2>Runtime</h2>
+          <h2>{t("overview.runtime")}</h2>
           {runtimeErrors.length > 0 ? (
             <ul className="compact-list">
               {runtimeErrors.map((error) => (
@@ -59,7 +63,7 @@ export function OverviewPage() {
         </section>
 
         <section className="content-panel">
-          <h2>Validation</h2>
+          <h2>{t("overview.validation")}</h2>
           {validationErrors.length > 0 ? (
             <ul className="compact-list">
               {validationErrors.map((error) => (
@@ -70,7 +74,7 @@ export function OverviewPage() {
               ))}
             </ul>
           ) : (
-            <p className="empty-state">Valid</p>
+            <p className="empty-state">{t("overview.valid")}</p>
           )}
         </section>
       </div>

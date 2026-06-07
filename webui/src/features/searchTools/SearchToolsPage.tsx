@@ -23,27 +23,39 @@ export function SearchToolsPage() {
   return (
     <section className="page-stack" aria-labelledby="search-tools-title">
       <PageHeader eyebrow={t("pageEyebrow.config")} title={t("nav.searchTools")}>
-        {t("modelsProviders.description")}
+        {t("searchTools.description")}
       </PageHeader>
 
-      {webSearch ? <ResourceSection resource={webSearch} revision={graph.data.revision} title="Web Search" /> : null}
+      {webSearch ? (
+        <ResourceSection
+          resource={webSearch}
+          revision={graph.data.revision}
+          title={t("searchTools.webSearch")}
+        />
+      ) : null}
 
       <section className="content-panel" aria-labelledby="extensions-heading">
-        <h2 id="extensions-heading">Extensions</h2>
+        <h2 id="extensions-heading">{t("searchTools.extensions")}</h2>
         <div className="resource-card-list">
           {extensions.map((extension) => (
             <ResourceEditorCard
-              ariaLabel={`Extension ${extension.id}`}
+              ariaLabel={`${t("searchTools.extension")} ${extension.id}`}
               key={extension.id}
               resource={extension}
               revision={graph.data.revision}
-              title="Extension"
+              title={t("searchTools.extension")}
             />
           ))}
         </div>
       </section>
 
-      {proxy ? <ResourceSection resource={proxy} revision={graph.data.revision} title="Proxy" /> : null}
+      {proxy ? (
+        <ResourceSection
+          resource={proxy}
+          revision={graph.data.revision}
+          title={t("searchTools.proxy")}
+        />
+      ) : null}
     </section>
   );
 }

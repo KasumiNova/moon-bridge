@@ -1,7 +1,7 @@
 import { LoadingState } from "../../components/LoadingState";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { ConfigResource } from "../../rpc/types";
-import { GraphResourceField } from "../configGraph/GraphResourceField";
+import { ResourceEditorCard } from "../configGraph/ResourceEditorCard";
 import { useConfigGraph } from "../configGraph/useConfigGraph";
 import { PageHeader, QueryErrorState } from "../shared";
 
@@ -31,16 +31,12 @@ export function DefaultsPage() {
       {resources.map((resource) => (
         <section className="content-panel" key={resource.kind} aria-label={resource.label}>
           <h2>{resource.label}</h2>
-          <div className="form-grid">
-            {resource.schema.fields.map((field) => (
-              <GraphResourceField
-                field={field}
-                key={`${resource.kind}-${field.path}`}
-                resource={resource}
-                revision={graph.data.revision}
-              />
-            ))}
-          </div>
+          <ResourceEditorCard
+            ariaLabel={`${resource.label} ${resource.id}`}
+            resource={resource}
+            revision={graph.data.revision}
+            title={resource.label}
+          />
         </section>
       ))}
     </section>

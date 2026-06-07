@@ -31,4 +31,15 @@ describe("SearchToolsPage", () => {
     expect(screen.queryByLabelText(/yaml/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/yaml/i)).not.toBeInTheDocument();
   });
+
+  test("localizes page chrome in Chinese locale", async () => {
+    vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
+
+    renderWithConsoleProviders(<SearchToolsPage />, { locale: "zh-CN" });
+
+    expect(await screen.findByRole("heading", { level: 2, name: "联网搜索" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "扩展" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "代理" })).toBeInTheDocument();
+    expect(within(screen.getByLabelText("代理 main status")).getByText("关键运行时")).toBeInTheDocument();
+  });
 });
