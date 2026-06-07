@@ -12,7 +12,7 @@ const (
 	// DefaultConfigPath is kept for callers that need the config file name.
 	// Use XDGDefaultConfigPath to resolve the CLI's default config location.
 	DefaultConfigPath = DefaultConfigFileName
-	AppConfigDirName  = "moonbridge"
+	AppConfigDirName  = ".moon-bridge"
 	DefaultAddr       = "127.0.0.1:38440"
 )
 

@@ -279,15 +279,11 @@ func ResolveConfigPath(explicitPath string) (string, error) {
 }
 
 func XDGDefaultConfigPath() (string, error) {
-	base := strings.TrimSpace(os.Getenv("XDG_CONFIG_HOME"))
-	if base == "" {
-		home := strings.TrimSpace(os.Getenv("HOME"))
-		if home == "" {
-			return "", errors.New("HOME is not set and XDG_CONFIG_HOME is empty")
-		}
-		base = filepath.Join(home, ".config")
+	home := strings.TrimSpace(os.Getenv("HOME"))
+	if home == "" {
+		return "", errors.New("HOME is not set")
 	}
-	return filepath.Join(base, AppConfigDirName, DefaultConfigFileName), nil
+	return filepath.Join(home, AppConfigDirName, DefaultConfigFileName), nil
 }
 
 func FromFileConfig(fileConfig FileConfig) (Config, error) {

@@ -1,0 +1,19 @@
+post_install() {
+  cat <<'EOF'
+Moon Bridge has been installed as /usr/bin/mb.
+
+Default config path:
+  ~/.moon-bridge/config.yml
+
+For a local starter config:
+  mkdir -p ~/.moon-bridge
+  cp /usr/share/doc/moon-bridge/config.local.yml ~/.moon-bridge/config.yml
+  mb
+
+Replace provider settings before sending real upstream requests.
+EOF
+}
+
+post_upgrade() {
+  post_install
+}

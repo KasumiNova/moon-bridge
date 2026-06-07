@@ -2,7 +2,7 @@
 
 > 完整示例见 [`config.example.yml`](config.example.yml)，JSON Schema 见 [`config.schema.json`](config.schema.json)
 
-Moon Bridge 使用 YAML 配置文件。未传 `-config` 时，CLI 按 `${XDG_CONFIG_HOME:-$HOME/.config}/moonbridge/config.yml` 读取；通过 `-config <path>` 可指定任意路径，例如打包脚本或本机服务可使用 `~/.moon-bridge/config.yml`。
+Moon Bridge 使用 YAML 配置文件。未传 `-config` 时默认读取 `$HOME/.moon-bridge/config.yml`；通过 `-config <path>` 可指定任意路径。
 
 Web Console 的常规配置流程不要求用户直接编辑 YAML 或了解配置文件路径。启用持久化存储后，Console 通过 `/api/v1/config/graph` 以资源字段形式实时保存配置；YAML 文件仍保留给 CLI、部署脚本、备份、迁移和管理员批量编辑使用。
 
@@ -238,7 +238,7 @@ proxy:
 
 | 标志 | 默认值 | 说明 |
 |------|--------|------|
-| `-config` | `${XDG_CONFIG_HOME:-$HOME/.config}/moonbridge/config.yml` | 配置文件路径；可显式指定 `~/.moon-bridge/config.yml` |
+| `-config` | `$HOME/.moon-bridge/config.yml` | 配置文件路径 |
 | `-addr` | 来自配置文件 | 覆盖监听地址 |
 | `-mode` | 来自配置文件 | 覆盖运行模式（Transform/CaptureAnthropic/CaptureResponse） |
 | `-print-addr` | — | 打印配置的监听地址后退出 |

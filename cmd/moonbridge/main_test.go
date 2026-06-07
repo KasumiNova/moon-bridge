@@ -92,10 +92,11 @@ routes:
 	}
 }
 
-func TestRunUsesXDGDefaultConfigPath(t *testing.T) {
-	configHome := t.TempDir()
-	t.Setenv("XDG_CONFIG_HOME", configHome)
-	configDir := filepath.Join(configHome, "moonbridge")
+func TestRunUsesHomeMoonBridgeDefaultConfigPath(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(t.TempDir(), "xdg"))
+	configDir := filepath.Join(home, ".moon-bridge")
 	if err := os.Mkdir(configDir, 0755); err != nil {
 		t.Fatalf("Mkdir() error = %v", err)
 	}
