@@ -22,6 +22,7 @@ The console must keep the current Material Web / MD3 Expressive visual direction
   - Models section below.
 - Add a `Logs` page whose content matches backend log output.
 - Do not add a `Diagnostics` page. Validation, reload, and compatibility status belong in `Overview` or in resource-specific pages.
+- Do not expand the persisted configuration schema as part of this redesign unless a later implementation plan explicitly scopes that work. The first implementation should represent the current `FileConfig` fields.
 
 ## Architecture
 
@@ -66,6 +67,7 @@ Each editable unit is a `ConfigResource`.
 Expected resource kinds include:
 
 - `server`
+- `mode`
 - `defaults`
 - `provider`
 - `model`
@@ -115,19 +117,34 @@ The backend save chain is:
 2. Check `baseRevision`.
 3. Validate schema.
 4. Validate business rules and references.
-5. Persist atomically.
-6. Reload runtime if the changed resource is hot-reloadable.
-7. Return the new revision, updated resource state, and any field-level errors.
+5. Build the candidate config graph.
+6. Build or validate a candidate runtime if the changed resource is hot-reloadable, without replacing the active runtime yet.
+7. Persist the accepted graph atomically.
+8. Swap the active runtime to the accepted candidate when runtime changes are hot-reloadable.
+9. Return the new revision, updated resource state, and any field-level errors.
 
 The implementation should fail fast. Invalid patches, stale revisions, persistence failures, and reload failures must return explicit errors and logs.
 
-If persistence succeeds but runtime reload fails:
+If runtime reload fails before persistence:
 
-- Critical runtime fields return `runtimeRejected` and the effective runtime config rolls back to the last valid value.
-- Normal fields can remain as frontend drafts with field-level errors.
-- The response must include the last valid value for fields that require rollback.
+- The committed graph does not change.
+- The graph revision does not advance.
+- Runtime continues using the last valid config.
+- Critical runtime fields return `runtimeRejected`; the response includes the last valid value and the frontend rolls back the field.
+- Normal fields return `draftRejected`; the frontend may keep the user's local draft and show field-level errors, but that draft is not part of the committed graph.
+
+If an implementation must persist before runtime reload because of a lower-level constraint, it must immediately restore the last valid persisted graph when reload fails, log the rollback, and return the same API semantics above: unchanged committed graph, unchanged revision, and explicit field/resource errors.
 
 For non-hot-reloadable fields, the change can persist, but the resource returns `restartRequired`.
+
+Patch responses should use explicit result states so the frontend can distinguish committed config from local drafts:
+
+- `committed`: graph persisted, revision advanced, runtime accepted or unchanged.
+- `restartRequired`: graph persisted, revision advanced, active runtime still uses the previous value until restart.
+- `revisionConflict`: graph unchanged, revision unchanged, frontend must refresh or reconcile.
+- `validationRejected`: graph unchanged, revision unchanged, patch failed schema or business validation.
+- `runtimeRejected`: graph unchanged, revision unchanged, critical field must roll back to the returned last valid value.
+- `draftRejected`: graph unchanged, revision unchanged, normal field can remain as local frontend draft with field-level errors.
 
 ## Persistence
 
@@ -169,12 +186,36 @@ The refactored console uses these pages:
 
 There is no `Diagnostics` page.
 
+## Configuration Coverage Matrix
+
+The first implementation should cover the existing `FileConfig` shape without silently adding new persisted fields.
+
+| `FileConfig` field | Graph resource | Primary console page |
+| --- | --- | --- |
+| `mode` | `mode` | `Overview` |
+| `trace` | `trace` | `Defaults` |
+| `log` | `log` | `Defaults`; `Logs` displays runtime log output |
+| `server` | `server` | `Security` |
+| `defaults` | `defaults` | `Defaults` |
+| `models` | `model` | `Models & Providers` |
+| `providers` | `provider` | `Models & Providers` |
+| `providers.*.offers` | `provider` offer entries | `Models & Providers` |
+| `routes` | `route` | `Routes` |
+| `web_search` | `web_search` | `Search & Tools` |
+| `cache` | `cache` | `Storage` |
+| `persistence` | `persistence` | `Storage` |
+| `extensions` | `extension` | `Search & Tools` |
+| `proxy` | `proxy` | `Search & Tools` |
+
+Features such as generic provider/model enabled flags, route fallback chains, and route priority are not part of the current `FileConfig` schema. They should not appear in the first implementation plan unless that plan explicitly includes a backend configuration schema expansion.
+
 ## Page Responsibilities
 
 ### Overview
 
 Shows:
 
+- operation mode
 - runtime health
 - config graph health
 - recent failed saves
@@ -192,8 +233,8 @@ The top section is `Providers`:
 - base URL
 - authentication and secret replacement
 - offers
+- offer priority
 - capability declarations
-- enabled state
 
 The lower section is `Models`:
 
@@ -201,7 +242,6 @@ The lower section is `Models`:
 - owning provider
 - aliases
 - default parameters
-- enabled state
 - route usage indicators
 
 The Models section can filter or group by provider, but provider editing remains above the model section rather than in a side navigation panel.
@@ -210,12 +250,13 @@ The Models section can filter or group by provider, but provider editing remains
 
 Manages:
 
-- route rules
-- match conditions
+- route aliases
 - target models
-- fallback behavior
-- priority
-- enabled state
+- target providers
+- display metadata
+- context window
+- route-level web search
+- route-level extensions
 
 Route edits must validate model references before persistence.
 
