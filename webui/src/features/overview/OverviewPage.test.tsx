@@ -3,7 +3,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { renderWithConsoleProviders } from "../../test/renderWithConsoleProviders";
 import { ApiError } from "../../rpc/http";
 import * as configGraph from "../../rpc/configGraph";
-import { configGraphFixture, resource } from "../../test/configGraphFixtures";
+import { configGraphFixture } from "../../test/configGraphFixtures";
 import { OverviewPage } from "./OverviewPage";
 
 describe("OverviewPage", () => {
@@ -26,14 +26,7 @@ describe("OverviewPage", () => {
             }
           ]
         },
-        resources: [
-          ...configGraphFixture().resources,
-          resource("server", "main", "Server", { addr: ":38440" }, [], {
-            status: "restartRequired",
-            runtimeImpact: "critical",
-            hotReloadable: false
-          })
-        ]
+        resources: configGraphFixture().resources
       })
     );
 

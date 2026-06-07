@@ -1,79 +1,214 @@
-import { screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { renderWithConsoleProviders } from "../test/renderWithConsoleProviders";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, test, vi } from "vitest";
-import { ConfigPage } from "../features/config/ConfigPage";
+import { AppShell } from "../app/App";
+import { DefaultsPage } from "../features/defaults/DefaultsPage";
+import { LogsPage } from "../features/logs/LogsPage";
 import { OverviewPage } from "../features/overview/OverviewPage";
-import * as management from "../rpc/management";
+import { SecurityPage } from "../features/security/SecurityPage";
 import { CONSOLE_THEME_STORAGE_KEY } from "../theme/ThemeProvider";
+import { configGraphFixture } from "../test/configGraphFixtures";
+import { renderWithConsoleProviders } from "../test/renderWithConsoleProviders";
+import type { ConfigGraph, FieldError, PatchResponse } from "../rpc/types";
 
+type FetchCall = {
+  url: string;
+  init?: RequestInit;
+  body?: unknown;
+};
 
-
-describe("console smoke flow", () => {
+describe("config graph console smoke flow", () => {
   afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
     vi.restoreAllMocks();
     localStorage.clear();
   });
 
-  test("defaults to dark theme and renders overview runtime cards", async () => {
-    vi.spyOn(management, "getStatus").mockResolvedValue({
-      uptime: "N/A",
-      version: "dev",
-      mode: "Transform",
-      provider_count: 1,
-      route_count: 1,
-      addr: "127.0.0.1:38441",
-      timestamp: "2026-05-24T00:00:00Z"
+  test("primary navigation has no config file or apply entry points", () => {
+    renderWithConsoleProviders(
+      <MemoryRouter>
+        <AppShell content={<div>Console content</div>} />
+      </MemoryRouter>
+    );
+
+    const nav = screen.getByRole("navigation", { name: /console sections/i });
+    expect(nav).toHaveTextContent("Overview");
+    expect(nav).toHaveTextContent("Models & Providers");
+    expect(nav).toHaveTextContent("Search & Tools");
+    expect(nav).toHaveTextContent("Logs");
+    expect(nav).not.toHaveTextContent("Config");
+    expect(nav).not.toHaveTextContent("YAML");
+    expect(screen.queryByRole("button", { name: /^apply$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /apply changes/i })).not.toBeInTheDocument();
+  });
+
+  test("overview loads runtime state from the config graph", async () => {
+    mockFetch({
+      graph: configGraphFixture()
     });
-    vi.spyOn(management, "getStatsSummary").mockResolvedValue({
-      requests: 0,
-      input_tokens: 0,
-      output_tokens: 0,
-      cache_hit_rate: 0,
-      total_cost: 0,
-      duration: "0s"
-    });
-    vi.spyOn(management, "getSessions").mockResolvedValue([]);
-    vi.spyOn(management, "getChanges").mockResolvedValue([]);
 
     renderWithConsoleProviders(<OverviewPage />);
 
     expect(document.documentElement.dataset.theme).toBe("dark");
     expect(localStorage.getItem(CONSOLE_THEME_STORAGE_KEY)).toBe("dark");
     expect(await screen.findByText("Transform")).toBeInTheDocument();
-    expect(screen.getByText("0 pending")).toBeInTheDocument();
+    expect(screen.getAllByText("Valid").length).toBeGreaterThan(0);
+    expect(screen.getByText("rev-1")).toBeInTheDocument();
   });
 
-  test("config imports raw YAML as edits ready to apply", async () => {
-    vi.spyOn(management, "getEffectiveConfig").mockResolvedValue({});
-    vi.spyOn(management, "getDefaults").mockResolvedValue({
-      model: "moonbridge",
-      max_tokens: 4096,
-      system_prompt: ""
+  test("editing a field patches the config graph directly", async () => {
+    const graph = configGraphFixture();
+    const { calls } = mockFetch({
+      graph,
+      patch: {
+        result: "committed",
+        revision: "rev-2",
+        graph: configGraphFixture({ revision: "rev-2" })
+      }
     });
-    vi.spyOn(management, "getWebSearch").mockResolvedValue({
-      support: "auto",
-      max_uses: 8,
-      tavily_api_key: "****",
-      firecrawl_api_key: "****",
-      search_max_rounds: 5
+
+    renderWithConsoleProviders(<DefaultsPage />);
+
+    fireEvent.change(await screen.findByLabelText("Model"), {
+      target: { value: "gpt-4o" }
     });
-    vi.spyOn(management, "validateConfig").mockResolvedValue({ valid: true });
-    const importConfig = vi.spyOn(management, "importConfig").mockResolvedValue({
-      changes: [{ change_id: 1, resource: "route", target: "moonbridge" }],
-      count: 1,
-      message: ""
+
+    await waitFor(() => {
+      expect(findPatch(calls)?.body).toEqual({
+        baseRevision: "rev-1",
+        changes: [
+          {
+            kind: "defaults",
+            id: "main",
+            field: "model",
+            value: "gpt-4o"
+          }
+        ]
+      });
     });
-    vi.spyOn(management, "exportConfig").mockResolvedValue("mode: Transform\n");
+  });
 
-    renderWithConsoleProviders(<ConfigPage />);
+  test("draft rejection keeps the edited value and shows the field error", async () => {
+    const error = fieldError("defaults", "main", "model", "draftRejected", "Model is invalid");
+    mockFetch({
+      graph: configGraphFixture(),
+      patch: {
+        result: "draftRejected",
+        revision: "rev-1",
+        errors: [error]
+      }
+    });
 
-    expect(screen.queryByRole("button", { name: /generate yaml/i })).not.toBeInTheDocument();
-    await userEvent.clear(await screen.findByLabelText(/yaml editor/i));
-    await userEvent.type(screen.getByLabelText(/yaml editor/i), "mode: Transform");
-    await userEvent.click(screen.getByRole("button", { name: /import/i }));
+    renderWithConsoleProviders(<DefaultsPage />);
 
-    expect(importConfig).toHaveBeenCalledWith("mode: Transform");
-    expect(await screen.findByText(/1 edits ready to apply/i)).toBeInTheDocument();
+    const model = await screen.findByLabelText("Model");
+    fireEvent.change(model, { target: { value: "invalid-model" } });
+
+    expect(model).toHaveValue("invalid-model");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Model is invalid");
+  });
+
+  test("runtime rejection rolls back a critical field", async () => {
+    const error = fieldError("server", "main", "addr", "runtimeRejected", "Runtime rejected");
+    mockFetch({
+      graph: configGraphFixture(),
+      patch: {
+        result: "runtimeRejected",
+        revision: "rev-1",
+        errors: [error],
+        rollbackValue: ":38440"
+      }
+    });
+
+    renderWithConsoleProviders(<SecurityPage />);
+
+    const address = await screen.findByLabelText("Address");
+    fireEvent.change(address, { target: { value: ":9999" } });
+
+    await waitFor(() => {
+      expect(address).toHaveValue(":38440");
+    });
+    expect(await screen.findByRole("alert")).toHaveTextContent("Runtime rejected");
+  });
+
+  test("logs page renders recent backend log lines", async () => {
+    mockFetch({
+      graph: configGraphFixture(),
+      logs: [
+        {
+          timestamp: "2026-06-07T00:00:00Z",
+          level: "INFO",
+          message: "server started",
+          raw: "time=2026-06-07T00:00:00Z level=INFO msg=server-started"
+        }
+      ]
+    });
+
+    renderWithConsoleProviders(<LogsPage />);
+
+    expect(await screen.findByText(/server-started/)).toBeInTheDocument();
   });
 });
+
+function mockFetch({
+  graph,
+  patch,
+  logs = []
+}: {
+  graph: ConfigGraph;
+  patch?: PatchResponse;
+  logs?: unknown[];
+}) {
+  const calls: FetchCall[] = [];
+  const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    const method = init?.method ?? "GET";
+    const body = parseBody(init?.body);
+    calls.push({ url, init, body });
+
+    if (url === "/api/v1/config/graph" && method === "GET") {
+      return jsonResponse(graph);
+    }
+    if (url === "/api/v1/config/graph" && method === "PATCH") {
+      if (!patch) {
+        throw new Error("Unexpected config graph patch");
+      }
+      return jsonResponse(patch);
+    }
+    if (url.startsWith("/api/v1/logs/recent")) {
+      return jsonResponse(logs);
+    }
+    if (url === "/api/v1/logs/stream") {
+      return new Response(new ReadableStream<Uint8Array>(), { status: 200 });
+    }
+    throw new Error(`Unexpected fetch: ${method} ${url}`);
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  return { calls, fetchMock };
+}
+
+function jsonResponse(payload: unknown) {
+  return new Response(JSON.stringify(payload), {
+    status: 200,
+    headers: { "Content-Type": "application/json" }
+  });
+}
+
+function parseBody(body: BodyInit | null | undefined) {
+  return typeof body === "string" ? JSON.parse(body) as unknown : undefined;
+}
+
+function findPatch(calls: FetchCall[]) {
+  return calls.find((call) => call.url === "/api/v1/config/graph" && call.init?.method === "PATCH");
+}
+
+function fieldError(
+  resourceKind: FieldError["resourceKind"],
+  resourceId: string,
+  field: string,
+  code: string,
+  message: string
+): FieldError {
+  return { resourceKind, resourceId, field, code, message };
+}
