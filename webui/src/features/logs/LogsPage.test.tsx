@@ -67,7 +67,7 @@ describe("LogsPage", () => {
     vi.spyOn(logs, "createLogStream").mockResolvedValue(
       new Response(new ReadableStream<Uint8Array>())
     );
-    const { createObjectURL } = installURLMethods();
+    const { getBlob } = installURLMethods();
 
     renderWithConsoleProviders(<LogsPage />);
 
@@ -76,8 +76,7 @@ describe("LogsPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "WARN" }));
     fireEvent.click(screen.getByRole("button", { name: "Download" }));
 
-    const blob = createObjectURL.mock.calls[0]?.[0] as Blob;
-    await expect(readBlobText(blob)).resolves.toBe("time=2026-06-07T00:00:02Z level=WARN msg=slow-request");
+    await expect(readBlobText(getBlob())).resolves.toBe("time=2026-06-07T00:00:02Z level=WARN msg=slow-request");
   });
 
   test("shows a non-blocking status when log streaming fails", async () => {
@@ -156,12 +155,16 @@ function restoreNavigatorClipboard() {
   if (clipboardDescriptor) {
     Object.defineProperty(Navigator.prototype, "clipboard", clipboardDescriptor);
   } else {
-    delete (navigator as Partial<Navigator>).clipboard;
+    Reflect.deleteProperty(navigator, "clipboard");
   }
 }
 
 function installURLMethods() {
-  const createObjectURL = vi.fn(() => "blob:moonbridge-logs");
+  let blob: Blob | undefined;
+  const createObjectURL = vi.fn((nextBlob: Blob) => {
+    blob = nextBlob;
+    return "blob:moonbridge-logs";
+  });
   const revokeObjectURL = vi.fn();
   vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
   Object.defineProperty(URL, "createObjectURL", {
@@ -172,7 +175,16 @@ function installURLMethods() {
     configurable: true,
     value: revokeObjectURL
   });
-  return { createObjectURL, revokeObjectURL };
+  return {
+    createObjectURL,
+    revokeObjectURL,
+    getBlob() {
+      if (!blob) {
+        throw new Error("download did not create a blob URL");
+      }
+      return blob;
+    }
+  };
 }
 
 function restoreURLMethods() {
