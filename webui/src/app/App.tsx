@@ -638,11 +638,88 @@ const shellStyles = `
     font: inherit;
   }
 
-  .schema-field label {
-    display: grid;
-    gap: 6px;
+  .schema-field__topline,
+  .schema-field--inline {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-height: 28px;
+  }
+
+  .schema-field__label,
+  .schema-field__checkbox-label {
     color: inherit;
     font: inherit;
+  }
+
+  .schema-field__label {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .schema-field__required {
+    margin-left: 3px;
+    color: var(--mb-color-error);
+  }
+
+  .schema-field__checkbox-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .schema-field--wide {
+    grid-column: 1 / -1;
+  }
+
+  .schema-field--wide textarea {
+    min-height: 132px;
+    font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+    line-height: 1.45;
+  }
+
+  .field-status {
+    display: inline-flex;
+    align-items: center;
+    justify-self: end;
+    gap: 6px;
+    min-height: 24px;
+    border-radius: 8px;
+    padding: 0 8px;
+    color: var(--mb-color-on-surface-variant);
+    background: color-mix(in srgb, var(--mb-color-surface-container-high) 78%, transparent);
+    font-size: 0.72rem;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .field-status__dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: currentColor;
+  }
+
+  .field-status--dirty {
+    color: var(--mb-color-on-tertiary-container);
+    background: var(--mb-color-tertiary-container);
+  }
+
+  .field-status--saving {
+    color: var(--mb-color-on-primary-container);
+    background: var(--mb-color-primary-container);
+  }
+
+  .field-status--saved,
+  .field-status--idle {
+    color: var(--mb-color-on-secondary-container);
+    background: var(--mb-color-secondary-container);
+  }
+
+  .field-status--error {
+    color: var(--mb-color-on-error-container);
+    background: var(--mb-color-error-container);
   }
 
   .form-grid input,
@@ -678,6 +755,14 @@ const shellStyles = `
     outline: 0;
     border-color: var(--mb-color-primary);
     border-bottom: 2px solid var(--mb-color-primary);
+  }
+
+  .form-grid input[aria-invalid="true"],
+  .form-grid select[aria-invalid="true"],
+  .form-grid textarea[aria-invalid="true"] {
+    border-color: var(--mb-color-error);
+    border-bottom-color: var(--mb-color-error);
+    box-shadow: inset 0 -1px 0 var(--mb-color-error);
   }
 
   .form-grid__wide,
@@ -732,6 +817,18 @@ const shellStyles = `
 
   .field-hint span {
     display: inline-block;
+  }
+
+  .field-error {
+    margin: 0;
+    border-radius: 8px;
+    padding: 8px 10px;
+    color: var(--mb-color-on-error-container);
+    background: var(--mb-color-error-container);
+    font-size: 0.76rem;
+    line-height: 1.4;
+    font-weight: 650;
+    overflow-wrap: anywhere;
   }
 
   .checkbox-inline {

@@ -20,8 +20,10 @@ export function FieldStatus({
     <span
       aria-live="polite"
       className={`field-status field-status--${status}`}
+      data-status={status}
       role={status === "error" ? "alert" : "status"}
     >
+      <span className="field-status__dot" aria-hidden="true" />
       {label}
     </span>
   );
