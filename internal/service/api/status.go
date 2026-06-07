@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"sort"
 	"time"
-
 )
 
 // ---- Status ----
@@ -114,13 +113,6 @@ func (r *Router) handleGetStatsSummary(w http.ResponseWriter, req *http.Request)
 		"total_cost":     summary.TotalCost,
 		"duration":       summary.Duration.String(),
 	})
-}
-
-// GET /logs
-func (r *Router) handleGetLogs(w http.ResponseWriter, req *http.Request) {
-	// The current logger package doesn't expose a ring buffer for recent entries.
-	// This endpoint returns a placeholder until a log ring buffer is implemented.
-	respondJSON(w, http.StatusOK, []any{})
 }
 
 // GET /version

@@ -123,5 +123,7 @@ func registerRoutes(mux *http.ServeMux, r *Router) {
 	mux.HandleFunc("GET /stats", r.handleGetStats)
 	mux.HandleFunc("GET /stats/summary", r.handleGetStatsSummary)
 	mux.HandleFunc("GET /logs", r.handleGetLogs)
+	mux.HandleFunc("GET /logs/recent", r.handleGetLogsRecent)
+	mux.HandleFunc("GET /logs/stream", r.handleGetLogsStream)
 	mux.HandleFunc("GET /version", r.handleGetVersion)
 }
