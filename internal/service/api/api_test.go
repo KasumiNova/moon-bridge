@@ -19,10 +19,10 @@ import (
 
 // testFixture provides a test environment with a real store, runtime, and HTTP router.
 type testFixture struct {
-	t      *testing.T
-	store  store.ConfigStore
-	rt     *runtime.Runtime
-	server *httptest.Server
+	t       *testing.T
+	store   store.ConfigStore
+	rt      *runtime.Runtime
+	handler http.Handler
 }
 
 // newFixture creates a test fixture for API e2e tests.
@@ -113,11 +113,9 @@ func newFixture(t *testing.T) *testFixture {
 
 	// Mock server to satisfy the interface required by NewRouter.
 	srv := &testServer{rt: rt}
-	mux := NewRouter(s, rt, nil, nil, srv)
-	server := httptest.NewServer(mux)
-	t.Cleanup(server.Close)
+	handler := NewRouter(s, rt, nil, nil, srv)
 
-	return &testFixture{t: t, store: s, rt: rt, server: server}
+	return &testFixture{t: t, store: s, rt: rt, handler: handler}
 }
 
 func buildTableNameMap(tables []db.TableSpec) map[string]string {
@@ -130,9 +128,9 @@ func buildTableNameMap(tables []db.TableSpec) map[string]string {
 
 // testAPIDB implements db.Store backed by an in-memory SQLite database for API tests.
 type testAPIDB struct {
-	t         *testing.T
-	db        *sql.DB
-	consumer  string
+	t          *testing.T
+	db         *sql.DB
+	consumer   string
 	tableNames map[string]string
 }
 
@@ -219,12 +217,12 @@ func (f *testFixture) request(method, path string, body any) *httptest.ResponseR
 	} else {
 		reqBody = strings.NewReader("")
 	}
-	req := httptest.NewRequest(method, f.server.URL+path, reqBody)
+	req := httptest.NewRequest(method, "http://moonbridge.test"+path, reqBody)
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
 	w := httptest.NewRecorder()
-	f.server.Config.Handler.ServeHTTP(w, req)
+	f.handler.ServeHTTP(w, req)
 	return w
 }
 
