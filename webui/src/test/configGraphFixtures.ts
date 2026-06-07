@@ -79,7 +79,65 @@ export function configGraphFixture(overrides: Partial<ConfigGraph> = {}): Config
       field("context_window", "Context Window", "number", "number"),
       field("web_search", "Web Search", "object", "object"),
       field("extensions", "Extensions", "object", "object")
-    ])
+    ]),
+    resource("web_search", "main", "Web Search", {
+      support: "auto",
+      max_uses: 4,
+      tavily_api_key: "******",
+      firecrawl_api_key: "******",
+      search_max_rounds: 2
+    }, [
+      field("support", "Support", "string", "select", ["auto", "enabled", "disabled", "injected"]),
+      field("max_uses", "Max Uses", "number", "number"),
+      field("tavily_api_key", "Tavily API Key", "string", "secret", undefined, true),
+      field("firecrawl_api_key", "Firecrawl API Key", "string", "secret", undefined, true),
+      field("search_max_rounds", "Search Max Rounds", "number", "number")
+    ]),
+    resource("extension", "db_sqlite", "db_sqlite", {
+      enabled: true,
+      config: { path: "~/.moon-bridge/moonbridge.db" }
+    }, [
+      field("enabled", "Enabled", "boolean", "switch"),
+      field("config", "Config", "object", "object")
+    ]),
+    resource("proxy", "main", "Proxy", {
+      response: { base_url: "https://response.proxy", api_key: "******" },
+      anthropic: { base_url: "https://anthropic.proxy", api_key: "******" }
+    }, [
+      field("response", "Response Proxy", "object", "object"),
+      field("anthropic", "Anthropic Proxy", "object", "object")
+    ], { hotReloadable: false, runtimeImpact: "critical" }),
+    resource("cache", "main", "Cache", {
+      mode: "memory",
+      ttl: "1h",
+      prompt_caching: true,
+      automatic_prompt_cache: false
+    }, [
+      field("mode", "Mode"),
+      field("ttl", "TTL"),
+      field("prompt_caching", "Prompt Caching", "boolean", "switch"),
+      field("automatic_prompt_cache", "Automatic Prompt Cache", "boolean", "switch")
+    ]),
+    resource("persistence", "main", "Persistence", {
+      active_provider: "db_sqlite"
+    }, [
+      field("active_provider", "Active Provider")
+    ]),
+    resource("server", "main", "Server", {
+      addr: ":38440",
+      auth_token: "******",
+      max_sessions: 64,
+      session_ttl: "24h"
+    }, [
+      field("addr", "Address"),
+      field("auth_token", "Auth Token", "string", "secret", undefined, true),
+      field("max_sessions", "Max Sessions", "number", "number"),
+      field("session_ttl", "Session TTL")
+    ], {
+      hotReloadable: false,
+      runtimeImpact: "critical",
+      status: "restartRequired"
+    })
   ];
 
   return {

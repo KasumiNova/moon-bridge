@@ -65,4 +65,4 @@ webui/playwright-report/
 # Wrangler dev vars
 .dev.vars
 /moonbridge
-logs/
+/logs/
