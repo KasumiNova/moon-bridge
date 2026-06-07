@@ -1,0 +1,63 @@
+import { act, fireEvent, screen, within } from "@testing-library/react";
+import { afterEach, describe, expect, test, vi } from "vitest";
+import { renderWithConsoleProviders } from "../../test/renderWithConsoleProviders";
+import * as configGraph from "../../rpc/configGraph";
+import { configGraphFixture } from "../../test/configGraphFixtures";
+import { DefaultsPage } from "./DefaultsPage";
+
+describe("DefaultsPage", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  test("renders defaults, trace, and log resources", async () => {
+    vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
+
+    renderWithConsoleProviders(<DefaultsPage />);
+
+    expect(await screen.findByRole("heading", { level: 2, name: "Defaults" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Trace" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Log" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Model")).toHaveValue("claude-sonnet");
+    expect(screen.getByLabelText("Level")).toHaveValue("info");
+  });
+
+  test("autosaves defaults through graph patches", async () => {
+    vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
+    const patch = vi.spyOn(configGraph, "patchConfigGraph").mockResolvedValue({
+      result: "committed",
+      revision: "rev-2"
+    });
+
+    renderWithConsoleProviders(<DefaultsPage />);
+
+    const defaultsPanel = (await screen.findByRole("heading", { level: 2, name: "Defaults" }))
+      .closest("section")!;
+    vi.useFakeTimers();
+    fireEvent.change(within(defaultsPanel).getByLabelText("Model"), {
+      target: { value: "gpt-4o" }
+    });
+
+    await advanceAutosave();
+
+    expect(patch).toHaveBeenCalledWith({
+      baseRevision: "rev-1",
+      changes: [
+        {
+          kind: "defaults",
+          id: "main",
+          field: "model",
+          value: "gpt-4o"
+        }
+      ]
+    });
+  });
+});
+
+async function advanceAutosave() {
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(450);
+    await Promise.resolve();
+  });
+}

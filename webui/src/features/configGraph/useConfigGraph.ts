@@ -25,14 +25,14 @@ export function useConfigGraph() {
 export function usePatchConfigGraph() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: patchConfigGraph,
+    mutationFn: (request: PatchRequest) => patchConfigGraph(request),
     onSuccess: (response) => updateGraphCache(queryClient, response)
   });
 }
 
 export function useValidateConfigGraph() {
   return useMutation({
-    mutationFn: validateConfigGraph
+    mutationFn: (request: PatchRequest) => validateConfigGraph(request)
   });
 }
 

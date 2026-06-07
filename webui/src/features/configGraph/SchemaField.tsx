@@ -8,6 +8,7 @@ export type SchemaFieldProps = {
   value: unknown;
   onChange: (value: unknown) => void;
   disabled?: boolean;
+  idPrefix?: string;
   status?: AutosaveFieldStatus;
   error?: string;
 };
@@ -17,10 +18,14 @@ export function SchemaField({
   value,
   onChange,
   disabled = false,
+  idPrefix,
   status,
   error
 }: SchemaFieldProps) {
-  const id = useMemo(() => `schema-field-${field.path.replace(/[^a-zA-Z0-9_-]/g, "-")}`, [field.path]);
+  const id = useMemo(() => {
+    const prefix = idPrefix ? `${idPrefix}-` : "";
+    return `schema-field-${prefix}${field.path}`.replace(/[^a-zA-Z0-9_-]/g, "-");
+  }, [field.path, idPrefix]);
   const [text, setText] = useState(displayValue(field, value));
   const [parseError, setParseError] = useState("");
 
@@ -33,86 +38,96 @@ export function SchemaField({
 
   if (field.control === "select" || (field.enum?.length ?? 0) > 0) {
     return (
-      <label className="schema-field" htmlFor={id}>
-        <span className="schema-field__label">{field.label}</span>
-        <select
-          id={id}
-          disabled={disabled}
-          value={typeof value === "string" ? value : ""}
-          onChange={(event) => onChange(event.currentTarget.value)}
-        >
-          {field.enum?.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
+      <div className="schema-field">
+        <label htmlFor={id}>
+          <span className="schema-field__label">{field.label}</span>
+          <select
+            id={id}
+            disabled={disabled}
+            value={typeof value === "string" ? value : ""}
+            onChange={(event) => onChange(event.currentTarget.value)}
+          >
+            {field.enum?.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        </label>
         {statusNode}
-      </label>
+      </div>
     );
   }
 
   if (field.type === "boolean" || field.control === "switch") {
     return (
-      <label className="schema-field schema-field--inline" htmlFor={id}>
-        <input
-          id={id}
-          checked={Boolean(value)}
-          disabled={disabled}
-          type="checkbox"
-          onChange={(event) => onChange(event.currentTarget.checked)}
-        />
-        <span className="schema-field__label">{field.label}</span>
+      <div className="schema-field schema-field--inline">
+        <label htmlFor={id}>
+          <input
+            id={id}
+            checked={Boolean(value)}
+            disabled={disabled}
+            type="checkbox"
+            onChange={(event) => onChange(event.currentTarget.checked)}
+          />
+          <span className="schema-field__label">{field.label}</span>
+        </label>
         {statusNode}
-      </label>
+      </div>
     );
   }
 
   if (field.control === "textarea") {
     return (
-      <label className="schema-field" htmlFor={id}>
-        <span className="schema-field__label">{field.label}</span>
-        <textarea
-          id={id}
-          disabled={disabled}
-          value={text}
-          onChange={(event) => updateText(event, onChange, field)}
-        />
+      <div className="schema-field">
+        <label htmlFor={id}>
+          <span className="schema-field__label">{field.label}</span>
+          <textarea
+            id={id}
+            disabled={disabled}
+            value={text}
+            onChange={(event) => updateText(event, onChange, field)}
+          />
+        </label>
         {statusNode}
-      </label>
+      </div>
     );
   }
 
   if (field.type === "object" || field.type === "array" || field.control === "object" || field.control === "array") {
     return (
-      <label className="schema-field" htmlFor={id}>
-        <span className="schema-field__label">{field.label}</span>
-        <textarea
-          aria-invalid={parseError ? "true" : undefined}
-          id={id}
-          disabled={disabled}
-          spellCheck={false}
-          value={text}
-          onChange={(event) => updateJSON(event.currentTarget.value)}
-        />
+      <div className="schema-field">
+        <label htmlFor={id}>
+          <span className="schema-field__label">{field.label}</span>
+          <textarea
+            aria-invalid={parseError ? "true" : undefined}
+            id={id}
+            disabled={disabled}
+            spellCheck={false}
+            value={text}
+            onChange={(event) => updateJSON(event.currentTarget.value)}
+          />
+        </label>
         {statusNode}
-      </label>
+      </div>
     );
   }
 
   return (
-    <label className="schema-field" htmlFor={id}>
-      <span className="schema-field__label">{field.label}</span>
-      <input
-        autoComplete={field.secret ? "new-password" : undefined}
-        disabled={disabled}
-        id={id}
-        type={inputType(field)}
-        value={text}
-        onChange={(event) => updateText(event, onChange, field)}
-      />
+    <div className="schema-field">
+      <label htmlFor={id}>
+        <span className="schema-field__label">{field.label}</span>
+        <input
+          autoComplete={field.secret ? "new-password" : undefined}
+          disabled={disabled}
+          id={id}
+          type={inputType(field)}
+          value={text}
+          onChange={(event) => updateText(event, onChange, field)}
+        />
+      </label>
       {statusNode}
-    </label>
+    </div>
   );
 
   function updateJSON(next: string) {

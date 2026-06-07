@@ -521,7 +521,8 @@ const shellStyles = `
   }
 
   .form-grid label,
-  .form-field {
+  .form-field,
+  .schema-field {
     display: grid;
     gap: 8px;
     color: var(--mb-color-on-surface-variant);
@@ -531,6 +532,13 @@ const shellStyles = `
   }
 
   .form-field label {
+    display: grid;
+    gap: 6px;
+    color: inherit;
+    font: inherit;
+  }
+
+  .schema-field label {
     display: grid;
     gap: 6px;
     color: inherit;
