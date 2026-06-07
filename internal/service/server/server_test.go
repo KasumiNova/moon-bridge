@@ -21,8 +21,10 @@ import (
 	"moonbridge/internal/logger"
 	"moonbridge/internal/protocol/openai"
 	"moonbridge/internal/service/provider"
+	"moonbridge/internal/service/runtime"
 	"moonbridge/internal/service/server"
 	"moonbridge/internal/service/stats"
+	"moonbridge/internal/service/store"
 	mbtrace "moonbridge/internal/service/trace"
 )
 
@@ -1102,6 +1104,36 @@ func TestAuthRejectsRequestsWithoutValidToken(t *testing.T) {
 	}
 }
 
+func TestConsoleStaticBypassesAuthButAPIStillRequiresAuth(t *testing.T) {
+	cfg := minimalRuntimeConfig()
+	rt := runtime.NewRuntime(cfg, nil, nil)
+	handler := server.New(server.Config{
+		ServerCfg: config.ServerConfig{AuthToken: "my-secret"},
+		Runtime:   rt,
+		Store:     &fakeConfigStore{cfg: cfg, revision: "rev-1"},
+	})
+
+	console := httptest.NewRecorder()
+	handler.ServeHTTP(console, httptest.NewRequest(http.MethodGet, "/console/", nil))
+	if console.Code != http.StatusOK {
+		t.Fatalf("/console/ without auth status = %d, body = %s", console.Code, console.Body.String())
+	}
+
+	apiWithoutAuth := httptest.NewRecorder()
+	handler.ServeHTTP(apiWithoutAuth, httptest.NewRequest(http.MethodGet, "/api/v1/status", nil))
+	if apiWithoutAuth.Code != http.StatusUnauthorized {
+		t.Fatalf("/api/v1/status without auth status = %d, want 401, body = %s", apiWithoutAuth.Code, apiWithoutAuth.Body.String())
+	}
+
+	apiWithAuth := httptest.NewRecorder()
+	authReq := httptest.NewRequest(http.MethodGet, "/api/v1/status", nil)
+	authReq.Header.Set("Authorization", "Bearer my-secret")
+	handler.ServeHTTP(apiWithAuth, authReq)
+	if apiWithAuth.Code != http.StatusOK {
+		t.Fatalf("/api/v1/status with auth status = %d, want 200, body = %s", apiWithAuth.Code, apiWithAuth.Body.String())
+	}
+}
+
 func TestAuthAcceptsValidBearerToken(t *testing.T) {
 	t.Skip("needs adapter to new dispatch architecture: requires ProviderMgr config")
 	handler := server.New(server.Config{
@@ -1124,4 +1156,75 @@ func TestAuthAcceptsValidBearerToken(t *testing.T) {
 func addAuth(req *http.Request, value string) *http.Request {
 	req.Header.Set("Authorization", value)
 	return req
+}
+
+func minimalRuntimeConfig() config.Config {
+	return config.Config{
+		Mode:      config.ModeTransform,
+		Addr:      "127.0.0.1:38440",
+		AuthToken: "my-secret",
+		Defaults: config.Defaults{
+			Model: "test-model",
+		},
+		Models: map[string]config.ModelDef{
+			"test-model": {DisplayName: "Test Model"},
+		},
+		ProviderDefs: map[string]config.ProviderDef{
+			"test-provider": {
+				BaseURL: "https://provider.example.test",
+				APIKey:  "test-key",
+				Models:  map[string]config.ModelMeta{"upstream-model": {}},
+				Offers:  []config.OfferEntry{{Model: "test-model", UpstreamName: "upstream-model"}},
+			},
+		},
+		Routes: map[string]config.RouteEntry{
+			"test-model": {Provider: "test-provider", Model: "upstream-model"},
+		},
+		Cache: config.CacheConfig{Mode: "off"},
+	}
+}
+
+type fakeConfigStore struct {
+	cfg      config.Config
+	revision string
+}
+
+func (s *fakeConfigStore) StageChange(store.ChangeRow) (int64, error) {
+	return 0, nil
+}
+
+func (s *fakeConfigStore) ListPendingChanges() ([]store.ChangeRow, error) {
+	return nil, nil
+}
+
+func (s *fakeConfigStore) ApplyPendingChanges(context.Context, store.ReloadFunc) error {
+	return nil
+}
+
+func (s *fakeConfigStore) DiscardPendingChanges() error {
+	return nil
+}
+
+func (s *fakeConfigStore) LoadAll() (*config.Config, error) {
+	cfg := s.cfg
+	return &cfg, nil
+}
+
+func (s *fakeConfigStore) SeedFromConfig(cfg *config.Config) error {
+	s.cfg = *cfg
+	return nil
+}
+
+func (s *fakeConfigStore) SaveConfig(_ context.Context, cfg *config.Config) (string, error) {
+	s.cfg = *cfg
+	s.revision += "-next"
+	return s.revision, nil
+}
+
+func (s *fakeConfigStore) CurrentRevision() (string, error) {
+	return s.revision, nil
+}
+
+func (s *fakeConfigStore) ExportYAML(bool) ([]byte, error) {
+	return nil, nil
 }

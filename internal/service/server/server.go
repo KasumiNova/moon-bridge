@@ -164,7 +164,7 @@ func New(cfg Config) *Server {
 }
 
 func (s *Server) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	if token := s.currentConfig().AuthToken; token != "" {
+	if token := s.currentConfig().AuthToken; token != "" && !isConsoleAssetPath(request.URL.Path) {
 		if !checkAuth(request, token) {
 			writer.Header().Set("Content-Type", "application/json")
 			writer.WriteHeader(http.StatusUnauthorized)
@@ -177,6 +177,10 @@ func (s *Server) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 		}
 	}
 	s.mux.ServeHTTP(writer, request)
+}
+
+func isConsoleAssetPath(path string) bool {
+	return path == "/console" || strings.HasPrefix(path, "/console/")
 }
 
 func (s *Server) handleModels(writer http.ResponseWriter, request *http.Request) {
