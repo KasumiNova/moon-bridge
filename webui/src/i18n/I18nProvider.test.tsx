@@ -13,7 +13,7 @@ function Probe() {
     <div>
       <p data-testid="locale">{locale}</p>
       <p data-testid="title">{t("nav.overview")}</p>
-      <p data-testid="pending">{t("overview.pendingCount", { count: 3 })}</p>
+      <p data-testid="routes">{t("overview.routes")}</p>
       <button type="button" onClick={() => setLocale("en-US")}>
         English
       </button>
@@ -41,7 +41,7 @@ describe("I18nProvider", () => {
 
     expect(screen.getByTestId("locale")).toHaveTextContent("zh-CN");
     expect(screen.getByTestId("title")).toHaveTextContent("概览");
-    expect(screen.getByTestId("pending")).toHaveTextContent("3 个待应用");
+    expect(screen.getByTestId("routes")).toHaveTextContent("路由");
   });
 
   test("supports switching to English and persists the choice", async () => {

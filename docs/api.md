@@ -12,10 +12,11 @@ Moon Bridge 对外暴露 OpenAI Responses 兼容端点、模型列表端点和�
 
 生产二进制会在 `/console/` 提供嵌入式 Web Console。Console 使用同源 RPC：
 
-- `/api/v1/*`：管理 API，用于状态、Provider/Model/Route、配置导入导出、待应用变更等。
+- `/api/v1/config/graph`：配置图 API，Console 通过它读取资源图并实时保存字段编辑。
+- `/api/v1/logs/recent`、`/api/v1/logs/stream`：日志 API，Console Logs 页面使用。
 - `/v1/models`、`/v1/responses`：RPC smoke test 面板使用的 OpenAI-compatible 端点。
 
-管理 API 只有在配置启用 `persistence.active_provider` 且配置存储初始化成功时可用；否则 `/api/v1/*` 可能返回 404 或 `store_unavailable`。Console 中生成或导入的配置不会立即成为运行态配置，必须先 stage pending changes，再通过 `/api/v1/changes/apply` 应用。
+管理 API 只有在配置启用 `persistence.active_provider` 且配置存储初始化成功时可用；否则 `/api/v1/*` 可能返回 404 或 `store_unavailable`。Console 的常规配置流程不暴露配置文件路径或 YAML 编辑器；用户通过 UI 字段直接修改配置图资源。
 
 ## 核心端点
 
@@ -81,10 +82,17 @@ data: {"response": {...}}
 
 ## 管理 API
 
-当 `persistence.active_provider` 启用时，管理 API 在 `/api/v1/` 下可用。写操作会创建待应用变更，通常返回 `202` 和 `change_id`，不会绕过变更队列直接修改运行态。
+当 `persistence.active_provider` 启用时，管理 API 在 `/api/v1/` 下可用。当前 Console 主要使用配置图 API；旧的资源端点仍保留给脚本或兼容调用。
 
 | 端点 | 方法 | 功能 |
 |------|------|------|
+| `/api/v1/config/graph` | GET | 获取当前配置图、资源 schema、校验状态和运行状态 |
+| `/api/v1/config/graph` | PATCH | 按字段实时修改配置图 |
+| `/api/v1/config/graph/validate` | POST | 验证一组配置图修改，但不提交 |
+| `/api/v1/config/resources/{kind}` | POST | 创建配置资源 |
+| `/api/v1/config/resources/{kind}/{id}` | DELETE | 删除配置资源 |
+| `/api/v1/logs/recent` | GET | 获取最近后端日志 |
+| `/api/v1/logs/stream` | GET | 以 Server-Sent Events 形式跟随后端日志 |
 | `/api/v1/status` | GET | 运行态状态 |
 | `/api/v1/providers` | GET | 分页列出 Provider |
 | `/api/v1/providers/{key}` | GET/PUT/PATCH/DELETE | 查看、创建、更新、删除 Provider |
@@ -106,6 +114,96 @@ data: {"response": {...}}
 | `/api/v1/changes/apply` | POST | 应用待变更并 reload |
 | `/api/v1/changes/discard` | POST | 丢弃待变更 |
 | `/api/v1/sessions` | GET | 获取会话用量统计 |
+
+### 配置图 API
+
+`GET /api/v1/config/graph` 返回当前可编辑资源图：
+
+```json
+{
+  "revision": "rev-...",
+  "resources": [
+    {
+      "kind": "defaults",
+      "id": "main",
+      "label": "Defaults",
+      "value": {"model": "moonbridge", "max_tokens": 65536},
+      "schema": {"fields": [{"path": "model", "type": "string", "label": "Model"}]},
+      "status": "saved",
+      "runtimeImpact": "normal",
+      "hotReloadable": true
+    }
+  ],
+  "validation": {"valid": true},
+  "runtime": {"status": "ok"},
+  "capabilities": {"autosave": true, "logs": true}
+}
+```
+
+资源类型包括：`mode`、`trace`、`log`、`server`、`defaults`、`model`、`provider`、`provider_offer`、`route`、`web_search`、`cache`、`persistence`、`extension`、`proxy`。
+
+`PATCH /api/v1/config/graph` 请求体：
+
+```json
+{
+  "baseRevision": "rev-...",
+  "changes": [
+    {"kind": "defaults", "id": "main", "field": "model", "value": "claude-sonnet"}
+  ]
+}
+```
+
+返回结果：
+
+| `result` | HTTP 状态 | 含义 |
+|----------|-----------|------|
+| `committed` | 200 | 已提交并重新构建配置图 |
+| `restartRequired` | 200 | 已提交，但变更需要重启后完全生效 |
+| `revisionConflict` | 409 | `baseRevision` 不是当前 revision |
+| `validationRejected` | 400 | 候选配置未通过静态校验 |
+| `runtimeRejected` | 400 | 候选配置通过静态校验，但运行时 reload 拒绝；可能包含 `rollbackValue` |
+| `draftRejected` | 400 | 请求草稿无法应用到配置结构 |
+
+`POST /api/v1/config/graph/validate` 使用同样的请求体和响应结构，但不会提交变更；成功时返回候选 `graph` 且 `revision` 保持不变。
+
+创建资源：
+
+```http
+POST /api/v1/config/resources/{kind}
+Content-Type: application/json
+```
+
+```json
+{"baseRevision": "rev-...", "id": "new-id", "value": {}}
+```
+
+删除资源可在 query 或 JSON body 中传入 base revision：
+
+```http
+DELETE /api/v1/config/resources/{kind}/{id}?baseRevision=rev-...
+```
+
+### 日志 API
+
+`GET /api/v1/logs/recent?limit=200` 返回最近日志数组；`limit` 默认为 100，最大 1000。每条记录保留后端原始日志文本：
+
+```json
+[
+  {
+    "timestamp": "2026-06-07T00:00:00Z",
+    "level": "INFO",
+    "message": "server started",
+    "attrs": {"addr": "127.0.0.1:38440"},
+    "raw": "time=... level=INFO msg=server-started"
+  }
+]
+```
+
+`GET /api/v1/logs/stream` 返回 `text/event-stream`，每个事件为一条 JSON 日志：
+
+```text
+data: {"timestamp":"...","level":"INFO","message":"...","raw":"..."}
+```
 
 导出带 secrets 的配置时必须使用：
 
