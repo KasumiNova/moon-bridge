@@ -3,23 +3,22 @@ import "@material/web/button/filled-button.js";
 import "@material/web/icon/icon.js";
 import "@material/web/iconbutton/icon-button.js";
 import "@material/web/ripple/ripple.js";
-import { createElement, type ReactNode, useState } from "react";
+import { createElement, type ReactNode } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { motion } from "motion/react";
-import { ApplyChangesDialog } from "./ApplyChangesDialog";
-import { ApplyDraftProvider, useApplyDrafts } from "./ApplyDraftContext";
 import { type Locale } from "../i18n/messages";
 import { useI18n } from "../i18n/I18nProvider";
 import { useConsoleTheme } from "../theme/ThemeProvider";
 
 const navItems = [
   { to: "/overview", icon: "dashboard", labelKey: "nav.overview" },
-  { to: "/models", icon: "view_module", labelKey: "nav.models" },
-  { to: "/providers", icon: "lan", labelKey: "nav.providers" },
+  { to: "/models-providers", icon: "hub", labelKey: "nav.modelsProviders" },
   { to: "/routes", icon: "alt_route", labelKey: "nav.routes" },
-  { to: "/extensions", icon: "extension", labelKey: "nav.extensions" },
-  { to: "/config", icon: "tune", labelKey: "nav.config" },
-  { to: "/rpc-test", icon: "science", labelKey: "nav.rpcTest" }
+  { to: "/defaults", icon: "rule_settings", labelKey: "nav.defaults" },
+  { to: "/search-tools", icon: "travel_explore", labelKey: "nav.searchTools" },
+  { to: "/storage", icon: "database", labelKey: "nav.storage" },
+  { to: "/security", icon: "shield", labelKey: "nav.security" },
+  { to: "/logs", icon: "article", labelKey: "nav.logs" }
 ] as const;
 
 export function App() {
@@ -27,32 +26,15 @@ export function App() {
 }
 
 export function AppShell({ content }: { content?: ReactNode }) {
-  return (
-    <ApplyDraftProvider>
-      <AppShellContent content={content} />
-    </ApplyDraftProvider>
-  );
+  return <AppShellContent content={content} />;
 }
 
 function AppShellContent({ content }: { content?: ReactNode }) {
   const { theme, toggleTheme } = useConsoleTheme();
   const { locale, setLocale, t } = useI18n();
-  const { runApplyTasks } = useApplyDrafts();
-  const [applyDialogOpen, setApplyDialogOpen] = useState(false);
-  const [isPreparingApply, setIsPreparingApply] = useState(false);
   const nextTheme = theme === "dark" ? "light" : "dark";
   const themeIcon = theme === "dark" ? "light_mode" : "dark_mode";
   const nextThemeLabel = t(nextTheme === "dark" ? "theme.dark" : "theme.light");
-
-  async function openApplyPreview() {
-    setIsPreparingApply(true);
-    try {
-      await runApplyTasks();
-      setApplyDialogOpen(true);
-    } finally {
-      setIsPreparingApply(false);
-    }
-  }
 
   return (
     <div className="app-shell">
@@ -65,16 +47,6 @@ function AppShellContent({ content }: { content?: ReactNode }) {
         <div className="top-app-bar__meta">
           <span>{t("app.sameOriginApi")}</span>
           <span>{t("app.runtimeApi")}</span>
-          {createElement(
-            "md-filled-button",
-            {
-              "aria-label": t("action.apply"),
-              disabled: isPreparingApply,
-              role: "button",
-              onClick: openApplyPreview
-            },
-            t("action.apply")
-          )}
           <label className="locale-switch">
             <span>{t("app.language")}</span>
             <select
@@ -91,6 +63,7 @@ function AppShellContent({ content }: { content?: ReactNode }) {
             "md-icon-button",
             {
               "aria-label": t("app.switchTheme", { theme: nextThemeLabel }),
+              role: "button",
               onClick: toggleTheme
             },
             createElement("md-icon", null, themeIcon)
@@ -124,10 +97,6 @@ function AppShellContent({ content }: { content?: ReactNode }) {
           {content ?? <Outlet />}
         </motion.main>
       </div>
-      <ApplyChangesDialog
-        open={applyDialogOpen}
-        onClose={() => setApplyDialogOpen(false)}
-      />
     </div>
   );
 }
@@ -220,10 +189,6 @@ const shellStyles = `
     background: var(--mb-color-surface-container);
   }
 
-  .top-app-bar__meta md-filled-button {
-    flex: 0 0 auto;
-  }
-
   .locale-switch {
     display: inline-flex;
     align-items: center;
@@ -280,7 +245,7 @@ const shellStyles = `
 
   .workspace {
     display: grid;
-    grid-template-columns: 96px minmax(0, 1fr);
+    grid-template-columns: 128px minmax(0, 1fr);
     min-height: calc(100vh - 72px);
   }
 
@@ -297,8 +262,8 @@ const shellStyles = `
   .nav-item {
     position: relative;
     overflow: hidden;
-    width: 76px;
-    min-height: 64px;
+    width: 108px;
+    min-height: 76px;
     display: grid;
     place-items: center;
     gap: 3px;
@@ -312,13 +277,11 @@ const shellStyles = `
   }
 
   .nav-item span {
-    max-width: 68px;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    max-width: 96px;
     font-size: 0.6875rem;
     line-height: 1.1;
     text-align: center;
-    white-space: nowrap;
+    white-space: normal;
   }
 
   .nav-item--active {
@@ -818,7 +781,7 @@ const shellStyles = `
     }
 
     .nav-item {
-      flex: 0 0 76px;
+      flex: 0 0 108px;
     }
 
     .content-surface {
