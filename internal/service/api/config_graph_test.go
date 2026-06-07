@@ -105,6 +105,51 @@ func TestPatchConfigGraphReturnsValidationErrorForInvalidRouteProvider(t *testin
 	}
 }
 
+func TestValidateConfigGraphReturnsCandidateWithoutCommit(t *testing.T) {
+	f := newFixture(t)
+	revision := currentGraphRevision(t, f)
+
+	resp := f.request("POST", "/config/graph/validate", configgraph.PatchRequest{
+		BaseRevision: revision,
+		Changes: []configgraph.PatchOp{
+			{Kind: configgraph.ResourceDefaults, ID: "main", Field: "model", Value: "gpt-4o"},
+		},
+	})
+	if resp.Code != http.StatusOK {
+		t.Fatalf("POST /config/graph/validate returned %d: %s", resp.Code, resp.Body.String())
+	}
+
+	var patch configgraph.PatchResponse
+	f.decode(resp, &patch)
+	if patch.Result != configgraph.ResultCommitted {
+		t.Fatalf("Validate result = %q, want %q", patch.Result, configgraph.ResultCommitted)
+	}
+	if patch.Revision != revision {
+		t.Fatalf("Validate revision = %q, want unchanged %q", patch.Revision, revision)
+	}
+	if patch.Graph == nil {
+		t.Fatal("Validate graph is nil")
+	}
+	defaults := assertGraphResource(t, *patch.Graph, configgraph.ResourceDefaults, "main")
+	if got := defaults.Value["model"]; got != "gpt-4o" {
+		t.Fatalf("candidate defaults model = %q, want gpt-4o", got)
+	}
+
+	graphResp := f.request("GET", "/config/graph", nil)
+	if graphResp.Code != http.StatusOK {
+		t.Fatalf("GET /config/graph after validate returned %d: %s", graphResp.Code, graphResp.Body.String())
+	}
+	var graph configgraph.Graph
+	f.decode(graphResp, &graph)
+	if graph.Revision != revision {
+		t.Fatalf("Graph revision after validate = %q, want unchanged %q", graph.Revision, revision)
+	}
+	defaults = assertGraphResource(t, graph, configgraph.ResourceDefaults, "main")
+	if got := defaults.Value["model"]; got != "claude-sonnet" {
+		t.Fatalf("committed defaults model = %q, want unchanged claude-sonnet", got)
+	}
+}
+
 func currentGraphRevision(t *testing.T, f *testFixture) string {
 	t.Helper()
 	resp := f.request("GET", "/config/graph", nil)

@@ -104,6 +104,7 @@ func registerRoutes(mux *http.ServeMux, r *Router) {
 	// Config endpoints
 	mux.HandleFunc("GET /config/graph", r.handleGetConfigGraph)
 	mux.HandleFunc("PATCH /config/graph", r.handlePatchConfigGraph)
+	mux.HandleFunc("POST /config/graph/validate", r.handleValidateConfigGraph)
 	mux.HandleFunc("POST /config/resources/{kind}", r.handleCreateConfigResource)
 	mux.HandleFunc("DELETE /config/resources/{kind}/{id}", r.handleDeleteConfigResource)
 	mux.HandleFunc("GET /config/effective", r.handleGetConfigEffective)

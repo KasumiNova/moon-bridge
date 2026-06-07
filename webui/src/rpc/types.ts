@@ -164,3 +164,130 @@ export type ApplyResult = {
   status: string;
   message: string;
 };
+
+export type ResourceKind =
+  | "mode"
+  | "trace"
+  | "log"
+  | "server"
+  | "defaults"
+  | "model"
+  | "provider"
+  | "provider_offer"
+  | "route"
+  | "web_search"
+  | "cache"
+  | "persistence"
+  | "extension"
+  | "proxy";
+
+export type ResourceStatus = "saved" | "needsAttention" | "restartRequired";
+
+export type RuntimeImpact = "normal" | "critical";
+
+export type ConfigGraph = {
+  revision: string;
+  resources: ConfigResource[];
+  validation: ValidationState;
+  runtime: RuntimeState;
+  capabilities: ConfigCapabilities;
+};
+
+export type ConfigResource = {
+  kind: ResourceKind;
+  id: string;
+  label: string;
+  value: Record<string, unknown>;
+  schema: ResourceSchema;
+  status: ResourceStatus;
+  runtimeImpact: RuntimeImpact;
+  hotReloadable: boolean;
+  references?: ResourceRef[];
+};
+
+export type ResourceSchema = {
+  fields: FieldSchema[];
+};
+
+export type FieldSchema = {
+  path: string;
+  type: "string" | "number" | "boolean" | "array" | "object" | string;
+  label: string;
+  required?: boolean;
+  secret?: boolean;
+  control?: string;
+  enum?: string[];
+  hotReloadable: boolean;
+  runtimeImpact?: string;
+};
+
+export type ResourceRef = {
+  kind: ResourceKind;
+  id: string;
+};
+
+export type ValidationState = {
+  valid: boolean;
+  errors?: FieldError[];
+};
+
+export type RuntimeState = {
+  status: string;
+  errors?: FieldError[];
+  message?: string;
+};
+
+export type ConfigCapabilities = {
+  autosave: boolean;
+  logs: boolean;
+};
+
+export type FieldError = {
+  resourceKind: ResourceKind | "";
+  resourceId: string;
+  field?: string;
+  code: string;
+  message: string;
+};
+
+export type PatchRequest = {
+  baseRevision: string;
+  changes: PatchOp[];
+};
+
+export type PatchOp = {
+  kind: ResourceKind;
+  id: string;
+  field: string;
+  value: unknown;
+};
+
+export type PatchResult =
+  | "committed"
+  | "restartRequired"
+  | "revisionConflict"
+  | "validationRejected"
+  | "runtimeRejected"
+  | "draftRejected";
+
+export type PatchResponse = {
+  result: PatchResult;
+  revision: string;
+  graph?: ConfigGraph;
+  errors?: FieldError[];
+  rollbackValue?: unknown;
+};
+
+export type CreateConfigResourceRequest = {
+  baseRevision: string;
+  id: string;
+  value?: Record<string, unknown>;
+};
+
+export type LogEntry = {
+  timestamp: string;
+  level: string;
+  message: string;
+  attrs?: Record<string, unknown>;
+  raw?: string;
+};

@@ -51,6 +51,22 @@ func (r *Router) handlePatchConfigGraph(w http.ResponseWriter, req *http.Request
 	respondConfigGraphPatch(w, resp)
 }
 
+func (r *Router) handleValidateConfigGraph(w http.ResponseWriter, req *http.Request) {
+	var body configgraph.PatchRequest
+	if err := decodeStrictJSON(req, &body); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid_json", fmt.Sprintf("无效的 JSON 请求体: %v", err))
+		return
+	}
+
+	resp, err := r.configGraphService().Validate(req.Context(), body)
+	if err != nil {
+		slog.Default().Error("validate config graph failed", "error", err)
+		respondError(w, http.StatusInternalServerError, "config_graph_error", fmt.Sprintf("验证配置图失败: %v", err))
+		return
+	}
+	respondConfigGraphPatch(w, resp)
+}
+
 func (r *Router) handleCreateConfigResource(w http.ResponseWriter, req *http.Request) {
 	kind, ok := parseResourceKind(req.PathValue("kind"))
 	if !ok {
