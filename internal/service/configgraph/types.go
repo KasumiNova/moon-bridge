@@ -98,3 +98,34 @@ type FieldError struct {
 	Code         string       `json:"code"`
 	Message      string       `json:"message"`
 }
+
+type PatchRequest struct {
+	BaseRevision string    `json:"baseRevision"`
+	Changes      []PatchOp `json:"changes"`
+}
+
+type PatchOp struct {
+	Kind  ResourceKind `json:"kind"`
+	ID    string       `json:"id"`
+	Field string       `json:"field"`
+	Value any          `json:"value"`
+}
+
+type PatchResult string
+
+const (
+	ResultCommitted          PatchResult = "committed"
+	ResultRestartRequired    PatchResult = "restartRequired"
+	ResultRevisionConflict   PatchResult = "revisionConflict"
+	ResultValidationRejected PatchResult = "validationRejected"
+	ResultRuntimeRejected    PatchResult = "runtimeRejected"
+	ResultDraftRejected      PatchResult = "draftRejected"
+)
+
+type PatchResponse struct {
+	Result        PatchResult  `json:"result"`
+	Revision      string       `json:"revision"`
+	Graph         *Graph       `json:"graph,omitempty"`
+	Errors        []FieldError `json:"errors,omitempty"`
+	RollbackValue any          `json:"rollbackValue,omitempty"`
+}
