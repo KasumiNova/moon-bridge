@@ -347,7 +347,7 @@ func (s *SQLiteConfigStore) LoadAll() (*config.Config, error) {
 		return nil, fmt.Errorf("load file config: %w", err)
 	}
 	if fc.Mode == "" {
-		return nil, fmt.Errorf("config not seeded: mode is empty")
+		return nil, fmt.Errorf("%w: mode is empty", ErrConfigNotSeeded)
 	}
 	cfg, err := config.FromFileConfigWithOptions(fc, config.LoadOptions{ExtensionSpecs: s.extensionSpecs})
 	if err != nil {

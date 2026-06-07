@@ -2,11 +2,11 @@ package app
 
 import (
 	"context"
+	stderrors "errors"
 	"fmt"
 	"io"
 	"net/http"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"log/slog"
@@ -182,8 +182,11 @@ func runTransform(ctx context.Context, cfg config.Config, errors io.Writer) erro
 				}
 			}
 		} else if loadErr != nil {
-			if strings.Contains(loadErr.Error(), "config not seeded") {
-				logger.Info("persistence store is empty, skipping DB config load")
+			if stderrors.Is(loadErr, store.ErrConfigNotSeeded) {
+				logger.Info("持久化存储为空，从 YAML 导入种子配置")
+				if err := cs.SeedFromConfig(&cfg); err != nil {
+					return fmt.Errorf("seed config store from YAML: %w", err)
+				}
 			} else {
 				logger.Warn("config store 加载失败", "error", loadErr)
 			}

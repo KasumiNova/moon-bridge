@@ -5,9 +5,14 @@ package store
 
 import (
 	"context"
+	"errors"
 
 	"moonbridge/internal/config"
 )
+
+// ErrConfigNotSeeded reports an empty persistence store that has tables but no
+// persisted graph configuration yet.
+var ErrConfigNotSeeded = errors.New("config not seeded")
 
 // ReloadFunc is called by ApplyPendingChanges to apply a new configuration
 // after successful staging validation.
