@@ -33,6 +33,7 @@
 - The implementation must fail fast: return structured errors, log backend failures, and avoid silent fallback behavior.
 - Tests must call Go/TypeScript behavior directly. Do not use source text contains checks.
 - Keep commits small. Commit after each task unless the task is explicitly preparatory and creates no code.
+- `webui/dist/` is a local Vite build artifact and must remain untracked. It is already ignored by `.gitignore`; do not `git add` or commit files from `webui/dist/`.
 
 ## File Structure
 
@@ -1379,9 +1380,11 @@ npm --prefix webui run build
 
 Expected: PASS and `webui/dist` updated.
 
+Do not stage or commit `webui/dist/`; it is only the temporary source for embedded asset copying.
+
 - [ ] **Step 2: Copy built assets to embedded dist**
 
-Use the repository's established dist copy/build workflow. If no script exists, copy `webui/dist/*` into `internal/service/webui/dist/` and remove stale hashed assets.
+Use the repository's established dist copy/build workflow. If no script exists, copy `webui/dist/*` into `internal/service/webui/dist/` and remove stale hashed assets. Only `internal/service/webui/dist/` is eligible for this plan's embedded-asset commit; `webui/dist/` stays ignored and untracked.
 
 - [ ] **Step 3: Update API docs**
 
