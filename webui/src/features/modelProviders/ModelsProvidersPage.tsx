@@ -1,7 +1,7 @@
 import { LoadingState } from "../../components/LoadingState";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { ConfigResource, ResourceKind } from "../../rpc/types";
-import { GraphResourceField } from "../configGraph/GraphResourceField";
+import { ResourceEditorCard } from "../configGraph/ResourceEditorCard";
 import { useConfigGraph } from "../configGraph/useConfigGraph";
 import { PageHeader, QueryErrorState } from "../shared";
 
@@ -27,55 +27,46 @@ export function ModelsProvidersPage() {
       </PageHeader>
 
       <section className="content-panel" aria-labelledby="providers-heading">
-        <h2 id="providers-heading">Providers</h2>
+        <h2 id="providers-heading">Providers ({providers.length})</h2>
         <div className="resource-card-list">
           {providers.map((provider) => (
-            <ResourceEditor key={provider.id} resource={provider} revision={graph.data.revision} />
+            <ResourceEditorCard
+              key={provider.id}
+              resource={provider}
+              revision={graph.data.revision}
+              title="Provider"
+            />
           ))}
         </div>
       </section>
 
       <section className="content-panel" aria-labelledby="offers-heading">
-        <h2 id="offers-heading">Provider Offers</h2>
+        <h2 id="offers-heading">Provider Offers ({offers.length})</h2>
         <div className="resource-card-list">
           {offers.map((offer) => (
-            <ResourceEditor key={offer.id} resource={offer} revision={graph.data.revision} />
+            <ResourceEditorCard
+              key={offer.id}
+              resource={offer}
+              revision={graph.data.revision}
+              title="Offer"
+            />
           ))}
         </div>
       </section>
 
       <section className="content-panel" aria-labelledby="models-heading">
-        <h2 id="models-heading">Models</h2>
+        <h2 id="models-heading">Models ({models.length})</h2>
         <div className="resource-card-list">
           {models.map((model) => (
-            <ResourceEditor key={model.id} resource={model} revision={graph.data.revision} />
+            <ResourceEditorCard
+              key={model.id}
+              resource={model}
+              revision={graph.data.revision}
+              title="Model"
+            />
           ))}
         </div>
       </section>
-    </section>
-  );
-}
-
-function ResourceEditor({
-  resource,
-  revision
-}: {
-  resource: ConfigResource;
-  revision: string;
-}) {
-  return (
-    <section className="resource-editor" aria-label={resource.id}>
-      <h3>{resource.id}</h3>
-      <div className="form-grid">
-        {resource.schema.fields.map((field) => (
-          <GraphResourceField
-            field={field}
-            key={`${resource.kind}-${resource.id}-${field.path}`}
-            resource={resource}
-            revision={revision}
-          />
-        ))}
-      </div>
     </section>
   );
 }

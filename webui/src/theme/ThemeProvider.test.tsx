@@ -56,6 +56,21 @@ describe("ThemeProvider", () => {
     expect(document.documentElement).toHaveAttribute("data-theme", "light");
   });
 
+  it("applies container tokens used by expressive resource cards", () => {
+    render(
+      <ThemeProvider>
+        <ThemeProbe />
+      </ThemeProvider>
+    );
+
+    expect(document.documentElement.style.getPropertyValue("--mb-color-secondary-container")).not.toBe("");
+    expect(document.documentElement.style.getPropertyValue("--mb-color-on-secondary-container")).not.toBe("");
+    expect(document.documentElement.style.getPropertyValue("--mb-color-tertiary-container")).not.toBe("");
+    expect(document.documentElement.style.getPropertyValue("--mb-color-on-tertiary-container")).not.toBe("");
+    expect(document.documentElement.style.getPropertyValue("--mb-color-error-container")).not.toBe("");
+    expect(document.documentElement.style.getPropertyValue("--mb-color-on-error-container")).not.toBe("");
+  });
+
   it("persists the selected theme in localStorage", async () => {
     const user = userEvent.setup();
 

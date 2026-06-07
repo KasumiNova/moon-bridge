@@ -20,10 +20,13 @@ describe("ModelsProvidersPage", () => {
 
     renderWithConsoleProviders(<ModelsProvidersPage />);
 
-    const providers = await screen.findByRole("heading", { name: "Providers" });
-    const models = screen.getByRole("heading", { name: "Models" });
+    const providers = await screen.findByRole("heading", { name: "Providers (1)" });
+    const offers = screen.getByRole("heading", { name: "Provider Offers (1)" });
+    const models = screen.getByRole("heading", { name: "Models (1)" });
 
+    expect(providers.compareDocumentPosition(offers) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(providers.compareDocumentPosition(models) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(screen.getByLabelText("anthropic status")).getByText("Saved")).toBeInTheDocument();
     expect(screen.queryByLabelText(/^enabled$/i)).not.toBeInTheDocument();
   });
 
