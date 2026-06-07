@@ -851,6 +851,114 @@ const shellStyles = `
     line-height: 1.45;
   }
 
+  .logs-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+
+  .logs-count {
+    margin: 0;
+    color: var(--mb-color-on-surface-variant);
+    font-size: 0.82rem;
+    font-weight: 650;
+  }
+
+  .log-level-filter {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+
+  .log-level-filter button {
+    min-height: 34px;
+    padding: 0 12px;
+    color: var(--mb-color-on-surface);
+    background: var(--mb-color-surface-container-high);
+  }
+
+  .logs-stream-status {
+    margin: 0 0 14px;
+    border: 1px solid color-mix(in srgb, var(--mb-color-error) 45%, transparent);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--mb-color-on-error-container);
+    background: var(--mb-color-error-container);
+    font-size: 0.85rem;
+    font-weight: 650;
+  }
+
+  .logs-search {
+    margin-bottom: 14px;
+  }
+
+  .log-output {
+    max-height: 560px;
+    overflow: auto;
+    display: grid;
+    gap: 8px;
+    border: 1px solid color-mix(in srgb, var(--mb-color-outline) 30%, transparent);
+    border-radius: 8px;
+    padding: 10px;
+    background: var(--mb-color-surface);
+  }
+
+  .log-row {
+    display: grid;
+    gap: 7px;
+    border-left: 3px solid var(--mb-color-outline);
+    border-radius: 6px;
+    padding: 10px 12px;
+    background: color-mix(in srgb, var(--mb-color-surface-container) 72%, transparent);
+  }
+
+  .log-row--error {
+    border-left-color: var(--mb-color-error);
+  }
+
+  .log-row--warn {
+    border-left-color: var(--mb-color-tertiary-container);
+  }
+
+  .log-row--info {
+    border-left-color: var(--mb-color-primary);
+  }
+
+  .log-row--debug {
+    border-left-color: var(--mb-color-secondary);
+  }
+
+  .log-row__meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--mb-color-on-surface-variant);
+    font-size: 0.74rem;
+    font-weight: 680;
+  }
+
+  .log-row__meta span,
+  .log-row__meta strong {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .log-row pre {
+    overflow-x: auto;
+    margin: 0;
+    color: var(--mb-color-on-surface);
+    font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+    font-size: 0.8rem;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
   .button-list {
     display: flex;
     gap: 10px;

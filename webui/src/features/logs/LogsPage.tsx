@@ -5,11 +5,16 @@ import { createLogStream, getRecentLogs } from "../../rpc/logs";
 import type { LogEntry } from "../../rpc/types";
 import { PageHeader, QueryErrorState } from "../shared";
 
+const logLevels = ["ALL", "ERROR", "WARN", "INFO", "DEBUG"] as const;
+type LogLevelFilter = (typeof logLevels)[number];
+
 export function LogsPage() {
   const { t } = useI18n();
   const [entries, setEntries] = useState<LogEntry[]>([]);
   const [filter, setFilter] = useState("");
+  const [levelFilter, setLevelFilter] = useState<LogLevelFilter>("ALL");
   const [follow, setFollow] = useState(true);
+  const [streamError, setStreamError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>();
 
@@ -37,11 +42,13 @@ export function LogsPage() {
     if (!follow) {
       return undefined;
     }
+    setStreamError(false);
     const abort = new AbortController();
     void consumeStream(abort.signal, (entry) => {
       setEntries((current) => [...current, entry]);
     }).catch((cause: unknown) => {
       if (!abort.signal.aborted) {
+        setStreamError(true);
         console.error("log stream failed", cause);
       }
     });
@@ -50,11 +57,16 @@ export function LogsPage() {
 
   const visibleEntries = useMemo(() => {
     const needle = filter.trim().toLowerCase();
-    if (!needle) {
-      return entries;
-    }
-    return entries.filter((entry) => logLine(entry).toLowerCase().includes(needle));
-  }, [entries, filter]);
+    return entries.filter((entry) => {
+      if (levelFilter !== "ALL" && normalizeLevel(entry.level) !== levelFilter.toLowerCase()) {
+        return false;
+      }
+      if (!needle) {
+        return true;
+      }
+      return logLine(entry).toLowerCase().includes(needle);
+    });
+  }, [entries, filter, levelFilter]);
 
   if (error) {
     return <QueryErrorState error={error} />;
@@ -70,29 +82,70 @@ export function LogsPage() {
       </PageHeader>
 
       <section className="content-panel">
-        <div className="drawer-actions">
-          <button type="button" onClick={() => setFollow((current) => !current)}>
-            {follow ? "Pause" : "Follow"}
-          </button>
-          <button type="button" onClick={() => copyLogs(visibleEntries)}>
-            Copy
-          </button>
-          <button type="button" onClick={() => downloadLogs(visibleEntries)}>
-            Download
-          </button>
+        <div className="logs-toolbar">
+          <div className="drawer-actions">
+            <button type="button" onClick={() => setFollow((current) => !current)}>
+              {follow ? t("logs.pause") : t("logs.follow")}
+            </button>
+            <button type="button" onClick={() => copyLogs(visibleEntries)}>
+              {t("logs.copy")}
+            </button>
+            <button type="button" onClick={() => downloadLogs(visibleEntries)}>
+              {t("logs.download")}
+            </button>
+          </div>
+          <p className="logs-count">
+            {t("logs.visibleCount", { visible: visibleEntries.length, total: entries.length })}
+          </p>
         </div>
-        <label className="textarea-field">
-          Search logs
+
+        <div className="log-level-filter" aria-label={t("logs.levelFilter")}>
+          {logLevels.map((level) => (
+            <button
+              className={levelFilter === level ? "active-button" : undefined}
+              key={level}
+              type="button"
+              onClick={() => setLevelFilter(level)}
+            >
+              {level === "ALL" ? t("logs.levelAll") : level}
+            </button>
+          ))}
+        </div>
+
+        {streamError ? (
+          <p className="logs-stream-status" role="status">
+            {t("logs.streamDisconnected")}
+          </p>
+        ) : null}
+
+        <label className="textarea-field logs-search">
+          {t("logs.search")}
           <input
             value={filter}
             onChange={(event) => setFilter(event.currentTarget.value)}
           />
         </label>
-        <pre className="json-block" aria-label="Log output">
-          {visibleEntries.map((entry) => logLine(entry)).join("\n")}
-        </pre>
+
+        <div className="log-output" aria-label={t("logs.output")}>
+          {visibleEntries.map((entry, index) => (
+            <LogRow entry={entry} index={index} key={`${entry.timestamp}-${index}-${logLine(entry)}`} />
+          ))}
+        </div>
       </section>
     </section>
+  );
+}
+
+function LogRow({ entry, index }: { entry: LogEntry; index: number }) {
+  const level = normalizeLevel(entry.level);
+  return (
+    <article className={`log-row log-row--${level}`} aria-label={`Log ${index + 1}`}>
+      <div className="log-row__meta">
+        <span>{entry.timestamp}</span>
+        <strong>{entry.level}</strong>
+      </div>
+      <pre>{logLine(entry)}</pre>
+    </article>
   );
 }
 
@@ -141,6 +194,10 @@ function parseSSEEvent(event: string): LogEntry | undefined {
 
 function logLine(entry: LogEntry) {
   return entry.raw || `${entry.timestamp} ${entry.level} ${entry.message}`;
+}
+
+function normalizeLevel(level: string) {
+  return level.trim().toLowerCase();
 }
 
 function copyLogs(entries: LogEntry[]) {
