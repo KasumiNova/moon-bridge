@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { renderWithConsoleProviders } from "../../test/renderWithConsoleProviders";
 import * as configGraph from "../../rpc/configGraph";
@@ -32,6 +32,9 @@ describe("StoragePage", () => {
 
     expect(await screen.findByRole("heading", { level: 2, name: "Cache" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Persistence" })).toBeInTheDocument();
+    expect(within(screen.getByLabelText("Cache")).getByRole("heading", { level: 3, name: "main" })).toBeInTheDocument();
+    expect(within(screen.getByLabelText("Cache main status")).getByText("Saved")).toBeInTheDocument();
+    expect(within(screen.getByLabelText("Persistence main status")).getByText("Saved")).toBeInTheDocument();
     expect(screen.getByLabelText("Mode")).toHaveValue("memory");
     expect(screen.getByLabelText("Active Provider")).toHaveValue("db_sqlite");
     expect(screen.getByText("database unavailable")).toBeInTheDocument();

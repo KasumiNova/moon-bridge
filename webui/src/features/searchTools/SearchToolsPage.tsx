@@ -1,7 +1,7 @@
 import { LoadingState } from "../../components/LoadingState";
 import { useI18n } from "../../i18n/I18nProvider";
-import type { ConfigResource, ResourceKind } from "../../rpc/types";
-import { GraphResourceField } from "../configGraph/GraphResourceField";
+import type { ConfigResource } from "../../rpc/types";
+import { ResourceEditorCard } from "../configGraph/ResourceEditorCard";
 import { useConfigGraph } from "../configGraph/useConfigGraph";
 import { PageHeader, QueryErrorState } from "../shared";
 
@@ -32,7 +32,13 @@ export function SearchToolsPage() {
         <h2 id="extensions-heading">Extensions</h2>
         <div className="resource-card-list">
           {extensions.map((extension) => (
-            <ResourceEditor key={extension.id} resource={extension} revision={graph.data.revision} />
+            <ResourceEditorCard
+              ariaLabel={`Extension ${extension.id}`}
+              key={extension.id}
+              resource={extension}
+              revision={graph.data.revision}
+              title="Extension"
+            />
           ))}
         </div>
       </section>
@@ -54,40 +60,12 @@ function ResourceSection({
   return (
     <section className="content-panel" aria-label={title}>
       <h2>{title}</h2>
-      <div className="form-grid">
-        {resource.schema.fields.map((field) => (
-          <GraphResourceField
-            field={field}
-            key={`${resource.kind}-${resource.id}-${field.path}`}
-            resource={resource}
-            revision={revision}
-          />
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function ResourceEditor({
-  resource,
-  revision
-}: {
-  resource: ConfigResource;
-  revision: string;
-}) {
-  return (
-    <section className="resource-editor" aria-label={resource.id}>
-      <h3>{resource.id}</h3>
-      <div className="form-grid">
-        {resource.schema.fields.map((field) => (
-          <GraphResourceField
-            field={field}
-            key={`${resource.kind as ResourceKind}-${resource.id}-${field.path}`}
-            resource={resource}
-            revision={revision}
-          />
-        ))}
-      </div>
+      <ResourceEditorCard
+        ariaLabel={`${title} ${resource.id}`}
+        resource={resource}
+        revision={revision}
+        title={title}
+      />
     </section>
   );
 }

@@ -1,7 +1,7 @@
 import { LoadingState } from "../../components/LoadingState";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { ConfigResource } from "../../rpc/types";
-import { GraphResourceField } from "../configGraph/GraphResourceField";
+import { ResourceEditorCard } from "../configGraph/ResourceEditorCard";
 import { useConfigGraph } from "../configGraph/useConfigGraph";
 import { PageHeader, QueryErrorState } from "../shared";
 
@@ -39,19 +39,12 @@ function ServerSection({
   return (
     <section className="content-panel" aria-label="Server">
       <h2>Server</h2>
-      {resource.status === "restartRequired" || !resource.hotReloadable ? (
-        <p className="edit-state-banner">Restart required</p>
-      ) : null}
-      <div className="form-grid">
-        {resource.schema.fields.map((field) => (
-          <GraphResourceField
-            field={field}
-            key={`${resource.kind}-${resource.id}-${field.path}`}
-            resource={resource}
-            revision={revision}
-          />
-        ))}
-      </div>
+      <ResourceEditorCard
+        ariaLabel={`Server ${resource.id}`}
+        resource={resource}
+        revision={revision}
+        title="Server"
+      />
     </section>
   );
 }

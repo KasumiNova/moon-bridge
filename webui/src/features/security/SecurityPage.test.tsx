@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { renderWithConsoleProviders } from "../../test/renderWithConsoleProviders";
 import * as configGraph from "../../rpc/configGraph";
@@ -16,6 +16,9 @@ describe("SecurityPage", () => {
     renderWithConsoleProviders(<SecurityPage />);
 
     expect(await screen.findByRole("heading", { level: 2, name: "Server" })).toBeInTheDocument();
+    expect(within(screen.getByLabelText("Server")).getByRole("heading", { level: 3, name: "main" })).toBeInTheDocument();
+    expect(within(screen.getByLabelText("Server main status")).getByText("Restart required")).toBeInTheDocument();
+    expect(within(screen.getByLabelText("Server main status")).getByText("Critical")).toBeInTheDocument();
     expect(screen.getByLabelText("Address")).toHaveValue(":38440");
     expect(screen.getByLabelText("Max Sessions")).toHaveValue(64);
     expect(screen.getByLabelText("Session TTL")).toHaveValue("24h");

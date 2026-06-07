@@ -14,20 +14,23 @@ const impactLabels: Record<RuntimeImpact, string> = {
 };
 
 export function ResourceEditorCard({
+  ariaLabel,
   resource,
   revision,
   title
 }: {
+  ariaLabel?: string;
   resource: ConfigResource;
   revision: string;
   title?: string;
 }) {
   const fieldCount = resource.schema.fields.length;
   const reloadText = resource.hotReloadable ? "Hot reload" : "Restart on change";
+  const label = ariaLabel ?? resource.id;
 
   return (
     <motion.section
-      aria-label={resource.id}
+      aria-label={label}
       className="resource-editor-card"
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
@@ -38,7 +41,7 @@ export function ResourceEditorCard({
           <span className="resource-kind-chip">{title ?? resource.label}</span>
           <h3>{resource.id}</h3>
         </div>
-        <div className="resource-editor-card__status" aria-label={`${resource.id} status`}>
+        <div className="resource-editor-card__status" aria-label={`${label} status`}>
           <span className={`status-pill status-pill--${resource.status}`}>
             {statusLabels[resource.status]}
           </span>
