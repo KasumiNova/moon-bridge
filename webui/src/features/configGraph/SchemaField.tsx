@@ -1,18 +1,18 @@
-import { type ChangeEvent, type KeyboardEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { type ChangeEvent, type KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import { configDescriptions, type ConfigPath } from "../../configDocs/configDescriptions";
 import type { FieldSchema } from "../../rpc/types";
 import { useI18n } from "../../i18n/I18nProvider";
-import { FieldStatus } from "./FieldStatus";
-import type { AutosaveFieldStatus } from "./useAutosaveField";
+import { SelectMenu, type SelectMenuOption } from "./SelectMenu";
 
 export type SchemaFieldProps = {
   field: FieldSchema;
   value: unknown;
   onChange: (value: unknown) => void;
+  onCommit?: () => void;
+  onCommitValue?: (value: unknown) => void;
   disabled?: boolean;
   idPrefix?: string;
   docPath?: ConfigPath;
-  status?: AutosaveFieldStatus;
   error?: string;
 };
 
@@ -20,10 +20,11 @@ export function SchemaField({
   field,
   value,
   onChange,
+  onCommit,
+  onCommitValue,
   disabled = false,
   idPrefix,
   docPath,
-  status,
   error
 }: SchemaFieldProps) {
   const { locale, t } = useI18n();
@@ -49,20 +50,28 @@ export function SchemaField({
     }
   }, [jsonExpanded]);
 
-  const statusNode = status ? <FieldStatus status={status} message={error ?? parseError} /> : null;
   const wide = isWideField(field);
   const hintId = `${id}-hint`;
   const errorId = `${id}-error`;
   const helpId = `${id}-help`;
   const helpText = fieldHelpText(field, docPath, locale);
+  const fieldError = error || parseError;
   const describedBy = [
     field.secret ? hintId : undefined,
     helpOpen ? helpId : undefined,
-    parseError ? errorId : undefined
+    fieldError ? errorId : undefined
   ].filter(Boolean).join(" ") || undefined;
+  const commitOnBlur = onCommit ? () => onCommit() : undefined;
+  const commit = onCommitValue ?? onChange;
 
   if (field.control === "select" || (field.enum?.length ?? 0) > 0) {
     const labelId = `${id}-label`;
+    const options: SelectMenuOption[] = (field.enum ?? []).map((option) => ({
+      value: option,
+      label: optionLabel(option),
+      className: optionMenuClass(field, option),
+      dotClassName: optionDotClass(field, option)
+    }));
     return (
       <div className={schemaFieldClass(wide)}>
         <FieldTopline
@@ -74,29 +83,18 @@ export function SchemaField({
           labelId={labelId}
           labelForControl={false}
           setHelpOpen={setHelpOpen}
-          statusNode={statusNode}
         />
-        <div
-          aria-describedby={describedBy}
-          aria-labelledby={labelId}
-          className="schema-option-group"
+        <SelectMenu
           id={id}
-          role="group"
-        >
-          {field.enum?.map((option) => (
-            <button
-              key={option}
-              type="button"
-              className={optionButtonClass(field, option, value)}
-              disabled={disabled}
-              aria-pressed={value === option}
-              onClick={() => onChange(option)}
-            >
-              {optionLabel(option)}
-            </button>
-          ))}
-        </div>
-        <FieldMessages errorId={errorId} hintId={hintId} parseError={parseError} secret={field.secret} />
+          options={options}
+          value={typeof value === "string" ? value : ""}
+          onChange={(next) => commit(next)}
+          disabled={disabled}
+          labelledBy={labelId}
+          ariaLabel={field.label}
+          describedBy={describedBy}
+        />
+        <FieldMessages errorId={errorId} hintId={hintId} error={fieldError} secret={field.secret} />
       </div>
     );
   }
@@ -105,17 +103,19 @@ export function SchemaField({
     return (
       <div className="schema-field schema-field--inline">
         <div className="schema-field__switch-line">
-          <span className="schema-field__label">
-            {field.label}
-            {field.required ? <span className="schema-field__required" aria-hidden="true">*</span> : null}
+          <span className="schema-field__label-row">
+            <span className="schema-field__label">
+              {field.label}
+              {field.required ? <span className="schema-field__required" aria-hidden="true">*</span> : null}
+            </span>
+            <FieldHelpButton
+              field={field}
+              helpId={helpId}
+              helpOpen={helpOpen}
+              helpText={helpText}
+              setHelpOpen={setHelpOpen}
+            />
           </span>
-          <FieldHelpButton
-            field={field}
-            helpId={helpId}
-            helpOpen={helpOpen}
-            helpText={helpText}
-            setHelpOpen={setHelpOpen}
-          />
           <button
             type="button"
             className={Boolean(value) ? "schema-switch schema-switch--selected" : "schema-switch"}
@@ -124,12 +124,16 @@ export function SchemaField({
             aria-checked={Boolean(value)}
             aria-label={field.label}
             aria-describedby={helpOpen ? helpId : undefined}
-            onClick={() => onChange(!Boolean(value))}
+            onClick={() => commit(!Boolean(value))}
           >
             <span aria-hidden="true" />
           </button>
         </div>
-        {statusNode}
+        {fieldError ? (
+          <p className="field-error" id={errorId} role="alert">
+            {fieldError}
+          </p>
+        ) : null}
       </div>
     );
   }
@@ -144,17 +148,17 @@ export function SchemaField({
           helpText={helpText}
           id={id}
           setHelpOpen={setHelpOpen}
-          statusNode={statusNode}
         />
         <textarea
           aria-describedby={describedBy}
-          aria-invalid={parseError ? "true" : undefined}
+          aria-invalid={fieldError ? "true" : undefined}
           id={id}
           disabled={disabled}
           value={text}
           onChange={(event) => updateText(event, onChange, field)}
+          onBlur={commitOnBlur}
         />
-        <FieldMessages errorId={errorId} hintId={hintId} parseError={parseError} secret={field.secret} />
+        <FieldMessages errorId={errorId} hintId={hintId} error={fieldError} secret={field.secret} />
       </div>
     );
   }
@@ -171,7 +175,6 @@ export function SchemaField({
           helpText={helpText}
           id={jsonExpanded ? id : summaryId}
           setHelpOpen={setHelpOpen}
-          statusNode={statusNode}
         />
         <button
           id={summaryId}
@@ -199,7 +202,7 @@ export function SchemaField({
         {jsonExpanded ? (
           <textarea
             aria-describedby={describedBy}
-            aria-invalid={parseError ? "true" : undefined}
+            aria-invalid={fieldError ? "true" : undefined}
             aria-label={`${field.label} JSON editor`}
             id={id}
             ref={jsonEditorRef}
@@ -207,9 +210,10 @@ export function SchemaField({
             spellCheck={false}
             value={text}
             onChange={(event) => updateJSON(event.currentTarget.value)}
+            onBlur={commitOnBlur}
           />
         ) : null}
-        <FieldMessages errorId={errorId} hintId={hintId} parseError={parseError} secret={field.secret} />
+        <FieldMessages errorId={errorId} hintId={hintId} error={fieldError} secret={field.secret} />
       </div>
     );
   }
@@ -223,19 +227,19 @@ export function SchemaField({
         helpText={helpText}
         id={id}
         setHelpOpen={setHelpOpen}
-        statusNode={statusNode}
       />
       <input
         aria-describedby={describedBy}
         autoComplete={field.secret ? "new-password" : undefined}
-        aria-invalid={parseError ? "true" : undefined}
+        aria-invalid={fieldError ? "true" : undefined}
         disabled={disabled}
         id={id}
         type={inputType(field)}
         value={text}
         onChange={(event) => updateText(event, onChange, field)}
+        onBlur={commitOnBlur}
       />
-      <FieldMessages errorId={errorId} hintId={hintId} parseError={parseError} secret={field.secret} />
+      <FieldMessages errorId={errorId} hintId={hintId} error={fieldError} secret={field.secret} />
     </div>
   );
 
@@ -286,8 +290,7 @@ function FieldTopline({
   id,
   labelForControl = true,
   labelId,
-  setHelpOpen,
-  statusNode
+  setHelpOpen
 }: {
   field: FieldSchema;
   helpId: string;
@@ -297,7 +300,6 @@ function FieldTopline({
   labelForControl?: boolean;
   labelId?: string;
   setHelpOpen: (open: boolean | ((current: boolean) => boolean)) => void;
-  statusNode: ReactNode;
 }) {
   const labelContent = (
     <>
@@ -326,7 +328,6 @@ function FieldTopline({
           setHelpOpen={setHelpOpen}
         />
       </span>
-      {statusNode}
     </div>
   );
 }
@@ -344,6 +345,7 @@ function FieldHelpButton({
   helpText: string;
   setHelpOpen: (open: boolean | ((current: boolean) => boolean)) => void;
 }) {
+  const { t } = useI18n();
   const openedByHover = useRef(false);
 
   return (
@@ -351,7 +353,7 @@ function FieldHelpButton({
       <button
         type="button"
         className="schema-field__help"
-        aria-label={`Help for ${field.label}`}
+        aria-label={t("field.helpFor", { label: field.label })}
         aria-describedby={helpOpen ? helpId : undefined}
         onBlur={() => setHelpOpen(false)}
         onClick={() => {
@@ -392,12 +394,12 @@ function FieldHelpButton({
 function FieldMessages({
   errorId,
   hintId,
-  parseError,
+  error,
   secret
 }: {
   errorId: string;
   hintId: string;
-  parseError: string;
+  error: string;
   secret?: boolean;
 }) {
   const { t } = useI18n();
@@ -408,9 +410,9 @@ function FieldMessages({
           {t("field.secretReplacementHint")}
         </p>
       ) : null}
-      {parseError ? (
+      {error ? (
         <p className="field-error" id={errorId} role="alert">
-          {parseError}
+          {error}
         </p>
       ) : null}
     </>
@@ -479,15 +481,18 @@ function optionLabel(option: string) {
   return labels[option] ?? option;
 }
 
-function optionButtonClass(field: FieldSchema, option: string, value: unknown) {
-  const classes = ["schema-option"];
+function optionMenuClass(field: FieldSchema, option: string) {
   if (field.path === "protocol") {
-    classes.push(`schema-option--${protocolClass(option)}`);
+    return `select-menu__option--${protocolClass(option)}`;
   }
-  if (value === option) {
-    classes.push("schema-option--active");
+  return undefined;
+}
+
+function optionDotClass(field: FieldSchema, option: string) {
+  if (field.path === "protocol") {
+    return `select-menu__dot--${protocolClass(option)}`;
   }
-  return classes.join(" ");
+  return undefined;
 }
 
 function protocolClass(option: string) {

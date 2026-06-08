@@ -115,5 +115,8 @@ export const putExtension = (name: string, body: Record<string, unknown>) =>
   apiFetch<MutationAccepted>(`/extensions/${encodeURIComponent(name)}`, { method: "PUT", body });
 
 export const getStatsSummary = () => apiFetch<StatsSummary>("/stats/summary");
-export const getUsageStats = () => apiFetch<UsageStats>("/stats/usage");
+
+export type UsageRange = "session" | "24h" | "7d" | "30d" | "all";
+export const getUsageStats = (range: UsageRange = "session") =>
+  apiFetch<UsageStats>(range === "session" ? "/stats/usage" : `/stats/usage?range=${range}`);
 export const getSessions = () => apiFetch<SessionInfo[]>("/sessions");

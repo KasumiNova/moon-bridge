@@ -63,6 +63,7 @@ describe("ModelsProvidersPage", () => {
     fireEvent.change(within(providerPanel).getByLabelText("Base URL"), {
       target: { value: "https://api.anthropic.test" }
     });
+    fireEvent.blur(within(providerPanel).getByLabelText("Base URL"));
 
     await advanceAutosave();
 
@@ -82,6 +83,7 @@ describe("ModelsProvidersPage", () => {
     fireEvent.change(within(offerPanel).getByLabelText("Priority"), {
       target: { value: "5" }
     });
+    fireEvent.blur(within(offerPanel).getByLabelText("Priority"));
 
     await advanceAutosave();
 

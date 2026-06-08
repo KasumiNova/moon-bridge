@@ -17,7 +17,6 @@ export type UseAutosaveFieldOptions<T> = {
   committedValue: T;
   revision: string;
   save: SaveField<T>;
-  debounceMs?: number;
   disabled?: boolean;
 };
 
@@ -26,6 +25,8 @@ export type AutosaveFieldState<T> = {
   status: AutosaveFieldStatus;
   error?: FieldError;
   setValue: (value: T) => void;
+  commit: () => void;
+  commitValue: (value: T) => void;
   reset: () => void;
 };
 
@@ -36,7 +37,6 @@ export function useAutosaveField<T>({
   committedValue,
   revision,
   save,
-  debounceMs = 450,
   disabled = false
 }: UseAutosaveFieldOptions<T>): AutosaveFieldState<T> {
   const [value, setValueState] = useState<T>(committedValue);
@@ -44,41 +44,40 @@ export function useAutosaveField<T>({
   const [error, setError] = useState<FieldError | undefined>();
   const saveSeq = useRef(0);
   const committedRef = useRef(committedValue);
+  const valueRef = useRef(value);
+  const statusRef = useRef(status);
+  const revisionRef = useRef(revision);
 
+  valueRef.current = value;
+  statusRef.current = status;
+  revisionRef.current = revision;
+
+  // Adopt values committed elsewhere (e.g. another field saved and refreshed
+  // the graph) without discarding an edit the user is in the middle of typing.
   useEffect(() => {
+    if (valuesEqual(committedValue, committedRef.current)) {
+      return;
+    }
     committedRef.current = committedValue;
+    if (statusRef.current === "dirty" || statusRef.current === "saving") {
+      return;
+    }
     setValueState(committedValue);
     setError(undefined);
     setStatus("idle");
-  }, [committedValue, revision]);
+  }, [committedValue]);
 
-  const setValue = useCallback(
-    (next: T) => {
-      setValueState(next);
-      setError(undefined);
-      setStatus(valuesEqual(next, committedRef.current) ? "idle" : "dirty");
-    },
-    []
-  );
-
-  const reset = useCallback(() => {
-    setValueState(committedRef.current);
-    setError(undefined);
-    setStatus("idle");
-  }, []);
-
-  useEffect(() => {
-    if (disabled || status !== "dirty") {
-      return undefined;
-    }
-
-    const timeout = window.setTimeout(() => {
+  const runSave = useCallback(
+    (pendingValue: T) => {
+      if (disabled) {
+        return;
+      }
       const sequence = ++saveSeq.current;
-      const pendingValue = value;
       setStatus("saving");
+      setError(undefined);
 
       save({
-        baseRevision: revision,
+        baseRevision: revisionRef.current,
         change: {
           kind: resourceKind,
           id: resourceId,
@@ -105,12 +104,45 @@ export function useAutosaveField<T>({
           });
           setStatus("error");
         });
-    }, debounceMs);
+    },
+    [disabled, field, resourceId, resourceKind, save]
+  );
 
-    return () => window.clearTimeout(timeout);
-  }, [debounceMs, disabled, field, resourceId, resourceKind, revision, save, status, value]);
+  const setValue = useCallback((next: T) => {
+    setValueState(next);
+    setError(undefined);
+    setStatus(valuesEqual(next, committedRef.current) ? "idle" : "dirty");
+  }, []);
 
-  return { value, status, error, setValue, reset };
+  // Commit the current value (used when an input loses focus).
+  const commit = useCallback(() => {
+    if (statusRef.current !== "dirty") {
+      return;
+    }
+    runSave(valueRef.current);
+  }, [runSave]);
+
+  // Set and immediately persist (used by discrete controls like switches/menus).
+  const commitValue = useCallback(
+    (next: T) => {
+      setValueState(next);
+      if (valuesEqual(next, committedRef.current)) {
+        setError(undefined);
+        setStatus("idle");
+        return;
+      }
+      runSave(next);
+    },
+    [runSave]
+  );
+
+  const reset = useCallback(() => {
+    setValueState(committedRef.current);
+    setError(undefined);
+    setStatus("idle");
+  }, []);
+
+  return { value, status, error, setValue, commit, commitValue, reset };
 
   function applySaveResponse(response: PatchResponse, pendingValue: T) {
     const fieldError = findFieldError(response.errors, resourceKind, resourceId, field);

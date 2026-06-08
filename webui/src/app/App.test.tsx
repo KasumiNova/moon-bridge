@@ -18,7 +18,7 @@ describe("AppShell", () => {
 
     const labels = Array.from(
       document.querySelectorAll<HTMLAnchorElement>(".navigation-rail a")
-    ).map((link) => link.querySelector("span")?.textContent);
+    ).map((link) => link.querySelector(".nav-item__label")?.textContent);
 
     expect(labels).toEqual([
       "Overview",

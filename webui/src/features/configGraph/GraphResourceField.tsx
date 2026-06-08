@@ -3,6 +3,7 @@ import type { ConfigResource, FieldSchema } from "../../rpc/types";
 import { SchemaField } from "./SchemaField";
 import { configDocPathForResource } from "./configDocPath";
 import { useAutosaveField, type SaveFieldRequest } from "./useAutosaveField";
+import { useReportFieldStatus } from "./editorStatus";
 import { useGraphFieldSaver } from "./useConfigGraph";
 
 export function GraphResourceField({
@@ -27,6 +28,7 @@ export function GraphResourceField({
     revision,
     save
   });
+  useReportFieldStatus(`${resource.kind}:${resource.id}:${field.path}`, autosave.status);
 
   return (
     <SchemaField
@@ -35,7 +37,8 @@ export function GraphResourceField({
       idPrefix={`${resource.kind}-${resource.id}`}
       docPath={configDocPathForResource(resource, field)}
       onChange={autosave.setValue}
-      status={autosave.status}
+      onCommit={autosave.commit}
+      onCommitValue={autosave.commitValue}
       value={autosave.value}
     />
   );

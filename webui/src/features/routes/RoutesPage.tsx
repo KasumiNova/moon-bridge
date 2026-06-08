@@ -1,6 +1,5 @@
 import { LoadingState } from "../../components/LoadingState";
 import { useI18n } from "../../i18n/I18nProvider";
-import type { ConfigResource } from "../../rpc/types";
 import { CreateResourcePanel } from "../configGraph/CreateResourcePanel";
 import { ResourceEditorCard } from "../configGraph/ResourceEditorCard";
 import { useConfigGraph } from "../configGraph/useConfigGraph";
@@ -18,6 +17,7 @@ export function RoutesPage() {
   }
 
   const routes = graph.data.resources.filter((resource) => resource.kind === "route");
+  const routeTitle = t("routes.resourceTitle");
 
   return (
     <section className="page-stack" aria-labelledby="routes-title">
@@ -30,33 +30,18 @@ export function RoutesPage() {
           <h2 id="routes-list-heading">{t("routes.listTitle", { count: routes.length })}</h2>
           <CreateResourcePanel graph={graph.data} kind="route" />
         </div>
+        <div className="resource-card-list">
+          {routes.map((route) => (
+            <ResourceEditorCard
+              key={route.id}
+              ariaLabel={`${routeTitle} ${route.id}`}
+              resource={route}
+              revision={graph.data.revision}
+              title={routeTitle}
+            />
+          ))}
+        </div>
       </section>
-
-      {routes.map((route) => (
-        <RouteEditor key={route.id} resource={route} revision={graph.data.revision} />
-      ))}
-    </section>
-  );
-}
-
-function RouteEditor({
-  resource,
-  revision
-}: {
-  resource: ConfigResource;
-  revision: string;
-}) {
-  const { t } = useI18n();
-  const title = t("routes.resourceTitle");
-  return (
-    <section className="content-panel" aria-label={resource.id}>
-      <h2>{resource.id}</h2>
-      <ResourceEditorCard
-        ariaLabel={`${title} ${resource.id}`}
-        resource={resource}
-        revision={revision}
-        title={title}
-      />
     </section>
   );
 }

@@ -1,20 +1,34 @@
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { motion } from "motion/react";
 import { LoadingState } from "../../components/LoadingState";
 import { useI18n } from "../../i18n/I18nProvider";
-import { getUsageStats } from "../../rpc/management";
+import type { MessageKey } from "../../i18n/messages";
+import { getUsageStats, type UsageRange } from "../../rpc/management";
 import { queryKeys } from "../../rpc/queryKeys";
 import type { UsageStats, UsageStatsModelRow } from "../../rpc/types";
+import { listContainer, listItem } from "../../theme/motion";
 import { useConfigGraph } from "../configGraph/useConfigGraph";
 import { LogPanel } from "../logs/LogPanel";
 import { PageHeader, QueryErrorState } from "../shared";
 
+const usageRanges: UsageRange[] = ["session", "24h", "7d", "30d", "all"];
+
+const usageRangeLabelKeys: Record<UsageRange, MessageKey> = {
+  session: "overview.range.session",
+  "24h": "overview.range.24h",
+  "7d": "overview.range.7d",
+  "30d": "overview.range.30d",
+  all: "overview.range.all"
+};
+
 export function OverviewPage() {
   const { t } = useI18n();
   const graph = useConfigGraph();
+  const [range, setRange] = useState<UsageRange>("session");
   const usage = useQuery({
-    queryKey: queryKeys.usageStats,
-    queryFn: getUsageStats
+    queryKey: [...queryKeys.usageStats, range],
+    queryFn: () => getUsageStats(range)
   });
 
   return (
@@ -37,7 +51,24 @@ export function OverviewPage() {
             <h2 id="usage-title">{t("overview.usageTitle")}</h2>
             <p>{t("overview.usageDescription")}</p>
           </div>
-          {usage.data ? <span className="status-pill status-pill--muted">{usage.data.totals.duration}</span> : null}
+          <div className="usage-heading-controls">
+            <div className="segmented-control usage-range" role="group" aria-label={t("overview.rangeLabel")}>
+              {usageRanges.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  aria-pressed={range === option}
+                  className={range === option ? "active-button" : undefined}
+                  onClick={() => setRange(option)}
+                >
+                  {t(usageRangeLabelKeys[option])}
+                </button>
+              ))}
+            </div>
+            {usage.data ? (
+              <span className="status-pill status-pill--muted">{formatDuration(usage.data.totals.duration)}</span>
+            ) : null}
+          </div>
         </div>
 
         {usage.isLoading ? (
@@ -49,15 +80,15 @@ export function OverviewPage() {
         ) : null}
       </section>
 
-      <div id="logs" className="overview-logs-anchor">
+      <section id="logs" className="content-panel overview-logs">
         <div className="panel-heading">
           <div>
             <h2 id="overview-logs-title">{t("logs.panelTitle")}</h2>
             <p>{t("logs.description")}</p>
           </div>
         </div>
-        <LogPanel labelledBy="overview-logs-title" />
-      </div>
+        <LogPanel labelledBy="overview-logs-title" embedded />
+      </section>
     </section>
   );
 }
@@ -74,14 +105,19 @@ function UsageDashboard({ stats }: { stats: UsageStats }) {
         </div>
       ) : null}
 
-      <div className="usage-summary-grid">
-        <UsageMetric value={t("overview.requestsValue", { count: stats.totals.requests })} label={t("overview.requests")} />
-        <UsageMetric value={t("overview.inputValue", { count: formatTokenValue(stats.totals.input_tokens) })} label={t("overview.inputTokens")} />
-        <UsageMetric value={t("overview.outputValue", { count: formatTokenValue(stats.totals.output_tokens) })} label={t("overview.outputTokens")} />
-        <UsageMetric value={t("overview.cacheHitValue", { rate: formatPercent(stats.totals.cache_hit_rate) })} label={t("overview.cacheHit")} />
-        <UsageMetric value={t("overview.cacheRatioValue", { ratio: formatRatio(stats.totals.cache_rw_ratio) })} label={t("overview.cacheReadWrite")} />
-        <UsageMetric value={t("overview.totalCostValue", { cost: formatCurrency(stats.totals.total_cost) })} label={t("overview.totalCost")} />
-      </div>
+      <motion.div
+        className="usage-summary-grid"
+        variants={listContainer}
+        initial="hidden"
+        animate="show"
+      >
+        <UsageMetric icon="swap_horiz" tone="primary" value={t("overview.requestsValue", { count: stats.totals.requests })} label={t("overview.requests")} />
+        <UsageMetric icon="south_west" tone="primary" value={t("overview.inputValue", { count: formatTokenValue(stats.totals.input_tokens) })} label={t("overview.inputTokens")} />
+        <UsageMetric icon="north_east" tone="tertiary" value={t("overview.outputValue", { count: formatTokenValue(stats.totals.output_tokens) })} label={t("overview.outputTokens")} />
+        <UsageMetric icon="bolt" tone="secondary" value={t("overview.cacheHitValue", { rate: formatPercent(stats.totals.cache_hit_rate) })} label={t("overview.cacheHit")} />
+        <UsageMetric icon="sync_alt" tone="secondary" value={t("overview.cacheRatioValue", { ratio: formatRatio(stats.totals.cache_rw_ratio) })} label={t("overview.cacheReadWrite")} />
+        <UsageMetric icon="payments" tone="tertiary" value={t("overview.totalCostValue", { cost: formatCurrency(stats.totals.total_cost) })} label={t("overview.totalCost")} />
+      </motion.div>
 
       <div className="usage-chart-grid">
         <UsageBarChart
@@ -147,15 +183,23 @@ function UsageDashboard({ stats }: { stats: UsageStats }) {
   );
 }
 
-function UsageMetric({ label, value }: { label: string; value: string }) {
+function UsageMetric({
+  label,
+  value,
+  icon,
+  tone = "primary"
+}: {
+  label: string;
+  value: string;
+  icon: string;
+  tone?: "primary" | "tertiary" | "secondary";
+}) {
   return (
-    <motion.article
-      animate={{ opacity: 1, y: 0 }}
-      className="usage-metric"
-      initial={{ opacity: 0, y: 8 }}
-      transition={{ duration: 0.18 }}
-    >
-      <span>{label}</span>
+    <motion.article className={`usage-metric usage-metric--${tone}`} variants={listItem}>
+      <span className="usage-metric__icon material-symbol" aria-hidden="true">
+        {icon}
+      </span>
+      <span className="usage-metric__label">{label}</span>
       <strong>{value}</strong>
     </motion.article>
   );
@@ -183,7 +227,6 @@ function UsageBarChart({
             className={`usage-chart__segment ${segment.className}`}
             key={segment.label}
             style={{ inlineSize: `${total > 0 ? (Math.max(0, segment.value) / total) * 100 : 0}%` }}
-            title={`${segment.label}: ${formatNumber(segment.value)}`}
           />
         ))}
       </div>
@@ -191,7 +234,7 @@ function UsageBarChart({
         {segments.map((segment) => (
           <li key={segment.label}>
             <span className={`usage-chart__dot ${segment.className}`} aria-hidden="true" />
-            <span title={segment.label}>{segment.label}</span>
+            <span>{segment.label}</span>
             <strong>{formatNumber(segment.value)}</strong>
           </li>
         ))}
@@ -203,8 +246,8 @@ function UsageBarChart({
 function UsageModelRow({ row }: { row: UsageStatsModelRow }) {
   return (
     <tr aria-label={`${row.model} usage`}>
-      <td title={row.model}>{row.model}</td>
-      <td title={row.actual_model}>{row.actual_model || "-"}</td>
+      <td>{row.model}</td>
+      <td>{row.actual_model || "-"}</td>
       <td>{formatNumber(row.requests)}</td>
       <td>{formatTokenValue(row.input_tokens)}</td>
       <td>{formatTokenValue(row.output_tokens)}</td>
@@ -219,6 +262,31 @@ function UsageModelRow({ row }: { row: UsageStatsModelRow }) {
 
 function formatNumber(value: number) {
   return new Intl.NumberFormat().format(value);
+}
+
+/** Humanizes a Go duration string (e.g. "41m13.801862068s") into "41m 14s". */
+function formatDuration(raw: string) {
+  if (!raw || raw === "N/A") {
+    return "—";
+  }
+  const match = /^(?:(\d+)h)?(?:(\d+)m)?(?:([\d.]+)s)?$/.exec(raw.trim());
+  if (!match) {
+    return raw.trim();
+  }
+  const hours = match[1] ? parseInt(match[1], 10) : 0;
+  const minutes = match[2] ? parseInt(match[2], 10) : 0;
+  const seconds = match[3] ? Math.round(parseFloat(match[3])) : 0;
+  const parts: string[] = [];
+  if (hours) {
+    parts.push(`${hours}h`);
+  }
+  if (minutes) {
+    parts.push(`${minutes}m`);
+  }
+  if (seconds || parts.length === 0) {
+    parts.push(`${seconds}s`);
+  }
+  return parts.join(" ");
 }
 
 function formatTokenValue(value: number) {

@@ -1,4 +1,4 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import type { PatchResponse } from "../../rpc/types";
 import { useAutosaveField, type SaveField } from "./useAutosaveField";
@@ -10,12 +10,10 @@ const committed = (revision = "rev-2"): PatchResponse => ({
 
 describe("useAutosaveField", () => {
   afterEach(() => {
-    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
   test("marks the field dirty as soon as local value changes", () => {
-    vi.useFakeTimers();
     const save: SaveField<string> = vi.fn();
     const { result } = renderHook(() =>
       useAutosaveField({
@@ -24,8 +22,7 @@ describe("useAutosaveField", () => {
         field: "model",
         committedValue: "claude-3-5-sonnet",
         revision: "rev-1",
-        save,
-        debounceMs: 50
+        save
       })
     );
 
@@ -36,8 +33,7 @@ describe("useAutosaveField", () => {
     expect(save).not.toHaveBeenCalled();
   });
 
-  test("debounces saving and clears dirty state after commit", async () => {
-    vi.useFakeTimers();
+  test("persists the dirty value on commit and clears the dirty state", async () => {
     const save: SaveField<string> = vi.fn().mockResolvedValue(committed());
     const { result } = renderHook(() =>
       useAutosaveField({
@@ -46,16 +42,14 @@ describe("useAutosaveField", () => {
         field: "model",
         committedValue: "old-model",
         revision: "rev-1",
-        save,
-        debounceMs: 50
+        save
       })
     );
 
     act(() => result.current.setValue("new-model"));
-    act(() => vi.advanceTimersByTime(49));
     expect(save).not.toHaveBeenCalled();
 
-    await advanceTimersAndFlush(1);
+    act(() => result.current.commit());
     expect(save).toHaveBeenCalledWith({
       baseRevision: "rev-1",
       change: {
@@ -65,12 +59,56 @@ describe("useAutosaveField", () => {
         value: "new-model"
       }
     });
-    expect(result.current.status).toBe("saved");
+    await waitFor(() => expect(result.current.status).toBe("saved"));
     expect(result.current.error).toBeUndefined();
   });
 
+  test("commit is a no-op when the field is not dirty", () => {
+    const save: SaveField<string> = vi.fn().mockResolvedValue(committed());
+    const { result } = renderHook(() =>
+      useAutosaveField({
+        resourceKind: "defaults",
+        resourceId: "main",
+        field: "model",
+        committedValue: "old-model",
+        revision: "rev-1",
+        save
+      })
+    );
+
+    act(() => result.current.commit());
+
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  test("commitValue persists immediately for discrete controls", async () => {
+    const save: SaveField<boolean> = vi.fn().mockResolvedValue(committed());
+    const { result } = renderHook(() =>
+      useAutosaveField({
+        resourceKind: "provider",
+        resourceId: "anthropic",
+        field: "enabled",
+        committedValue: false,
+        revision: "rev-1",
+        save
+      })
+    );
+
+    act(() => result.current.commitValue(true));
+
+    expect(save).toHaveBeenCalledWith({
+      baseRevision: "rev-1",
+      change: {
+        kind: "provider",
+        id: "anthropic",
+        field: "enabled",
+        value: true
+      }
+    });
+    await waitFor(() => expect(result.current.status).toBe("saved"));
+  });
+
   test("keeps draft value and field error after draft rejection", async () => {
-    vi.useFakeTimers();
     const save: SaveField<number> = vi.fn().mockResolvedValue({
       result: "draftRejected",
       revision: "rev-1",
@@ -91,21 +129,19 @@ describe("useAutosaveField", () => {
         field: "max_tokens",
         committedValue: 1024,
         revision: "rev-1",
-        save,
-        debounceMs: 1
+        save
       })
     );
 
     act(() => result.current.setValue(-1));
-    await advanceTimersAndFlush(1);
+    act(() => result.current.commit());
 
-    expect(result.current.status).toBe("error");
+    await waitFor(() => expect(result.current.status).toBe("error"));
     expect(result.current.value).toBe(-1);
     expect(result.current.error?.message).toBe("must be positive");
   });
 
   test("rolls back to the server value after runtime rejection", async () => {
-    vi.useFakeTimers();
     const save: SaveField<string> = vi.fn().mockResolvedValue({
       result: "runtimeRejected",
       revision: "rev-2",
@@ -127,24 +163,40 @@ describe("useAutosaveField", () => {
         field: "addr",
         committedValue: "old-address",
         revision: "rev-1",
-        save,
-        debounceMs: 1
+        save
       })
     );
 
     act(() => result.current.setValue("bad-address"));
-    await advanceTimersAndFlush(1);
+    act(() => result.current.commit());
 
-    expect(result.current.status).toBe("error");
+    await waitFor(() => expect(result.current.status).toBe("error"));
     expect(result.current.value).toBe("old-address");
     expect(result.current.error?.message).toBe("address already in use");
   });
-});
 
-async function advanceTimersAndFlush(ms: number) {
-  await act(async () => {
-    vi.advanceTimersByTime(ms);
-    await Promise.resolve();
-    await Promise.resolve();
+  test("does not discard an in-progress edit when the committed value refreshes", () => {
+    const save: SaveField<string> = vi.fn();
+    const { result, rerender } = renderHook(
+      ({ committedValue, revision }) =>
+        useAutosaveField({
+          resourceKind: "defaults",
+          resourceId: "main",
+          field: "model",
+          committedValue,
+          revision,
+          save
+        }),
+      { initialProps: { committedValue: "original", revision: "rev-1" } }
+    );
+
+    act(() => result.current.setValue("user-typing"));
+    expect(result.current.status).toBe("dirty");
+
+    // Another field commits, refreshing the graph with a new revision.
+    rerender({ committedValue: "original", revision: "rev-2" });
+
+    expect(result.current.value).toBe("user-typing");
+    expect(result.current.status).toBe("dirty");
   });
-}
+});

@@ -1,4 +1,4 @@
-import { fireEvent, screen } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { renderWithConsoleProviders } from "../../test/renderWithConsoleProviders";
 import { ApiError } from "../../rpc/http";
@@ -8,6 +8,16 @@ import * as management from "../../rpc/management";
 import type { LogEntry, UsageStats } from "../../rpc/types";
 import { configGraphFixture } from "../../test/configGraphFixtures";
 import { OverviewPage } from "./OverviewPage";
+
+function metricCard(label: string): HTMLElement {
+  const labelEl = screen
+    .getAllByText(label)
+    .find((el) => el.classList.contains("usage-metric__label"));
+  if (!labelEl) {
+    throw new Error(`usage metric not found for label: ${label}`);
+  }
+  return labelEl.closest(".usage-metric") as HTMLElement;
+}
 
 describe("OverviewPage", () => {
   afterEach(() => {
@@ -52,11 +62,12 @@ describe("OverviewPage", () => {
     renderWithConsoleProviders(<OverviewPage />);
 
     expect(await screen.findByRole("heading", { name: "Usage Analytics" })).toBeInTheDocument();
-    expect(await screen.findByText("2 requests")).toBeInTheDocument();
-    expect(screen.getByText("300 input")).toBeInTheDocument();
-    expect(screen.getByText("80 output")).toBeInTheDocument();
-    expect(screen.getByText("40% cache hit")).toBeInTheDocument();
-    expect(screen.getByText("¥0.42 total")).toBeInTheDocument();
+    await screen.findAllByText("Requests");
+    expect(within(metricCard("Requests")).getByText("2")).toBeInTheDocument();
+    expect(within(metricCard("Input tokens")).getByText("300")).toBeInTheDocument();
+    expect(within(metricCard("Output tokens")).getByText("80")).toBeInTheDocument();
+    expect(within(metricCard("Cache hit")).getByText("40%")).toBeInTheDocument();
+    expect(within(metricCard("Total cost")).getByText("¥0.42")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: /Token split chart.*Input tokens: 300.*Output tokens: 80/ })).toBeInTheDocument();
     expect(screen.getByRole("img", { name: /Cache split chart.*Cache write: 40.*Cache read: 120/ })).toBeInTheDocument();
     expect(screen.getByRole("img", { name: /Cost by model chart.*claude-sonnet: 0.42/ })).toBeInTheDocument();
@@ -137,7 +148,8 @@ describe("OverviewPage", () => {
     renderWithConsoleProviders(<OverviewPage />);
 
     expect(await screen.findByRole("heading", { name: "Usage Analytics" })).toBeInTheDocument();
-    expect(await screen.findByText("2 requests")).toBeInTheDocument();
+    await screen.findAllByText("Requests");
+    expect(within(metricCard("Requests")).getByText("2")).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Backend logs" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Configuration graph unavailable" })).toBeInTheDocument();
   });

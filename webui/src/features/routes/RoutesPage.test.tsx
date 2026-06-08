@@ -45,6 +45,7 @@ describe("RoutesPage", () => {
     fireEvent.change(within(routePanel).getByLabelText("Provider"), {
       target: { value: "openai" }
     });
+    fireEvent.blur(within(routePanel).getByLabelText("Provider"));
 
     await advanceAutosave();
 

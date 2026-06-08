@@ -5,6 +5,7 @@ import (
 	"sort"
 	"time"
 
+	"moonbridge/internal/extension/plugin"
 	"moonbridge/internal/service/stats"
 )
 
@@ -118,13 +119,59 @@ func (r *Router) handleGetStatsSummary(w http.ResponseWriter, req *http.Request)
 }
 
 // GET /stats/usage
+//
+// Optional query parameters:
+//   - range: session|24h|7d|30d|all (default "session" = in-memory process stats)
+//   - since,until: RFC3339 timestamps for a custom window (cross-session)
+//
+// When a cross-session window is requested and a persistent usage source is
+// available, usage is aggregated from persisted metrics; otherwise it falls
+// back to the in-memory per-process session stats.
 func (r *Router) handleGetStatsUsage(w http.ResponseWriter, req *http.Request) {
+	q := req.URL.Query()
+	since, until, crossSession := usageWindow(q.Get("range"), q.Get("since"), q.Get("until"))
+
+	if crossSession && r.registry != nil {
+		if source := r.registry.UsageSource(); source != nil {
+			if agg, err := source.AggregateUsage(plugin.UsageQuery{Since: since, Until: until}); err == nil {
+				respondJSON(w, http.StatusOK, usageStatsFromAggregate(agg))
+				return
+			}
+		}
+	}
+
 	if r.stats == nil {
 		respondJSON(w, http.StatusOK, emptyUsageStatsResponse())
 		return
 	}
-
 	respondJSON(w, http.StatusOK, usageStatsFromSummary(r.stats.Summary()))
+}
+
+// usageWindow resolves the requested range into a [since, until) window. The
+// bool result reports whether a cross-session (persisted) query was requested;
+// when false the caller should use the in-memory session stats.
+func usageWindow(rangeParam, sinceParam, untilParam string) (time.Time, time.Time, bool) {
+	now := time.Now()
+	if sinceParam != "" || untilParam != "" {
+		since, _ := time.Parse(time.RFC3339, sinceParam)
+		until, err := time.Parse(time.RFC3339, untilParam)
+		if err != nil {
+			until = now
+		}
+		return since, until, true
+	}
+	switch rangeParam {
+	case "24h":
+		return now.Add(-24 * time.Hour), now, true
+	case "7d":
+		return now.Add(-7 * 24 * time.Hour), now, true
+	case "30d":
+		return now.Add(-30 * 24 * time.Hour), now, true
+	case "all":
+		return time.Time{}, now, true
+	default:
+		return time.Time{}, time.Time{}, false
+	}
 }
 
 type usageStatsResponse struct {
@@ -205,6 +252,53 @@ func usageStatsFromSummary(summary stats.Summary) usageStatsResponse {
 			CacheRWRatio:   ratio(summary.CacheRead, summary.CacheCreation),
 			TotalCost:      summary.TotalCost,
 			Duration:       summary.Duration.String(),
+		},
+		ByModel: rows,
+	}
+}
+
+// usageStatsFromAggregate converts a cross-session usage aggregate (from
+// persisted metrics) into the same response shape used for session stats.
+func usageStatsFromAggregate(agg plugin.UsageAggregate) usageStatsResponse {
+	rows := make([]usageModelRow, 0, len(agg.ByModel))
+	for _, m := range agg.ByModel {
+		rows = append(rows, usageModelRow{
+			Model:             m.Model,
+			ActualModel:       m.ActualModel,
+			Requests:          m.Requests,
+			InputTokens:       m.InputTokens,
+			OutputTokens:      m.OutputTokens,
+			CacheCreation:     m.CacheCreation,
+			CacheRead:         m.CacheRead,
+			CacheHitRate:      rate(m.CacheRead, m.InputTokens),
+			Cost:              m.Cost,
+			AvgCostPerMTokens: costPerMTokens(m.Cost, m.InputTokens+m.OutputTokens),
+		})
+	}
+	sort.Slice(rows, func(i, j int) bool {
+		if rows[i].Cost == rows[j].Cost {
+			return rows[i].Model < rows[j].Model
+		}
+		return rows[i].Cost > rows[j].Cost
+	})
+
+	var duration time.Duration
+	if !agg.Earliest.IsZero() && agg.Latest.After(agg.Earliest) {
+		duration = agg.Latest.Sub(agg.Earliest)
+	}
+
+	return usageStatsResponse{
+		Totals: usageTotals{
+			Requests:       agg.Requests,
+			InputTokens:    agg.InputTokens,
+			OutputTokens:   agg.OutputTokens,
+			CacheCreation:  agg.CacheCreation,
+			CacheRead:      agg.CacheRead,
+			CacheHitRate:   rate(agg.CacheRead, agg.InputTokens),
+			CacheWriteRate: rate(agg.CacheCreation, agg.InputTokens),
+			CacheRWRatio:   ratio(agg.CacheRead, agg.CacheCreation),
+			TotalCost:      agg.Cost,
+			Duration:       duration.String(),
 		},
 		ByModel: rows,
 	}

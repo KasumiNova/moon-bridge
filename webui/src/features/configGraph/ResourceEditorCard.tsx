@@ -1,9 +1,12 @@
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { motion } from "motion/react";
 import type { ConfigResource, FieldSchema, ResourceKind, ResourceStatus, RuntimeImpact } from "../../rpc/types";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { MessageKey } from "../../i18n/messages";
+import { springs } from "../../theme/motion";
+import { EditorStatusProvider, type FieldStatusReporter } from "./editorStatus";
 import { GraphResourceField } from "./GraphResourceField";
+import type { AutosaveFieldStatus } from "./useAutosaveField";
 import { useDeleteConfigResource } from "./useConfigGraph";
 
 const statusLabelKeys: Record<ResourceStatus, MessageKey> = {
@@ -40,6 +43,11 @@ export function ResourceEditorCard({
   const deleteResource = useDeleteConfigResource();
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const [fieldStatuses, setFieldStatuses] = useState<Record<string, AutosaveFieldStatus>>({});
+  const reportFieldStatus = useCallback<FieldStatusReporter>((id, status) => {
+    setFieldStatuses((current) => (current[id] === status ? current : { ...current, [id]: status }));
+  }, []);
+  const liveStatus = useMemo(() => deriveLiveStatus(fieldStatuses), [fieldStatuses]);
   const fieldCount = resource.schema.fields.length;
   const reloadText = resource.hotReloadable
     ? t("resource.reload.hot")
@@ -68,27 +76,52 @@ export function ResourceEditorCard({
       className="resource-editor-card"
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.16 }}
+      transition={springs.spatial}
     >
       <div className="resource-editor-card__header">
         <div className="resource-editor-card__identity">
-          <span className="resource-kind-chip">{resourceTitle}</span>
-          <h3>{resource.id}</h3>
+          <div className="resource-editor-card__identity-line">
+            <span className="resource-kind-chip">{resourceTitle}</span>
+            <h3>{resource.id}</h3>
+          </div>
+          <div className="resource-editor-card__facts">
+            <span className="resource-fact">
+              <span className="material-symbol" aria-hidden="true">list_alt</span>
+              {t(fieldCount === 1 ? "resource.fieldCount.one" : "resource.fieldCount.many", { count: fieldCount })}
+            </span>
+            <span className={`resource-fact resource-fact--${resource.hotReloadable ? "hot" : "restart"}`}>
+              <span className="material-symbol" aria-hidden="true">
+                {resource.hotReloadable ? "bolt" : "restart_alt"}
+              </span>
+              {reloadText}
+            </span>
+          </div>
         </div>
         <div className="resource-editor-card__meta">
           <div className="resource-editor-card__status" aria-label={`${label} status`}>
             <span className={`status-pill status-pill--${resource.status}`}>
               {t(statusLabelKeys[resource.status])}
             </span>
-            {!resource.hotReloadable ? (
-              <span className="status-pill status-pill--muted">{reloadText}</span>
-            ) : null}
             {resource.runtimeImpact === "critical" ? (
               <span className="status-pill status-pill--critical">
                 {t(impactLabelKeys[resource.runtimeImpact])}
               </span>
             ) : null}
           </div>
+          {liveStatus ? (
+            <motion.span
+              key={liveStatus}
+              className={`editor-live-status editor-live-status--${liveStatus}`}
+              initial={{ opacity: 0, scale: 0.85, y: -2 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={springs.spatialFast}
+            >
+              <span className="material-symbol" aria-hidden="true">
+                {liveStatusIcon(liveStatus)}
+              </span>
+              {t(liveStatusKeys[liveStatus])}
+            </motion.span>
+          ) : null}
           {canDelete ? (
             <button
               type="button"
@@ -111,7 +144,7 @@ export function ResourceEditorCard({
           className="resource-delete-confirmation"
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.14 }}
+          transition={springs.spatial}
         >
           <p>{t("resource.deletePrompt", { id: resource.id })}</p>
           {deleteError ? (
@@ -143,40 +176,42 @@ export function ResourceEditorCard({
         </motion.div>
       ) : null}
 
-      <div className="resource-editor-card__summary">
-        <span>{t(fieldCount === 1 ? "resource.fieldCount.one" : "resource.fieldCount.many", { count: fieldCount })}</span>
-        <span>{reloadText}</span>
-      </div>
-
-      <div className="resource-field-groups">
-        {fieldGroups.map((group) => (
-          <div
-            aria-label={t(group.labelKey)}
-            className={`resource-field-group resource-field-group--${group.key}`}
-            key={group.key}
-            role="group"
-          >
-            <div className="resource-field-group__header">
-              <h4>{t(group.labelKey)}</h4>
-              <span>
-                {t(group.fields.length === 1 ? "resource.fieldCount.one" : "resource.fieldCount.many", {
-                  count: group.fields.length
-                })}
-              </span>
+      <EditorStatusProvider report={reportFieldStatus}>
+        <div className="resource-field-groups">
+          {fieldGroups.map((group) => (
+            <div
+              aria-label={t(group.labelKey)}
+              className={`resource-field-group resource-field-group--${group.key}`}
+              key={group.key}
+              role="group"
+            >
+              <div className="resource-field-group__header">
+                <h4>
+                  <span className="material-symbol" aria-hidden="true">
+                    {group.key === "identity" ? "badge" : "tune"}
+                  </span>
+                  {t(group.labelKey)}
+                </h4>
+                <span>
+                  {t(group.fields.length === 1 ? "resource.fieldCount.one" : "resource.fieldCount.many", {
+                    count: group.fields.length
+                  })}
+                </span>
+              </div>
+              <div className="form-grid">
+                {group.fields.map((field) => (
+                  <div
+                    className={fieldGridClass(field)}
+                    key={`${resource.kind}-${resource.id}-${field.path}`}
+                  >
+                    <GraphResourceField field={field} resource={resource} revision={revision} />
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="form-grid">
-              {group.fields.map((field) => (
-                <div
-                  className={fieldGridClass(field)}
-                  key={`${resource.kind}-${resource.id}-${field.path}`}
-                >
-                  <GraphResourceField field={field} resource={resource} revision={revision} />
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      </EditorStatusProvider>
     </motion.section>
   );
 }
@@ -186,6 +221,38 @@ type FieldGroup = {
   labelKey: MessageKey;
   fields: FieldSchema[];
 };
+
+function deriveLiveStatus(
+  statuses: Record<string, AutosaveFieldStatus>
+): "saving" | "error" | "dirty" | null {
+  const values = Object.values(statuses);
+  if (values.includes("saving")) {
+    return "saving";
+  }
+  if (values.includes("error")) {
+    return "error";
+  }
+  if (values.includes("dirty")) {
+    return "dirty";
+  }
+  return null;
+}
+
+const liveStatusKeys: Record<"saving" | "error" | "dirty", MessageKey> = {
+  saving: "editor.liveSaving",
+  error: "editor.liveError",
+  dirty: "editor.liveUnsaved"
+};
+
+function liveStatusIcon(status: "saving" | "error" | "dirty") {
+  if (status === "saving") {
+    return "progress_activity";
+  }
+  if (status === "error") {
+    return "error";
+  }
+  return "edit";
+}
 
 function groupFields(fields: FieldSchema[]): FieldGroup[] {
   const groups: FieldGroup[] = [

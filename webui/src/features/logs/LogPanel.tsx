@@ -3,11 +3,12 @@ import { motion } from "motion/react";
 import { useI18n } from "../../i18n/I18nProvider";
 import { createLogStream, getRecentLogs } from "../../rpc/logs";
 import type { LogEntry } from "../../rpc/types";
+import { springs } from "../../theme/motion";
 
 const logLevels = ["ALL", "ERROR", "WARN", "INFO", "DEBUG"] as const;
 type LogLevelFilter = (typeof logLevels)[number];
 
-export function LogPanel({ labelledBy }: { labelledBy?: string }) {
+export function LogPanel({ labelledBy, embedded }: { labelledBy?: string; embedded?: boolean }) {
   const { t } = useI18n();
   const searchId = useId();
   const [entries, setEntries] = useState<LogEntry[]>([]);
@@ -72,7 +73,7 @@ export function LogPanel({ labelledBy }: { labelledBy?: string }) {
     <section
       aria-label={labelledBy ? undefined : t("logs.panelLabel")}
       aria-labelledby={labelledBy}
-      className="content-panel logs-panel"
+      className={embedded ? "logs-panel" : "content-panel logs-panel"}
     >
       {labelledBy ? null : <h2>{t("logs.panelTitle")}</h2>}
 
@@ -181,7 +182,7 @@ function LogRow({ entry, index }: { entry: LogEntry; index: number }) {
       aria-label={`Log ${index + 1}`}
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.14 }}
+      transition={springs.effects}
     >
       <div className="log-row__meta">
         <span>{entry.timestamp}</span>

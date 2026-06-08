@@ -27,8 +27,7 @@ describe("SearchToolsPage", () => {
     expect(within(screen.getByLabelText("Extension db_sqlite status")).getByText("Saved")).toBeInTheDocument();
     expect(within(screen.getByLabelText("Proxy main status")).getByText("Critical")).toBeInTheDocument();
 
-    expect(within(screen.getByRole("group", { name: "Support" })).getByRole("button", { name: "auto" }))
-      .toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("combobox", { name: "Support" })).toHaveTextContent("auto");
     expect(screen.getByText("db_sqlite")).toBeInTheDocument();
     expect(screen.getByLabelText("Response Proxy")).toBeInTheDocument();
     expect(screen.queryByLabelText(/yaml/i)).not.toBeInTheDocument();

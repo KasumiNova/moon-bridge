@@ -6,7 +6,7 @@ import { renderWithConsoleProviders } from "../../test/renderWithConsoleProvider
 import { SchemaField } from "./SchemaField";
 
 describe("SchemaField", () => {
-  test("renders enum fields as app-styled option buttons", async () => {
+  test("renders enum fields as an accessible dropdown menu", async () => {
     const field: FieldSchema = {
       path: "protocol",
       type: "string",
@@ -19,15 +19,14 @@ describe("SchemaField", () => {
     renderWithConsoleProviders(<SchemaField field={field} value="anthropic" onChange={onChange} />);
 
     expect(document.querySelector(".schema-field select")).not.toBeInTheDocument();
-    const group = screen.getByRole("group", { name: "Protocol" });
-    expect(group).toBeInTheDocument();
-    expect(document.querySelector("label[for='schema-field-protocol']")).not.toBeInTheDocument();
-    expect(document.getElementById("schema-field-protocol")).toBe(group);
-    expect(group).toHaveAttribute("aria-labelledby", "schema-field-protocol-label");
+    const trigger = screen.getByRole("combobox", { name: "Protocol" });
+    expect(trigger).toHaveTextContent("Anthropic");
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
     expect(document.getElementById("schema-field-protocol-label")).toHaveTextContent("Protocol");
-    expect(screen.getByRole("button", { name: /Anthropic/ })).toHaveAttribute("aria-pressed", "true");
 
-    await userEvent.click(screen.getByRole("button", { name: /OpenAI Responses/ }));
+    await userEvent.click(trigger);
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+    await userEvent.click(screen.getByRole("option", { name: /OpenAI Responses/ }));
 
     expect(onChange).toHaveBeenCalledWith("openai-response");
   });

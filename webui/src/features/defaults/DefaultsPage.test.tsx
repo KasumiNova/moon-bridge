@@ -24,8 +24,7 @@ describe("DefaultsPage", () => {
     expect(within(screen.getByLabelText("Log main status")).getByText("Saved")).toBeInTheDocument();
     expect(screen.getAllByText("Hot reload").length).toBeGreaterThan(0);
     expect(screen.getByLabelText("Model")).toHaveValue("claude-sonnet");
-    expect(within(screen.getByRole("group", { name: "Level" })).getByRole("button", { name: "info" }))
-      .toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("combobox", { name: "Level" })).toHaveTextContent("info");
   });
 
   test("autosaves defaults through graph patches", async () => {
@@ -43,6 +42,7 @@ describe("DefaultsPage", () => {
     fireEvent.change(within(defaultsPanel).getByLabelText("Model"), {
       target: { value: "gpt-4o" }
     });
+    fireEvent.blur(within(defaultsPanel).getByLabelText("Model"));
 
     await advanceAutosave();
 

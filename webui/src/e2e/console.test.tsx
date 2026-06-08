@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { AppShell } from "../app/App";
@@ -77,7 +77,10 @@ describe("config graph console smoke flow", () => {
     expect(document.documentElement.dataset.theme).toBe("dark");
     expect(localStorage.getItem(CONSOLE_THEME_STORAGE_KEY)).toBe("dark");
     expect(await screen.findByRole("heading", { name: "Usage Analytics" })).toBeInTheDocument();
-    expect(await screen.findByText("2 requests")).toBeInTheDocument();
+    const requestsLabel = (await screen.findAllByText("Requests")).find((el) =>
+      el.classList.contains("usage-metric__label")
+    );
+    expect(within(requestsLabel!.closest(".usage-metric") as HTMLElement).getByText("2")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: /Token split chart/ })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Backend logs" })).toBeInTheDocument();
     expect(screen.getByText(/server-started/)).toBeInTheDocument();
@@ -98,9 +101,9 @@ describe("config graph console smoke flow", () => {
 
     renderWithConsoleProviders(<DefaultsPage />);
 
-    fireEvent.change(await screen.findByLabelText("Model"), {
-      target: { value: "gpt-4o" }
-    });
+    const modelField = await screen.findByLabelText("Model");
+    fireEvent.change(modelField, { target: { value: "gpt-4o" } });
+    fireEvent.blur(modelField);
 
     await waitFor(() => {
       expect(findPatch(calls)?.body).toEqual({
@@ -132,6 +135,7 @@ describe("config graph console smoke flow", () => {
 
     const model = await screen.findByLabelText("Model");
     fireEvent.change(model, { target: { value: "invalid-model" } });
+    fireEvent.blur(model);
 
     expect(model).toHaveValue("invalid-model");
     expect(await screen.findByRole("alert")).toHaveTextContent("Model is invalid");
@@ -153,6 +157,7 @@ describe("config graph console smoke flow", () => {
 
     const address = await screen.findByLabelText("Address");
     fireEvent.change(address, { target: { value: ":9999" } });
+    fireEvent.blur(address);
 
     await waitFor(() => {
       expect(address).toHaveValue(":38440");

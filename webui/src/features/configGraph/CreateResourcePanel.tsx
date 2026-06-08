@@ -505,6 +505,7 @@ function CreateFieldLabel({
 }
 
 function CreateFieldHelpButton({ helpText, label }: { helpText: string; label: string }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const openedByHover = useRef(false);
   const helpId = `${useStableCreateId(label)}-help`;
@@ -514,7 +515,7 @@ function CreateFieldHelpButton({ helpText, label }: { helpText: string; label: s
       <button
         type="button"
         className="schema-field__help"
-        aria-label={`Help for ${label}`}
+        aria-label={t("field.helpFor", { label })}
         aria-describedby={open ? helpId : undefined}
         onBlur={() => setOpen(false)}
         onClick={() => {
