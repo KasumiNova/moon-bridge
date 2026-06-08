@@ -158,18 +158,6 @@ export const formStyles = `  .form-grid {
     min-height: 38px;
   }
 
-  .material-static-chip {
-    min-height: 36px;
-    border: 1px solid color-mix(in srgb, var(--mb-color-outline-variant) 80%, transparent);
-    border-radius: var(--mb-shape-full);
-    padding: 0 16px;
-    color: var(--mb-color-on-surface);
-    background: var(--mb-color-surface-container);
-    box-shadow: none;
-    font-size: 0.82rem;
-    font-weight: 600;
-  }
-
   .schema-json-summary {
     width: 100%;
     min-height: 44px;

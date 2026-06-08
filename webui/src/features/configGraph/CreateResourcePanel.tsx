@@ -3,7 +3,7 @@ import { configDescriptions, type ConfigPath } from "../../configDocs/configDesc
 import type { ConfigGraph } from "../../rpc/types";
 import { useI18n } from "../../i18n/I18nProvider";
 import { MaterialFilledButton, MaterialIconButton, MaterialOutlinedButton } from "../../components/MaterialButton";
-import { MaterialFilterChip } from "../../components/MaterialFilterChip";
+import { MaterialAssistChip, MaterialFilterChip } from "../../components/MaterialFilterChip";
 import { MaterialSelect, type MaterialSelectOption } from "../../components/MaterialSelect";
 import { MaterialOutlinedTextField } from "../../components/MaterialTextField";
 import type { MessageKey } from "../../i18n/messages";
@@ -215,18 +215,21 @@ function CreateFields({
         <TextInput
           helpText={fieldHelp("providers.<key>.key", "Stable provider identifier.")}
           label={t("create.provider.id")}
+          path="key"
           value={values.id}
           onChange={(id) => setValues({ ...values, id })}
         />
         <TextInput
           helpText={fieldHelp("providers.<key>.base_url", "Upstream API base URL.")}
           label={t("create.provider.baseUrl")}
+          path="base_url"
           value={values.baseUrl}
           onChange={(baseUrl) => setValues({ ...values, baseUrl })}
         />
         <TextInput
           helpText={fieldHelp("providers.<key>.api_key", "Secret sent to the upstream provider.")}
           label={t("create.provider.apiKey")}
+          path="api_key"
           value={values.apiKey}
           onChange={(apiKey) => setValues({ ...values, apiKey })}
           secret
@@ -249,12 +252,14 @@ function CreateFields({
         <TextInput
           helpText={fieldHelp("models.<slug>.slug", "Stable model identifier.")}
           label={t("create.model.id")}
+          path="slug"
           value={values.id}
           onChange={(id) => setValues({ ...values, id })}
         />
         <TextInput
           helpText="Human-readable label shown in the console."
           label={t("create.model.displayName")}
+          path="display_name"
           value={values.displayName}
           onChange={(displayName) => setValues({ ...values, displayName })}
         />
@@ -274,6 +279,7 @@ function CreateFields({
         <TextInput
           helpText={fieldHelp("routes.<alias>.alias", "Client-visible route alias.")}
           label={t("create.route.id")}
+          path="alias"
           value={values.id}
           onChange={(id) => setValues({ ...values, id })}
         />
@@ -298,12 +304,12 @@ function CreateFields({
   if (kind === "provider_offer") {
     return (
       <>
-        <div className="form-field form-field--create-track">
+        <div className="schema-field form-field--create-track">
           <CreateFieldLabel
             helpText={fieldHelp("providers.<key>.key", "Provider that owns this offer.")}
             label={t("create.offer.provider")}
           />
-          <span className="material-static-chip">{providerId ?? values.provider}</span>
+          <MaterialAssistChip>{providerId ?? values.provider}</MaterialAssistChip>
         </div>
         <SelectInput
           helpText={fieldHelp("providers.<key>.offers[].model", "Local model slug served by this offer.")}
@@ -312,12 +318,12 @@ function CreateFields({
           value={values.model}
           onChange={(model) => setValues({ ...values, model })}
         />
-        <TextInput helpText={fieldHelp("providers.<key>.offers[].upstream_name", "Actual upstream model name.")} label={t("create.offer.upstreamName")} value={values.upstreamName} onChange={(upstreamName) => setValues({ ...values, upstreamName })} />
-        <TextInput helpText="Provider offer ordering weight. Lower values are preferred first." label={t("create.offer.priority")} value={values.priority} onChange={(priority) => setValues({ ...values, priority })} />
-        <TextInput helpText={fieldHelp("providers.<key>.offers[].pricing", "Input token price metadata used for cost tracking.")} label={t("create.offer.inputPrice")} value={values.inputPrice} onChange={(inputPrice) => setValues({ ...values, inputPrice })} />
-        <TextInput helpText={fieldHelp("providers.<key>.offers[].pricing", "Output token price metadata used for cost tracking.")} label={t("create.offer.outputPrice")} value={values.outputPrice} onChange={(outputPrice) => setValues({ ...values, outputPrice })} />
-        <TextInput helpText={fieldHelp("providers.<key>.offers[].pricing", "Prompt cache write price metadata used for cost tracking.")} label={t("create.offer.cacheWritePrice")} value={values.cacheWritePrice} onChange={(cacheWritePrice) => setValues({ ...values, cacheWritePrice })} />
-        <TextInput helpText={fieldHelp("providers.<key>.offers[].pricing", "Prompt cache read price metadata used for cost tracking.")} label={t("create.offer.cacheReadPrice")} value={values.cacheReadPrice} onChange={(cacheReadPrice) => setValues({ ...values, cacheReadPrice })} />
+        <TextInput helpText={fieldHelp("providers.<key>.offers[].upstream_name", "Actual upstream model name.")} label={t("create.offer.upstreamName")} path="upstream_name" value={values.upstreamName} onChange={(upstreamName) => setValues({ ...values, upstreamName })} />
+        <TextInput helpText="Provider offer ordering weight. Lower values are preferred first." label={t("create.offer.priority")} path="priority" value={values.priority} onChange={(priority) => setValues({ ...values, priority })} />
+        <TextInput helpText={fieldHelp("providers.<key>.offers[].pricing", "Input token price metadata used for cost tracking.")} label={t("create.offer.inputPrice")} path="input_price" value={values.inputPrice} onChange={(inputPrice) => setValues({ ...values, inputPrice })} />
+        <TextInput helpText={fieldHelp("providers.<key>.offers[].pricing", "Output token price metadata used for cost tracking.")} label={t("create.offer.outputPrice")} path="output_price" value={values.outputPrice} onChange={(outputPrice) => setValues({ ...values, outputPrice })} />
+        <TextInput helpText={fieldHelp("providers.<key>.offers[].pricing", "Prompt cache write price metadata used for cost tracking.")} label={t("create.offer.cacheWritePrice")} path="cache_write_price" value={values.cacheWritePrice} onChange={(cacheWritePrice) => setValues({ ...values, cacheWritePrice })} />
+        <TextInput helpText={fieldHelp("providers.<key>.offers[].pricing", "Prompt cache read price metadata used for cost tracking.")} label={t("create.offer.cacheReadPrice")} path="cache_read_price" value={values.cacheReadPrice} onChange={(cacheReadPrice) => setValues({ ...values, cacheReadPrice })} />
       </>
     );
   }
@@ -345,12 +351,14 @@ function TextInput({
   helpText,
   label,
   onChange,
+  path,
   secret,
   value
 }: {
   helpText: string;
   label: string;
   onChange: (value: string) => void;
+  path: string;
   secret?: boolean;
   value: string;
 }) {
@@ -365,6 +373,7 @@ function TextInput({
           autoComplete={secret ? "new-password" : undefined}
           id={id}
           label={label}
+          leadingIcon={fieldLeadingIcon(path, secret)}
           trailingIcon={help.button("trailing-icon")}
           type={secret ? "password" : "text"}
           value={value}
@@ -421,7 +430,7 @@ function ChipOptionGroup({
   value: string;
 }) {
   return (
-    <div className="form-field form-field--create-track">
+    <div className="schema-field form-field--create-track">
       <CreateFieldLabel helpText={helpText} label={label} />
       <md-chip-set className="material-chip-group" role="group" aria-label={label}>
         {options.map((option) => (
@@ -480,6 +489,7 @@ function ContextWindowInput({
             id={id}
             inputMode="numeric"
             label={label}
+            leadingIcon="tag"
             trailingIcon={help.button("trailing-icon")}
             type="text"
             value={value}
@@ -504,9 +514,11 @@ function SwitchInput({
   value: boolean;
 }) {
   return (
-    <div className="form-field form-field--create-track">
-      <CreateFieldLabel helpText={helpText} label={label} />
-      <MaterialSwitch label={label} selected={value} onChange={onChange} />
+    <div className="schema-field schema-field--inline form-field--create-track">
+      <div className="schema-field__switch-line">
+        <CreateFieldLabel helpText={helpText} label={label} />
+        <MaterialSwitch label={label} selected={value} onChange={onChange} />
+      </div>
     </div>
   );
 }
@@ -518,6 +530,26 @@ function CreateFieldLabel({ helpText, label }: { helpText: string; label: string
       <CreateFieldHelpButton helpText={helpText} label={label} />
     </span>
   );
+}
+
+function fieldLeadingIcon(path: string, secret = false): string | undefined {
+  if (secret) {
+    return "key";
+  }
+  const normalizedPath = path.toLowerCase();
+  if (normalizedPath.includes("url") || normalizedPath.includes("endpoint") || normalizedPath.includes("addr")) {
+    return "link";
+  }
+  if (normalizedPath.includes("model")) {
+    return "smart_toy";
+  }
+  if (normalizedPath.includes("agent")) {
+    return "badge";
+  }
+  if (normalizedPath.includes("price") || normalizedPath.includes("priority") || normalizedPath.includes("window")) {
+    return "tag";
+  }
+  return undefined;
 }
 
 function useCreateFieldHelp(label: string) {

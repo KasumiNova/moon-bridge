@@ -276,6 +276,30 @@ describe("ModelsProvidersPage", () => {
     expect(getMaterialTrailingIconButton(contextWindowField, "Help for Context window")).toBeInTheDocument();
   });
 
+  test("keeps create subpanel controls aligned with resource editor field styling", async () => {
+    vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
+
+    renderWithConsoleProviders(<ModelsProvidersPage />);
+
+    await waitForMaterialButton(document, "Add Provider");
+    await userEvent.click(getMaterialButton(document, "Add Provider", "filled"));
+    const providerForm = screen.getByRole("form", { name: "Create Provider" });
+    const baseUrlField = getMaterialTextField(providerForm, "Base URL");
+    const apiKeyField = getMaterialTextField(providerForm, "API key");
+    const protocolGroup = getMaterialChipSet(providerForm, "Protocol");
+
+    expect(getMaterialLeadingIcon(baseUrlField, "link")).toBeInTheDocument();
+    expect(getMaterialLeadingIcon(apiKeyField, "key")).toBeInTheDocument();
+    expect(protocolGroup.closest(".schema-field")).toBeInTheDocument();
+
+    await userEvent.click(getMaterialButton(providerForm, "Cancel", "outlined"));
+    const providerPanel = await screen.findByLabelText("Provider anthropic");
+    await userEvent.click(getMaterialButton(providerPanel, "Add Offer", "filled"));
+    const offerForm = within(providerPanel).getByRole("form", { name: "Create Offer" });
+    expect(offerForm.querySelector(".material-static-chip")).not.toBeInTheDocument();
+    expect(getMaterialAssistChip(offerForm, "anthropic").closest(".schema-field")).toBeInTheDocument();
+  });
+
   test("creates a model with a 128k default context window", async () => {
     vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
     const create = vi.spyOn(configGraph, "createConfigResource").mockResolvedValue({
@@ -629,6 +653,16 @@ function getMaterialTrailingIconButton(container: ParentNode, label: string) {
   return element as HTMLElement;
 }
 
+function getMaterialLeadingIcon(container: ParentNode, icon: string) {
+  const element = Array.from(container.querySelectorAll("md-icon")).find(
+    (candidate) => candidate.getAttribute("slot") === "leading-icon" && candidate.textContent?.trim() === icon
+  );
+  if (!element) {
+    throw new Error(`Expected a Material Web leading icon "${icon}".`);
+  }
+  return element as HTMLElement;
+}
+
 function getMaterialFilterChip(container: ParentNode, label: string) {
   const element = Array.from(container.querySelectorAll("md-filter-chip")).find(
     (candidate) => candidate.textContent?.trim() === label
@@ -637,6 +671,16 @@ function getMaterialFilterChip(container: ParentNode, label: string) {
     throw new Error(`Expected a Material Web filter chip labelled "${label}".`);
   }
   return element as HTMLElement & { selected: boolean };
+}
+
+function getMaterialAssistChip(container: ParentNode, label: string) {
+  const element = Array.from(container.querySelectorAll("md-assist-chip")).find(
+    (candidate) => candidate.textContent?.trim() === label
+  );
+  if (!element) {
+    throw new Error(`Expected a Material Web assist chip labelled "${label}".`);
+  }
+  return element as HTMLElement;
 }
 
 function getMaterialChipSet(container: ParentNode, label: string) {

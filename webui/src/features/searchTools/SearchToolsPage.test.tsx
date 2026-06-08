@@ -89,6 +89,8 @@ describe("SearchToolsPage", () => {
     const form = screen.getByRole("form", { name: "Create Extension" });
     const enabledSwitch = getMaterialSwitch(form, "Enabled");
     expect(form.querySelector(".schema-switch")).not.toBeInTheDocument();
+    expect(enabledSwitch.closest(".schema-field__switch-line")).toBeInTheDocument();
+    expect(enabledSwitch.closest(".schema-field")).toBeInTheDocument();
     expect(enabledSwitch.selected).toBe(true);
     expect(getMaterialSelect(form, "Extension ID")).toBeInTheDocument();
     await userEvent.click(getMaterialIconButton(form, "Help for Enabled"));

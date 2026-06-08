@@ -1,6 +1,7 @@
+import "@material/web/chips/assist-chip.js";
 import "@material/web/chips/chip-set.js";
 import "@material/web/chips/filter-chip.js";
-import { useEffect, useRef, type ReactNode } from "react";
+import { createElement, useEffect, useRef, type ReactNode } from "react";
 import type { MdFilterChip } from "@material/web/chips/filter-chip.js";
 
 type MaterialFilterChipProps<Value extends string> = {
@@ -49,4 +50,8 @@ export function MaterialFilterChip<Value extends string>({
       {children}
     </md-filter-chip>
   );
+}
+
+export function MaterialAssistChip({ children }: { children: ReactNode }) {
+  return createElement("md-assist-chip", null, children);
 }
