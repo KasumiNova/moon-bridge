@@ -1,6 +1,8 @@
 import { act, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
+import { MemoryRouter } from "react-router-dom";
+import { AppShell } from "../../app/App";
 import type { FieldSchema } from "../../rpc/types";
 import { renderWithConsoleProviders } from "../../test/renderWithConsoleProviders";
 import { SchemaField } from "./SchemaField";
@@ -121,6 +123,40 @@ describe("SchemaField", () => {
       position: "fixed",
       top: "92px"
     });
+  });
+
+  test("uses balanced spacing inside rich field help tooltips", async () => {
+    const field: FieldSchema = {
+      path: "api_key",
+      type: "string",
+      label: "API Key",
+      secret: true,
+      hotReloadable: true
+    };
+
+    renderWithConsoleProviders(
+      <MemoryRouter>
+        <AppShell
+          content={(
+            <SchemaField
+              field={field}
+              value=""
+              onChange={() => undefined}
+              docPath="providers.<key>.api_key"
+            />
+          )}
+        />
+      </MemoryRouter>
+    );
+
+    await userEvent.click(getMaterialIconButton(document, "Help for API Key"));
+
+    const tooltip = screen.getByRole("tooltip");
+    expect(getComputedStyle(tooltip).paddingTop).toBe("16px");
+    expect(getComputedStyle(tooltip).paddingRight).toBe("16px");
+    expect(getComputedStyle(tooltip).paddingBottom).toBe("16px");
+    expect(getComputedStyle(tooltip).paddingLeft).toBe("16px");
+    expect(getComputedStyle(tooltip.querySelector(".rich-tooltip__metas")!)).toHaveProperty("marginTop", "0px");
   });
 
   test("renders secret fields without exposing the value", () => {

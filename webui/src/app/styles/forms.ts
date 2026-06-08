@@ -96,7 +96,7 @@ export const formStyles = `  .form-grid {
     display: grid;
     gap: 6px;
     border-radius: var(--mb-shape-md);
-    padding: 12px 16px 8px;
+    padding: 16px;
     color: var(--mb-color-on-surface-variant);
     background: var(--mb-color-surface-container-high);
     box-shadow: var(--mb-elevation-3);
@@ -121,7 +121,7 @@ export const formStyles = `  .form-grid {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
-    margin-top: 2px;
+    margin-top: 0;
   }
 
   .rich-tooltip__chip {
