@@ -1,5 +1,5 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { LoadingState } from "../../components/LoadingState";
 import { MaterialFilterChip } from "../../components/MaterialFilterChip";
@@ -32,6 +32,7 @@ export function OverviewPage() {
     queryFn: () => getUsageStats(range),
     placeholderData: keepPreviousData
   });
+  const liveDuration = useLiveUsageDuration(usage.data?.totals.duration, range === "session" && !usage.isPlaceholderData);
 
   return (
     <section className="page-stack" aria-labelledby="overview-title">
@@ -66,9 +67,7 @@ export function OverviewPage() {
                 </MaterialFilterChip>
               ))}
             </md-chip-set>
-            {usage.data ? (
-              <span className="status-pill status-pill--muted">{formatDuration(usage.data.totals.duration)}</span>
-            ) : null}
+            {usage.data ? <span className="status-pill status-pill--muted">{liveDuration}</span> : null}
           </div>
         </div>
 
@@ -92,6 +91,30 @@ export function OverviewPage() {
       </section>
     </section>
   );
+}
+
+function useLiveUsageDuration(rawDuration: string | undefined, active: boolean) {
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const baseSeconds = rawDuration ? parseDurationSeconds(rawDuration) : undefined;
+
+  useEffect(() => {
+    setElapsedSeconds(0);
+    if (!active || baseSeconds === undefined) {
+      return;
+    }
+    const intervalId = window.setInterval(() => {
+      setElapsedSeconds((current) => current + 1);
+    }, 1000);
+    return () => window.clearInterval(intervalId);
+  }, [active, baseSeconds, rawDuration]);
+
+  if (!rawDuration) {
+    return "";
+  }
+  if (!active || baseSeconds === undefined) {
+    return formatDuration(rawDuration);
+  }
+  return formatDurationSeconds(baseSeconds + elapsedSeconds);
 }
 
 function UsageDashboard({ stats }: { stats: UsageStats }) {
@@ -270,13 +293,29 @@ function formatDuration(raw: string) {
   if (!raw || raw === "N/A") {
     return "—";
   }
-  const match = /^(?:(\d+)h)?(?:(\d+)m)?(?:([\d.]+)s)?$/.exec(raw.trim());
-  if (!match) {
+  const seconds = parseDurationSeconds(raw);
+  if (seconds === undefined) {
     return raw.trim();
+  }
+  return formatDurationSeconds(seconds);
+}
+
+function parseDurationSeconds(raw: string) {
+  const match = /^(?:(\d+)h)?(?:(\d+)m)?(?:([\d.]+)s)?$/.exec(raw.trim());
+  if (!match || (!match[1] && !match[2] && !match[3])) {
+    return undefined;
   }
   const hours = match[1] ? parseInt(match[1], 10) : 0;
   const minutes = match[2] ? parseInt(match[2], 10) : 0;
   const seconds = match[3] ? Math.round(parseFloat(match[3])) : 0;
+  return hours * 3600 + minutes * 60 + seconds;
+}
+
+function formatDurationSeconds(totalSeconds: number) {
+  const roundedSeconds = Math.max(0, Math.round(totalSeconds));
+  const hours = Math.floor(roundedSeconds / 3600);
+  const minutes = Math.floor((roundedSeconds % 3600) / 60);
+  const seconds = roundedSeconds % 60;
   const parts: string[] = [];
   if (hours) {
     parts.push(`${hours}h`);

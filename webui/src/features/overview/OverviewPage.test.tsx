@@ -19,8 +19,17 @@ function metricCard(label: string): HTMLElement {
   return labelEl.closest(".usage-metric") as HTMLElement;
 }
 
+function usageDurationPill(): HTMLElement {
+  const pill = document.querySelector(".usage-heading-controls .status-pill");
+  if (!pill) {
+    throw new Error("usage duration pill not found");
+  }
+  return pill as HTMLElement;
+}
+
 describe("OverviewPage", () => {
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
     restoreNavigatorClipboard();
     restoreURLMethods();
@@ -119,6 +128,89 @@ describe("OverviewPage", () => {
     expect(screen.queryByRole("heading", { name: "Loading" })).not.toBeInTheDocument();
     expect(within(metricCard("Requests")).getByText("2")).toBeInTheDocument();
     expect(screen.getByRole("table", { name: "Model usage table" })).toBeInTheDocument();
+  });
+
+  test("updates the active session usage duration every second without refetching", async () => {
+    vi.useFakeTimers();
+    vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
+    vi.spyOn(management, "getUsageStats").mockResolvedValue(usageStats());
+    vi.spyOn(logs, "getRecentLogs").mockResolvedValue(logEntries());
+    vi.spyOn(logs, "createLogStream").mockResolvedValue(new Response(new ReadableStream<Uint8Array>()));
+
+    renderWithConsoleProviders(<OverviewPage />);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+      await Promise.resolve();
+    });
+    expect(screen.getAllByText("Requests").length).toBeGreaterThan(0);
+    expect(usageDurationPill()).toHaveTextContent("1m");
+
+    act(() => {
+      vi.advanceTimersByTime(2000);
+    });
+
+    expect(usageDurationPill()).toHaveTextContent("1m 2s");
+    expect(management.getUsageStats).toHaveBeenCalledTimes(1);
+  });
+
+  test("does not increment fixed usage range durations", async () => {
+    vi.useFakeTimers();
+    vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
+    vi.spyOn(management, "getUsageStats").mockImplementation((range = "session") => {
+      if (range === "24h") {
+        return Promise.resolve(usageStats({ duration: "24h" }));
+      }
+      return Promise.resolve(usageStats());
+    });
+    vi.spyOn(logs, "getRecentLogs").mockResolvedValue(logEntries());
+    vi.spyOn(logs, "createLogStream").mockResolvedValue(new Response(new ReadableStream<Uint8Array>()));
+
+    renderWithConsoleProviders(<OverviewPage />);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    fireEvent.click(getMaterialFilterChip(document.body, "24h"));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    expect(usageDurationPill()).toHaveTextContent("24h");
+
+    act(() => {
+      vi.advanceTimersByTime(2000);
+    });
+
+    expect(usageDurationPill()).toHaveTextContent("24h");
+  });
+
+  test("does not increment placeholder duration while returning to the active session range", async () => {
+    vi.useFakeTimers();
+    vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
+    vi.spyOn(management, "getUsageStats").mockImplementation((range = "session") => {
+      if (range === "24h") {
+        return Promise.resolve(usageStats({ duration: "24h" }));
+      }
+      return new Promise<UsageStats>(() => undefined);
+    });
+    vi.spyOn(logs, "getRecentLogs").mockResolvedValue(logEntries());
+    vi.spyOn(logs, "createLogStream").mockResolvedValue(new Response(new ReadableStream<Uint8Array>()));
+
+    renderWithConsoleProviders(<OverviewPage />);
+
+    fireEvent.click(getMaterialFilterChip(document.body, "24h"));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(usageDurationPill()).toHaveTextContent("24h");
+
+    fireEvent.click(getMaterialFilterChip(document.body, "This session"));
+    await act(async () => {
+      vi.advanceTimersByTime(2000);
+    });
+
+    expect(usageDurationPill()).toHaveTextContent("24h");
   });
 
   test("keeps the embedded log panel searchable and clearable", async () => {
@@ -228,7 +320,7 @@ function setMaterialTextFieldValue(element: HTMLElement & { value: string }, val
   });
 }
 
-function usageStats(): UsageStats {
+function usageStats(overrides: Partial<UsageStats["totals"]> = {}): UsageStats {
   return {
     totals: {
       requests: 2,
@@ -240,7 +332,8 @@ function usageStats(): UsageStats {
       cache_write_rate: 13.3,
       cache_rw_ratio: 3,
       total_cost: 0.42,
-      duration: "1m"
+      duration: "1m",
+      ...overrides
     },
     by_model: [
       {
