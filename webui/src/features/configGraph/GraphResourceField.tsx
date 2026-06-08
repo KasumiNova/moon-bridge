@@ -9,10 +9,12 @@ import { useGraphFieldSaver } from "./useConfigGraph";
 export function GraphResourceField({
   resource,
   field,
+  objectDisplay,
   revision
 }: {
   resource: ConfigResource;
   field: FieldSchema;
+  objectDisplay?: "collapsible" | "expandedFixed";
   revision: string;
 }) {
   const saveGraphField = useGraphFieldSaver<unknown>();
@@ -36,6 +38,7 @@ export function GraphResourceField({
       field={field}
       idPrefix={`${resource.kind}-${resource.id}`}
       docPath={configDocPathForResource(resource, field)}
+      objectDisplay={objectDisplay}
       onChange={autosave.setValue}
       onCommit={autosave.commit}
       onCommitValue={autosave.commitValue}

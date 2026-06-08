@@ -65,7 +65,7 @@ export function ResourceEditorCard({
     ? t("resource.reload.hot")
     : t("resource.reload.restart");
   const label = ariaLabel ?? resource.id;
-  const fieldGroups = groupFields(resource.schema.fields);
+  const fieldGroups = groupFields(resource.kind, resource.schema.fields);
   const resourceTitle = title ?? resource.label;
   const canDelete = deletableKinds.has(resource.kind);
 
@@ -202,14 +202,14 @@ export function ResourceEditorCard({
             return (
               <div
                 aria-label={t(group.labelKey)}
-                className={`resource-field-group resource-field-group--${group.key}`}
+                className={fieldGroupClass(group)}
                 key={group.key}
                 role="group"
               >
                 <div className="resource-field-group__header">
                   <h4>
                     <span className="material-symbol" aria-hidden="true">
-                      {group.key === "identity" ? "badge" : "tune"}
+                      {fieldGroupIcon(group)}
                     </span>
                     {t(group.labelKey)}
                   </h4>
@@ -226,7 +226,12 @@ export function ResourceEditorCard({
                         className={fieldGridClass(field)}
                         key={`${resource.kind}-${resource.id}-${field.path}`}
                       >
-                        <GraphResourceField field={field} resource={resource} revision={revision} />
+                        <GraphResourceField
+                          field={field}
+                          objectDisplay={fieldObjectDisplay(group)}
+                          resource={resource}
+                          revision={revision}
+                        />
                       </div>
                     ))}
                   </div>
@@ -236,6 +241,7 @@ export function ResourceEditorCard({
                     {toggleFields.map((field) => (
                       <GraphResourceField
                         field={field}
+                        objectDisplay={fieldObjectDisplay(group)}
                         resource={resource}
                         revision={revision}
                         key={`${resource.kind}-${resource.id}-${field.path}`}
@@ -253,10 +259,12 @@ export function ResourceEditorCard({
 }
 
 type FieldGroup = {
-  key: "identity" | "settings";
+  key: "identity" | "settings" | "advancedFeatures";
   labelKey: MessageKey;
   fields: FieldSchema[];
 };
+
+const routeAdvancedFeaturePaths = new Set(["web_search", "extensions"]);
 
 const kindIcons: Record<string, string> = {
   provider: "dns",
@@ -321,21 +329,30 @@ function liveStatusIcon(status: "saving" | "error" | "dirty") {
   return "edit";
 }
 
-function groupFields(fields: FieldSchema[]): FieldGroup[] {
-  const groups: FieldGroup[] = [
-    { key: "identity", labelKey: "resource.group.identity", fields: [] },
-    { key: "settings", labelKey: "resource.group.settings", fields: [] }
+function groupFields(kind: ResourceKind, fields: FieldSchema[]): FieldGroup[] {
+  const groups: Record<FieldGroup["key"], FieldGroup> = {
+    identity: { key: "identity", labelKey: "resource.group.identity", fields: [] },
+    settings: { key: "settings", labelKey: "resource.group.settings", fields: [] },
+    advancedFeatures: { key: "advancedFeatures", labelKey: "resource.group.advancedFeatures", fields: [] }
+  };
+
+  const order: FieldGroup["key"][] = [
+    "identity",
+    "settings",
+    "advancedFeatures"
   ];
 
   for (const field of fields) {
     if (isIdentityField(field)) {
-      groups[0].fields.push(field);
+      groups.identity.fields.push(field);
+    } else if (isAdvancedFeatureField(kind, field)) {
+      groups.advancedFeatures.fields.push(field);
     } else {
-      groups[1].fields.push(field);
+      groups.settings.fields.push(field);
     }
   }
 
-  return groups.filter((group) => group.fields.length > 0);
+  return order.map((key) => groups[key]).filter((group) => group.fields.length > 0);
 }
 
 function isIdentityField(field: FieldSchema) {
@@ -350,6 +367,29 @@ function isIdentityField(field: FieldSchema) {
     "to",
     "upstream_name"
   ].includes(field.path);
+}
+
+function isAdvancedFeatureField(kind: ResourceKind, field: FieldSchema) {
+  return kind === "route" && routeAdvancedFeaturePaths.has(field.path);
+}
+
+function fieldGroupClass(group: FieldGroup) {
+  const base = `resource-field-group resource-field-group--${group.key}`;
+  return group.key === "advancedFeatures" ? `${base} resource-field-group--advanced` : base;
+}
+
+function fieldGroupIcon(group: FieldGroup) {
+  if (group.key === "identity") {
+    return "badge";
+  }
+  if (group.key === "advancedFeatures") {
+    return "extension";
+  }
+  return "tune";
+}
+
+function fieldObjectDisplay(group: FieldGroup) {
+  return group.key === "advancedFeatures" ? "expandedFixed" : undefined;
 }
 
 function isWideField(field: FieldSchema) {

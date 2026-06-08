@@ -29,6 +29,7 @@ export type SchemaFieldProps = {
   idPrefix?: string;
   docPath?: ConfigPath;
   error?: string;
+  objectDisplay?: "collapsible" | "expandedFixed";
 };
 
 export function SchemaField({
@@ -40,7 +41,8 @@ export function SchemaField({
   disabled = false,
   idPrefix,
   docPath,
-  error
+  error,
+  objectDisplay = "collapsible"
 }: SchemaFieldProps) {
   const { locale, t } = useI18n();
   const id = useMemo(() => {
@@ -50,7 +52,8 @@ export function SchemaField({
   const [text, setText] = useState(displayValue(field, value));
   const [parseError, setParseError] = useState("");
   const [helpOpen, setHelpOpen] = useState(false);
-  const [jsonExpanded, setJsonExpanded] = useState(parseError !== "");
+  const jsonFixedExpanded = objectDisplay === "expandedFixed";
+  const [jsonExpanded, setJsonExpanded] = useState(jsonFixedExpanded || parseError !== "");
   const jsonEditorRef = useRef<MaterialTextFieldElement>(null);
   const jsonSummaryRef = useRef<MdOutlinedButton>(null);
   const trailingHelpAnchorRef = useRef<MdIconButton>(null);
@@ -61,10 +64,14 @@ export function SchemaField({
   }, [field, value]);
 
   useEffect(() => {
-    if (jsonExpanded) {
+    if (jsonFixedExpanded && !jsonExpanded) {
+      setJsonExpanded(true);
+      return;
+    }
+    if (!jsonFixedExpanded && jsonExpanded) {
       jsonEditorRef.current?.focus();
     }
-  }, [jsonExpanded]);
+  }, [jsonExpanded, jsonFixedExpanded]);
 
   const wide = isWideField(field);
   const errorId = `${id}-error`;
@@ -197,34 +204,36 @@ export function SchemaField({
           id={jsonExpanded ? id : summaryId}
           setHelpOpen={setHelpOpen}
         />
-        <MaterialOutlinedButton
-          ariaExpanded={jsonExpanded}
-          ariaLabel={`${field.label}, ${summary}`}
-          className="schema-json-summary"
-          controls={id}
-          id={summaryId}
-          ref={jsonSummaryRef}
-          onClick={() => {
-            setJsonExpanded((expanded) => {
-              if (expanded) {
-                window.requestAnimationFrame(() => jsonSummaryRef.current?.focus());
-              }
-              return !expanded;
-            });
-          }}
-        >
-          <span>{field.label}</span>
-          <strong>{summary}</strong>
-          <span className="material-symbol" aria-hidden="true">
-            {jsonExpanded ? "expand_less" : "expand_more"}
-          </span>
-        </MaterialOutlinedButton>
+        {jsonFixedExpanded ? null : (
+          <MaterialOutlinedButton
+            ariaExpanded={jsonExpanded}
+            ariaLabel={`${field.label}, ${summary}`}
+            className="schema-json-summary"
+            controls={id}
+            id={summaryId}
+            ref={jsonSummaryRef}
+            onClick={() => {
+              setJsonExpanded((expanded) => {
+                if (expanded) {
+                  window.requestAnimationFrame(() => jsonSummaryRef.current?.focus());
+                }
+                return !expanded;
+              });
+            }}
+          >
+            <span>{field.label}</span>
+            <strong>{summary}</strong>
+            <span className="material-symbol" aria-hidden="true">
+              {jsonExpanded ? "expand_less" : "expand_more"}
+            </span>
+          </MaterialOutlinedButton>
+        )}
         {jsonExpanded ? (
           <MaterialOutlinedTextField
             ariaDescribedBy={fieldDescribedBy}
             ariaLabel={`${field.label} JSON editor`}
             ariaInvalid={Boolean(fieldError)}
-            className="schema-json-editor"
+            className={jsonFixedExpanded ? "schema-json-editor schema-json-editor--fixed" : "schema-json-editor"}
             disabled={disabled}
             error={Boolean(fieldError)}
             errorText={fieldError}

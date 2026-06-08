@@ -245,6 +245,35 @@ describe("SchemaField", () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
+  test("renders fixed expanded JSON editors without a summary toggle", () => {
+    const field: FieldSchema = {
+      path: "web_search",
+      type: "object",
+      label: "Web Search",
+      control: "object",
+      hotReloadable: true
+    };
+    const onChange = vi.fn();
+    renderWithConsoleProviders(
+      <SchemaField
+        field={field}
+        objectDisplay="expandedFixed"
+        value={{ support: "auto" }}
+        onChange={onChange}
+      />
+    );
+
+    expect(screen.queryByRole("button", { name: /Web Search.*1 key/ })).not.toBeInTheDocument();
+    const jsonEditor = getMaterialTextField(document, "Web Search JSON editor");
+    expect(jsonEditor).toBeInTheDocument();
+    expect(jsonEditor).not.toHaveFocus();
+    expect(jsonEditor).toHaveClass("schema-json-editor--fixed");
+    expect(jsonEditor).toHaveAttribute("spellcheck", "false");
+    setMaterialTextFieldValue(jsonEditor, "{\n  \"support\": \"enabled\"\n}");
+
+    expect(onChange).toHaveBeenCalledWith({ support: "enabled" });
+  });
+
   test("toggles boolean fields with the Material Web switch", async () => {
     const field: FieldSchema = {
       path: "enabled",

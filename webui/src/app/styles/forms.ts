@@ -322,6 +322,10 @@ export const formStyles = `  .form-grid {
     --md-outlined-text-field-input-text-line-height: 1.45;
   }
 
+  .schema-json-editor--fixed {
+    resize: none;
+  }
+
   .mb-field[data-variant="textarea"] md-outlined-text-field {
     min-height: 132px;
   }

@@ -187,6 +187,7 @@ export const zh = {
   "resource.delete": "删除{title} {id}",
   "resource.deletePrompt": "删除 {id}？保存后会从当前配置图中移除该资源。",
   "resource.deleteShort": "删除",
+  "resource.group.advancedFeatures": "高级功能",
   "resource.group.advancedJson": "高级 JSON",
   "resource.group.identity": "标识",
   "resource.group.settings": "设置",

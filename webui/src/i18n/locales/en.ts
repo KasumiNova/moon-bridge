@@ -185,6 +185,7 @@ export const en = {
   "resource.delete": "Delete {title} {id}",
   "resource.deletePrompt": "Delete {id}? This removes the resource from the active graph after save.",
   "resource.deleteShort": "Delete",
+  "resource.group.advancedFeatures": "Advanced Features",
   "resource.group.advancedJson": "Advanced JSON",
   "resource.group.identity": "Identity",
   "resource.group.settings": "Settings",

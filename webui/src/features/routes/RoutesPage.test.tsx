@@ -25,8 +25,11 @@ describe("RoutesPage", () => {
     expect(getMaterialTextField(document, "Provider")).toBeInTheDocument();
     expect(getMaterialTextField(document, "Display Name")).toBeInTheDocument();
     expect(getMaterialTextField(document, "Context Window")).toBeInTheDocument();
-    expect(getMaterialOutlinedButton(document, /Web Search.*1 key/)).toBeInTheDocument();
-    expect(getMaterialOutlinedButton(document, /Extensions.*0 keys/)).toBeInTheDocument();
+    const advancedFeatures = screen.getByRole("group", { name: "Advanced Features" });
+    expect(getMaterialTextField(advancedFeatures, "Web Search JSON editor")).toHaveClass("schema-json-editor--fixed");
+    expect(getMaterialTextField(advancedFeatures, "Extensions JSON editor")).toHaveClass("schema-json-editor--fixed");
+    expect(queryMaterialOutlinedButton(advancedFeatures, /Web Search.*1 key/)).not.toBeInTheDocument();
+    expect(queryMaterialOutlinedButton(advancedFeatures, /Extensions.*0 keys/)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/priority/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/fallback/i)).not.toBeInTheDocument();
   });
@@ -207,6 +210,12 @@ function getMaterialOutlinedButton(container: ParentNode, label: RegExp) {
     throw new Error(`Expected a Material Web outlined button labelled "${label}".`);
   }
   return element as HTMLElement;
+}
+
+function queryMaterialOutlinedButton(container: ParentNode, label: RegExp) {
+  return Array.from(container.querySelectorAll("md-outlined-button")).find(
+    (candidate) => label.test(candidate.getAttribute("aria-label") ?? candidate.textContent ?? "")
+  ) ?? null;
 }
 
 function getMaterialTrailingIconButton(container: ParentNode, label: string) {
