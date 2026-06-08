@@ -89,11 +89,9 @@ export const formStyles = `  .form-grid {
   }
 
   .rich-tooltip {
-    position: absolute;
-    right: 0;
-    top: calc(100% + 8px);
+    position: fixed;
     z-index: 40;
-    width: max-content;
+    width: min(320px, calc(100vw - 24px));
     max-width: min(320px, 78vw);
     display: grid;
     gap: 6px;

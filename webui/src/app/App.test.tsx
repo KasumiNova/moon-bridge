@@ -61,6 +61,17 @@ describe("AppShell", () => {
     expect(getMaterialButton(document, "中文", "outlined")).toHaveAttribute("aria-pressed", "false");
   });
 
+  test("keeps global filled button icon colors aligned with label colors", () => {
+    renderWithConsoleProviders(
+      <MemoryRouter>
+        <AppShell content={<div>Console content</div>} />
+      </MemoryRouter>
+    );
+
+    const selectedLocaleButton = getMaterialButton(document, "English", "filled");
+    expectMaterialFilledButtonContentColors(selectedLocaleButton, "var(--mb-color-on-primary)");
+  });
+
   test("changes locale through Material Web locale actions", () => {
     renderWithConsoleProviders(
       <MemoryRouter>
@@ -131,4 +142,20 @@ function getMaterialIconButton(container: ParentNode, label: string) {
     throw new Error(`Expected a Material Web icon button labelled "${label}".`);
   }
   return element as HTMLElement;
+}
+
+function expectMaterialFilledButtonContentColors(button: HTMLElement, colorToken: string) {
+  expect(button.tagName.toLowerCase()).toBe("md-filled-button");
+  for (const property of [
+    "--md-filled-button-label-text-color",
+    "--md-filled-button-hover-label-text-color",
+    "--md-filled-button-focus-label-text-color",
+    "--md-filled-button-pressed-label-text-color",
+    "--md-filled-button-icon-color",
+    "--md-filled-button-hover-icon-color",
+    "--md-filled-button-focus-icon-color",
+    "--md-filled-button-pressed-icon-color"
+  ]) {
+    expect(getComputedStyle(button).getPropertyValue(property).trim()).toBe(colorToken);
+  }
 }

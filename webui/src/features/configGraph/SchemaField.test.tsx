@@ -80,6 +80,49 @@ describe("SchemaField", () => {
     expect(helpButton).toHaveAttribute("aria-describedby");
   });
 
+  test("keeps trailing field help tooltip inside the viewport", async () => {
+    const field: FieldSchema = {
+      path: "config",
+      type: "string",
+      label: "Config",
+      control: "text",
+      hotReloadable: true
+    };
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 360 });
+
+    renderWithConsoleProviders(
+      <SchemaField
+        field={field}
+        value="{}"
+        onChange={() => undefined}
+        docPath="extensions.<name>.config"
+      />
+    );
+
+    const helpButton = getMaterialIconButton(document, "Help for Config");
+    vi.spyOn(helpButton, "getBoundingClientRect").mockReturnValue({
+      x: 4,
+      y: 64,
+      width: 20,
+      height: 20,
+      top: 64,
+      right: 24,
+      bottom: 84,
+      left: 4,
+      toJSON: () => ({})
+    } as DOMRect);
+
+    await userEvent.click(helpButton);
+
+    const tooltip = screen.getByRole("tooltip");
+    expect(tooltip).toHaveStyle({
+      left: "12px",
+      maxWidth: "336px",
+      position: "fixed",
+      top: "92px"
+    });
+  });
+
   test("renders secret fields without exposing the value", () => {
     const field: FieldSchema = {
       path: "api_key",

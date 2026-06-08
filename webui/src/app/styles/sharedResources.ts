@@ -265,6 +265,13 @@ export const sharedResourceStyles = `  .metric-card,
     padding: 0 20px;
     --md-filled-button-container-color: var(--mb-color-secondary-container);
     --md-filled-button-label-text-color: var(--mb-color-on-secondary-container);
+    --md-filled-button-hover-label-text-color: var(--mb-color-on-secondary-container);
+    --md-filled-button-focus-label-text-color: var(--mb-color-on-secondary-container);
+    --md-filled-button-pressed-label-text-color: var(--mb-color-on-secondary-container);
+    --md-filled-button-icon-color: var(--mb-color-on-secondary-container);
+    --md-filled-button-hover-icon-color: var(--mb-color-on-secondary-container);
+    --md-filled-button-focus-icon-color: var(--mb-color-on-secondary-container);
+    --md-filled-button-pressed-icon-color: var(--mb-color-on-secondary-container);
     --md-filled-button-hover-state-layer-color: var(--mb-color-secondary);
   }
 

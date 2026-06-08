@@ -21,6 +21,17 @@ const impactLabelKeys: Record<RuntimeImpact, MessageKey> = {
   critical: "resource.impact.critical"
 };
 
+const statusIcons: Record<ResourceStatus, string> = {
+  saved: "check_circle",
+  needsAttention: "report",
+  restartRequired: "restart_alt"
+};
+
+const impactIcons: Record<RuntimeImpact, string> = {
+  normal: "info",
+  critical: "priority_high"
+};
+
 const deletableKinds = new Set<ResourceKind>([
   "extension",
   "model",
@@ -89,18 +100,24 @@ export function ResourceEditorCard({
           </div>
           <div className="resource-editor-card__facts">
             <span className="resource-editor-card__status-group" aria-label={`${label} status`}>
-              <span className={`status-pill status-pill--${resource.status}`}>
+              <span className={`resource-meta-pill status-pill status-pill--${resource.status}`}>
+                <span className="material-symbol" aria-hidden="true">
+                  {statusIcon(resource.status)}
+                </span>
                 {t(statusLabelKeys[resource.status])}
               </span>
               {resource.runtimeImpact === "critical" ? (
-                <span className="status-pill status-pill--critical">
+                <span className="resource-meta-pill status-pill status-pill--critical">
+                  <span className="material-symbol" aria-hidden="true">
+                    {impactIcon(resource.runtimeImpact)}
+                  </span>
                   {t(impactLabelKeys[resource.runtimeImpact])}
                 </span>
               ) : null}
               {liveStatus ? (
                 <motion.span
                   key={liveStatus}
-                  className={`editor-live-status editor-live-status--${liveStatus}`}
+                  className={`resource-meta-pill editor-live-status editor-live-status--${liveStatus}`}
                   initial={{ opacity: 0, scale: 0.85, y: -2 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   transition={springs.spatialFast}
@@ -112,11 +129,11 @@ export function ResourceEditorCard({
                 </motion.span>
               ) : null}
             </span>
-            <span className="resource-fact">
+            <span className="resource-meta-pill resource-fact">
               <span className="material-symbol" aria-hidden="true">list_alt</span>
               {t(fieldCount === 1 ? "resource.fieldCount.one" : "resource.fieldCount.many", { count: fieldCount })}
             </span>
-            <span className={`resource-fact resource-fact--${resource.hotReloadable ? "hot" : "restart"}`}>
+            <span className={`resource-meta-pill resource-fact resource-fact--${resource.hotReloadable ? "hot" : "restart"}`}>
               <span className="material-symbol" aria-hidden="true">
                 {resource.hotReloadable ? "bolt" : "restart_alt"}
               </span>
@@ -258,6 +275,14 @@ const kindIcons: Record<string, string> = {
 
 function kindIcon(kind: string): string {
   return kindIcons[kind] ?? "tune";
+}
+
+function statusIcon(status: ResourceStatus): string {
+  return statusIcons[status];
+}
+
+function impactIcon(impact: RuntimeImpact): string {
+  return impactIcons[impact];
 }
 
 function isToggleField(field: FieldSchema): boolean {

@@ -1,6 +1,8 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
+import { MemoryRouter } from "react-router-dom";
+import { AppShell } from "../../app/App";
 import { renderWithConsoleProviders } from "../../test/renderWithConsoleProviders";
 import { field, resource } from "../../test/configGraphFixtures";
 import * as configGraph from "../../rpc/configGraph";
@@ -55,6 +57,79 @@ describe("ResourceEditorCard", () => {
     expect(screen.getByRole("heading", { name: "main" })).toBeInTheDocument();
     expect(screen.getByText("Restart required")).toBeInTheDocument();
     expect(screen.getByText("Critical")).toBeInTheDocument();
+  });
+
+  test("renders status metadata pills with uniform icon structure", () => {
+    vi.spyOn(configGraph, "patchConfigGraph").mockResolvedValue({
+      result: "restartRequired",
+      revision: "rev-2"
+    });
+    const server = resource("server", "main", "Server", {
+      addr: "127.0.0.1:38440"
+    }, [
+      field("addr", "Address")
+    ], {
+      hotReloadable: false,
+      runtimeImpact: "critical",
+      status: "restartRequired"
+    });
+
+    const { container } = renderWithConsoleProviders(
+      <ResourceEditorCard resource={server} revision="rev-1" />
+    );
+
+    const metadataPills = Array.from(
+      container.querySelectorAll(".resource-editor-card__facts .resource-meta-pill")
+    );
+    expect(metadataPills).toHaveLength(4);
+    expect(metadataPills.map((pill) => pill.textContent?.trim())).toEqual([
+      "restart_altRestart required",
+      "priority_highCritical",
+      "list_alt1 field",
+      "restart_altRestart on change"
+    ]);
+    for (const pill of metadataPills) {
+      expect(pill.querySelectorAll(".material-symbol[aria-hidden=\"true\"]")).toHaveLength(1);
+    }
+  });
+
+  test("scopes metadata pill geometry to resource editor facts", () => {
+    vi.spyOn(configGraph, "patchConfigGraph").mockResolvedValue({
+      result: "restartRequired",
+      revision: "rev-2"
+    });
+    const server = resource("server", "main", "Server", {
+      addr: "127.0.0.1:38440"
+    }, [
+      field("addr", "Address")
+    ], {
+      hotReloadable: false,
+      runtimeImpact: "critical",
+      status: "restartRequired"
+    });
+
+    const { container } = renderWithConsoleProviders(
+      <MemoryRouter>
+        <AppShell
+          content={(
+            <>
+              <span className="resource-meta-pill" data-testid="outside-meta-pill">
+                <span className="material-symbol" aria-hidden="true">info</span>
+                Outside
+              </span>
+              <ResourceEditorCard resource={server} revision="rev-1" />
+            </>
+          )}
+        />
+      </MemoryRouter>
+    );
+
+    const outsidePill = screen.getByTestId("outside-meta-pill");
+    const outsideStyle = getComputedStyle(outsidePill);
+    expect(outsideStyle.minHeight).not.toBe("30px");
+    expect(outsideStyle.paddingLeft).not.toBe("12px");
+    expect(outsideStyle.gap).not.toBe("6px");
+    expect(container.querySelectorAll(".resource-editor-card__facts .resource-meta-pill")).toHaveLength(4);
   });
 
   test("localizes resource metadata in Chinese locale", () => {
@@ -209,6 +284,32 @@ describe("ResourceEditorCard", () => {
 
     await waitFor(() => expect(remove).toHaveBeenCalledWith("provider", "anthropic", "rev-1"));
   });
+
+  test("keeps delete button icon colors aligned with error-container labels", async () => {
+    vi.spyOn(configGraph, "patchConfigGraph").mockResolvedValue({
+      result: "committed",
+      revision: "rev-2"
+    });
+    const provider = resource("provider", "anthropic", "Anthropic", {
+      base_url: "https://api.anthropic.com"
+    }, [
+      field("base_url", "Base URL")
+    ]);
+
+    const { container } = renderWithConsoleProviders(
+      <MemoryRouter>
+        <AppShell content={<ResourceEditorCard resource={provider} revision="rev-1" title="Provider" />} />
+      </MemoryRouter>
+    );
+
+    const deleteButton = getMaterialButton(container, "Delete Provider anthropic", "filled");
+    expectMaterialFilledButtonContentColors(deleteButton, "var(--mb-color-on-error-container)");
+
+    await userEvent.click(deleteButton);
+
+    const confirmButton = getMaterialButton(container, "Confirm delete anthropic", "filled");
+    expectMaterialFilledButtonContentColors(confirmButton, "var(--mb-color-on-error)");
+  });
 });
 
 function getMaterialTextField(container: ParentNode, label: string) {
@@ -242,4 +343,20 @@ function getMaterialButton(
   }
   expect(element.tagName.toLowerCase()).toBe(tagName);
   return element;
+}
+
+function expectMaterialFilledButtonContentColors(button: Element, colorToken: string) {
+  expect(button.tagName.toLowerCase()).toBe("md-filled-button");
+  for (const property of [
+    "--md-filled-button-label-text-color",
+    "--md-filled-button-hover-label-text-color",
+    "--md-filled-button-focus-label-text-color",
+    "--md-filled-button-pressed-label-text-color",
+    "--md-filled-button-icon-color",
+    "--md-filled-button-hover-icon-color",
+    "--md-filled-button-focus-icon-color",
+    "--md-filled-button-pressed-icon-color"
+  ]) {
+    expect(getComputedStyle(button).getPropertyValue(property).trim()).toBe(colorToken);
+  }
 }

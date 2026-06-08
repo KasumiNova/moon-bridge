@@ -9,6 +9,8 @@ import { MaterialOutlinedTextField } from "../../components/MaterialTextField";
 import type { MessageKey } from "../../i18n/messages";
 import { MaterialSwitch } from "../../components/MaterialSwitch";
 import { useCreateConfigResource } from "./useConfigGraph";
+import { useAnchoredTooltipPosition } from "./helpTooltipPosition";
+import type { MdIconButton } from "@material/web/iconbutton/icon-button.js";
 
 type CreatableKind = "provider" | "model" | "provider_offer" | "route" | "extension";
 
@@ -368,7 +370,7 @@ function TextInput({
           value={value}
           onInput={onChange}
         />
-        <CreateFieldHelpTooltip helpId={help.helpId} helpText={helpText} open={help.open} />
+        <CreateFieldHelpTooltip anchorRef={help.anchorRef} helpId={help.helpId} helpText={helpText} open={help.open} />
       </div>
     </div>
   );
@@ -483,7 +485,7 @@ function ContextWindowInput({
             value={value}
             onInput={onChange}
           />
-          <CreateFieldHelpTooltip helpId={help.helpId} helpText={helpText} open={help.open} />
+          <CreateFieldHelpTooltip anchorRef={help.anchorRef} helpId={help.helpId} helpText={helpText} open={help.open} />
         </div>
       </div>
     </div>
@@ -522,9 +524,11 @@ function useCreateFieldHelp(label: string) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const openedByHover = useRef(false);
+  const anchorRef = useRef<MdIconButton>(null);
   const helpId = `${useStableCreateId(label)}-help`;
 
   return {
+    anchorRef,
     button: (slot?: string) => (
       <MaterialIconButton
         className="schema-field__help"
@@ -555,6 +559,7 @@ function useCreateFieldHelp(label: string) {
           openedByHover.current = false;
           setOpen(false);
         }}
+        ref={anchorRef}
         slot={slot}
       />
     ),
@@ -568,20 +573,43 @@ function CreateFieldHelpButton({ helpText, label }: { helpText: string; label: s
   return (
     <span className="schema-field__help-wrap">
       {help.button()}
-      <CreateFieldHelpTooltip helpId={help.helpId} helpText={helpText} open={help.open} />
+      <CreateFieldHelpTooltip anchorRef={help.anchorRef} helpId={help.helpId} helpText={helpText} open={help.open} />
     </span>
   );
 }
 
-function CreateFieldHelpTooltip({ helpId, helpText, open }: { helpId: string; helpText: string; open: boolean }) {
+function CreateFieldHelpTooltip({
+  anchorRef,
+  helpId,
+  helpText,
+  open
+}: {
+  anchorRef: React.RefObject<HTMLElement | null>;
+  helpId: string;
+  helpText: string;
+  open: boolean;
+}) {
+  const position = useAnchoredTooltipPosition(anchorRef, open);
   if (!open) {
     return null;
   }
   return (
-    <span className="rich-tooltip" id={helpId} role="tooltip">
+    <span className="rich-tooltip" id={helpId} role="tooltip" style={tooltipPositionStyle(position)}>
       {helpText}
     </span>
   );
+}
+
+function tooltipPositionStyle(position: { left: number; maxWidth: number; top: number } | undefined) {
+  if (!position) {
+    return undefined;
+  }
+  return {
+    left: `${position.left}px`,
+    maxWidth: `${position.maxWidth}px`,
+    position: "fixed" as const,
+    top: `${position.top}px`
+  };
 }
 
 function useStableCreateId(label: string) {

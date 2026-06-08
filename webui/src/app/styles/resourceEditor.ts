@@ -63,22 +63,30 @@ export const resourceEditorStyles = `  .resource-editor-card {
     flex-wrap: wrap;
   }
 
-  .resource-fact {
+  .resource-editor-card__facts .resource-meta-pill {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    min-height: 28px;
+    gap: 6px;
+    min-height: 30px;
     border-radius: var(--mb-shape-full);
-    padding: 0 11px;
-    color: var(--mb-color-on-surface-variant);
-    background: color-mix(in srgb, var(--mb-color-surface-container-highest) 68%, transparent);
-    font-size: 0.72rem;
-    font-weight: 640;
+    padding: 0 12px;
+    font-size: 0.76rem;
+    font-weight: 650;
+    line-height: 1;
     white-space: nowrap;
   }
 
-  .resource-fact .material-symbol {
+  .resource-editor-card__facts .resource-meta-pill .material-symbol {
     font-size: 1rem;
+    line-height: 1;
+  }
+
+  .resource-fact {
+    color: var(--mb-color-on-surface-variant);
+    background: color-mix(in srgb, var(--mb-color-surface-container-highest) 68%, transparent);
+  }
+
+  .resource-fact .material-symbol {
     color: var(--mb-color-on-surface-variant);
   }
 
@@ -119,19 +127,7 @@ export const resourceEditorStyles = `  .resource-editor-card {
   }
 
   .editor-live-status {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    min-height: 30px;
-    border-radius: var(--mb-shape-full);
-    padding: 0 12px;
-    font-size: 0.74rem;
     font-weight: 700;
-    white-space: nowrap;
-  }
-
-  .editor-live-status .material-symbol {
-    font-size: 1.05rem;
   }
 
   .editor-live-status--saving {
@@ -170,6 +166,13 @@ export const resourceEditorStyles = `  .resource-editor-card {
     white-space: nowrap;
     --md-filled-button-container-color: var(--mb-color-primary-container);
     --md-filled-button-label-text-color: var(--mb-color-on-primary-container);
+    --md-filled-button-hover-label-text-color: var(--mb-color-on-primary-container);
+    --md-filled-button-focus-label-text-color: var(--mb-color-on-primary-container);
+    --md-filled-button-pressed-label-text-color: var(--mb-color-on-primary-container);
+    --md-filled-button-icon-color: var(--mb-color-on-primary-container);
+    --md-filled-button-hover-icon-color: var(--mb-color-on-primary-container);
+    --md-filled-button-focus-icon-color: var(--mb-color-on-primary-container);
+    --md-filled-button-pressed-icon-color: var(--mb-color-on-primary-container);
     --md-filled-button-container-shape: 16px;
     --md-filled-button-container-elevation: 1;
     --md-filled-button-hover-container-elevation: 2;
@@ -190,6 +193,13 @@ export const resourceEditorStyles = `  .resource-editor-card {
   .fab-button--danger {
     --md-filled-button-container-color: var(--mb-color-error-container);
     --md-filled-button-label-text-color: var(--mb-color-on-error-container);
+    --md-filled-button-hover-label-text-color: var(--mb-color-on-error-container);
+    --md-filled-button-focus-label-text-color: var(--mb-color-on-error-container);
+    --md-filled-button-pressed-label-text-color: var(--mb-color-on-error-container);
+    --md-filled-button-icon-color: var(--mb-color-on-error-container);
+    --md-filled-button-hover-icon-color: var(--mb-color-on-error-container);
+    --md-filled-button-focus-icon-color: var(--mb-color-on-error-container);
+    --md-filled-button-pressed-icon-color: var(--mb-color-on-error-container);
     --md-filled-button-hover-state-layer-color: var(--mb-color-error);
   }
 
@@ -227,6 +237,13 @@ export const resourceEditorStyles = `  .resource-editor-card {
   .resource-delete-confirmation__confirm {
     --md-filled-button-container-color: var(--mb-color-error);
     --md-filled-button-label-text-color: var(--mb-color-on-error);
+    --md-filled-button-hover-label-text-color: var(--mb-color-on-error);
+    --md-filled-button-focus-label-text-color: var(--mb-color-on-error);
+    --md-filled-button-pressed-label-text-color: var(--mb-color-on-error);
+    --md-filled-button-icon-color: var(--mb-color-on-error);
+    --md-filled-button-hover-icon-color: var(--mb-color-on-error);
+    --md-filled-button-focus-icon-color: var(--mb-color-on-error);
+    --md-filled-button-pressed-icon-color: var(--mb-color-on-error);
     --md-filled-button-hover-state-layer-color: var(--mb-color-on-error);
     --md-filled-button-container-elevation: 1;
   }

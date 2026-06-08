@@ -1,5 +1,7 @@
 import {
+  type CSSProperties,
   type KeyboardEvent,
+  type RefObject,
   type ReactNode,
   useEffect,
   useMemo,
@@ -14,6 +16,8 @@ import { MaterialOutlinedTextField, type MaterialTextFieldElement } from "../../
 import { MaterialSwitch } from "../../components/MaterialSwitch";
 import { SelectMenu, type SelectMenuOption } from "./SelectMenu";
 import type { MdOutlinedButton } from "@material/web/button/outlined-button.js";
+import type { MdIconButton } from "@material/web/iconbutton/icon-button.js";
+import { type TooltipPosition, useAnchoredTooltipPosition } from "./helpTooltipPosition";
 
 export type SchemaFieldProps = {
   field: FieldSchema;
@@ -49,6 +53,7 @@ export function SchemaField({
   const [jsonExpanded, setJsonExpanded] = useState(parseError !== "");
   const jsonEditorRef = useRef<MaterialTextFieldElement>(null);
   const jsonSummaryRef = useRef<MdOutlinedButton>(null);
+  const trailingHelpAnchorRef = useRef<MdIconButton>(null);
 
   useEffect(() => {
     setText(displayValue(field, value));
@@ -154,6 +159,7 @@ export function SchemaField({
             supportingText={fieldSupportingText(field, t("field.secretReplacementHint"))}
             trailingIcon={(
               <FieldHelpIconButton
+                anchorRef={trailingHelpAnchorRef}
                 field={field}
                 helpId={helpId}
                 helpOpen={helpOpen}
@@ -167,6 +173,7 @@ export function SchemaField({
             onBlur={commitOnBlur}
           />
           <FieldHelpTooltip
+            anchorRef={trailingHelpAnchorRef}
             helpId={helpId}
             helpOpen={helpOpen}
             helpParts={helpParts}
@@ -257,6 +264,7 @@ export function SchemaField({
           supportingText={fieldSupportingText(field, t("field.secretReplacementHint"))}
           trailingIcon={(
             <FieldHelpIconButton
+              anchorRef={trailingHelpAnchorRef}
               field={field}
               helpId={helpId}
               helpOpen={helpOpen}
@@ -270,6 +278,7 @@ export function SchemaField({
           onBlur={commitOnBlur}
         />
         <FieldHelpTooltip
+          anchorRef={trailingHelpAnchorRef}
           helpId={helpId}
           helpOpen={helpOpen}
           helpParts={helpParts}
@@ -402,15 +411,18 @@ function FieldHelpButton({
   helpParts: FieldHelpParts;
   setHelpOpen: (open: boolean | ((current: boolean) => boolean)) => void;
 }) {
+  const anchorRef = useRef<MdIconButton>(null);
   return (
     <span className="schema-field__help-wrap">
       <FieldHelpIconButton
+        anchorRef={anchorRef}
         field={field}
         helpId={helpId}
         helpOpen={helpOpen}
         setHelpOpen={setHelpOpen}
       />
       <FieldHelpTooltip
+        anchorRef={anchorRef}
         helpId={helpId}
         helpOpen={helpOpen}
         helpParts={helpParts}
@@ -420,12 +432,14 @@ function FieldHelpButton({
 }
 
 function FieldHelpIconButton({
+  anchorRef,
   field,
   helpId,
   helpOpen,
   setHelpOpen,
   slot
 }: {
+  anchorRef?: RefObject<MdIconButton | null>;
   field: FieldSchema;
   helpId: string;
   helpOpen: boolean;
@@ -465,22 +479,27 @@ function FieldHelpIconButton({
         openedByHover.current = false;
         setHelpOpen(false);
       }}
+      ref={anchorRef}
       slot={slot}
     />
   );
 }
 
 function FieldHelpTooltip({
+  anchorRef,
   helpId,
   helpOpen,
   helpParts
 }: {
+  anchorRef: RefObject<HTMLElement | null>;
   helpId: string;
   helpOpen: boolean;
   helpParts: FieldHelpParts;
 }) {
+  const position = useAnchoredTooltipPosition(anchorRef, helpOpen);
+  const style = tooltipPositionStyle(position);
   return helpOpen ? (
-    <span className="rich-tooltip" id={helpId} role="tooltip">
+    <span className="rich-tooltip" id={helpId} role="tooltip" style={style}>
       {helpParts.subhead ? <span className="rich-tooltip__subhead">{helpParts.subhead}</span> : null}
       {helpParts.body ? <span className="rich-tooltip__body">{helpParts.body}</span> : null}
       {helpParts.metas.length ? (
@@ -494,6 +513,18 @@ function FieldHelpTooltip({
       ) : null}
     </span>
   ) : null;
+}
+
+function tooltipPositionStyle(position: TooltipPosition | undefined): CSSProperties | undefined {
+  if (!position) {
+    return undefined;
+  }
+  return {
+    left: `${position.left}px`,
+    maxWidth: `${position.maxWidth}px`,
+    position: "fixed",
+    top: `${position.top}px`
+  };
 }
 
 function FieldA11yMessages({

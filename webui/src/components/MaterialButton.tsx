@@ -4,6 +4,7 @@ import "@material/web/icon/icon.js";
 import "@material/web/iconbutton/icon-button.js";
 import { createElement, forwardRef, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
 import type { MdOutlinedButton } from "@material/web/button/outlined-button.js";
+import type { MdIconButton } from "@material/web/iconbutton/icon-button.js";
 
 type MaterialOutlinedButtonProps = {
   ariaExpanded?: boolean;
@@ -109,23 +110,24 @@ export function MaterialFilledButton({
   );
 }
 
-export function MaterialIconButton({
-  ariaExpanded,
-  className,
-  controls,
-  describedBy,
-  disabled = false,
-  icon,
-  label,
-  onBlur,
-  onClick,
-  onFocus,
-  onKeyDown,
-  onMouseDown,
-  onMouseEnter,
-  onMouseLeave,
-  slot
-}: MaterialIconButtonProps) {
+export const MaterialIconButton = forwardRef<MdIconButton, MaterialIconButtonProps>(
+  function MaterialIconButton({
+    ariaExpanded,
+    className,
+    controls,
+    describedBy,
+    disabled = false,
+    icon,
+    label,
+    onBlur,
+    onClick,
+    onFocus,
+    onKeyDown,
+    onMouseDown,
+    onMouseEnter,
+    onMouseLeave,
+    slot
+  }: MaterialIconButtonProps, ref) {
   return (
     <md-icon-button
       aria-controls={controls}
@@ -141,13 +143,14 @@ export function MaterialIconButton({
       onMouseDown={onMouseDown}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
+      ref={ref}
       slot={slot}
       type="button"
     >
       {createElement("md-icon", null, icon)}
     </md-icon-button>
   );
-}
+});
 
 function ariaBoolean(value: boolean | undefined): "true" | "false" | undefined {
   if (value === undefined) {

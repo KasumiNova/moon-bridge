@@ -1,6 +1,8 @@
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, test, vi } from "vitest";
+import { MemoryRouter } from "react-router-dom";
+import { AppShell } from "../../app/App";
 import { renderWithConsoleProviders } from "../../test/renderWithConsoleProviders";
 import * as configGraph from "../../rpc/configGraph";
 import { configGraphFixture } from "../../test/configGraphFixtures";
@@ -175,6 +177,20 @@ describe("ModelsProvidersPage", () => {
         protocol: "openai-response"
       }
     }));
+  });
+
+  test("keeps add resource button icon colors aligned with secondary-container labels", async () => {
+    vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
+
+    const { container } = renderWithConsoleProviders(
+      <MemoryRouter>
+        <AppShell content={<ModelsProvidersPage />} />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => expect(getMaterialButton(container, "Add Provider", "filled")).toBeInTheDocument());
+    const addProviderButton = getMaterialButton(container, "Add Provider", "filled");
+    expectMaterialFilledButtonContentColors(addProviderButton, "var(--mb-color-on-secondary-container)");
   });
 
   test("lets users choose provider protocol and read create field help", async () => {
@@ -567,6 +583,22 @@ function getMaterialButton(container: ParentNode, label: string, variant: "fille
     throw new Error(`Expected a Material Web ${variant} button labelled "${label}".`);
   }
   return element as HTMLElement & { type: string };
+}
+
+function expectMaterialFilledButtonContentColors(button: HTMLElement, colorToken: string) {
+  expect(button.tagName.toLowerCase()).toBe("md-filled-button");
+  for (const property of [
+    "--md-filled-button-label-text-color",
+    "--md-filled-button-hover-label-text-color",
+    "--md-filled-button-focus-label-text-color",
+    "--md-filled-button-pressed-label-text-color",
+    "--md-filled-button-icon-color",
+    "--md-filled-button-hover-icon-color",
+    "--md-filled-button-focus-icon-color",
+    "--md-filled-button-pressed-icon-color"
+  ]) {
+    expect(getComputedStyle(button).getPropertyValue(property).trim()).toBe(colorToken);
+  }
 }
 
 async function waitForMaterialButton(container: ParentNode, label: string, variant: "filled" | "outlined" = "filled") {

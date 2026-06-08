@@ -333,6 +333,13 @@ export const baseStyles = `
   md-filled-button {
     --md-filled-button-container-color: var(--mb-color-primary);
     --md-filled-button-label-text-color: var(--mb-color-on-primary);
+    --md-filled-button-hover-label-text-color: var(--mb-color-on-primary);
+    --md-filled-button-focus-label-text-color: var(--mb-color-on-primary);
+    --md-filled-button-pressed-label-text-color: var(--mb-color-on-primary);
+    --md-filled-button-icon-color: var(--mb-color-on-primary);
+    --md-filled-button-hover-icon-color: var(--mb-color-on-primary);
+    --md-filled-button-focus-icon-color: var(--mb-color-on-primary);
+    --md-filled-button-pressed-icon-color: var(--mb-color-on-primary);
     --md-filled-button-container-shape: 999px;
   }
 
