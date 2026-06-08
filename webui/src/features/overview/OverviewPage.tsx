@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { motion } from "motion/react";
 import { LoadingState } from "../../components/LoadingState";
@@ -29,7 +29,8 @@ export function OverviewPage() {
   const [range, setRange] = useState<UsageRange>("session");
   const usage = useQuery({
     queryKey: [...queryKeys.usageStats, range],
-    queryFn: () => getUsageStats(range)
+    queryFn: () => getUsageStats(range),
+    placeholderData: keepPreviousData
   });
 
   return (

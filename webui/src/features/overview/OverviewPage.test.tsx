@@ -94,6 +94,33 @@ describe("OverviewPage", () => {
     expect(screen.queryByText("Validation")).not.toBeInTheDocument();
   });
 
+  test("keeps the current usage dashboard visible while a newly selected range is loading", async () => {
+    vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
+    vi.spyOn(logs, "getRecentLogs").mockResolvedValue(logEntries());
+    vi.spyOn(logs, "createLogStream").mockResolvedValue(new Response(new ReadableStream<Uint8Array>()));
+    const usageRequest = vi.spyOn(management, "getUsageStats").mockImplementation((range = "session") => {
+      if (range === "session") {
+        return Promise.resolve(usageStats());
+      }
+      return new Promise<UsageStats>(() => undefined);
+    });
+
+    renderWithConsoleProviders(<OverviewPage />);
+
+    await screen.findAllByText("Requests");
+    expect(within(metricCard("Requests")).getByText("2")).toBeInTheDocument();
+
+    fireEvent.click(getMaterialFilterChip(document.body, "24h"));
+
+    expect(getMaterialFilterChip(document.body, "24h")).toHaveProperty("selected", true);
+    await waitFor(() => {
+      expect(usageRequest).toHaveBeenCalledWith("24h");
+    });
+    expect(screen.queryByRole("heading", { name: "Loading" })).not.toBeInTheDocument();
+    expect(within(metricCard("Requests")).getByText("2")).toBeInTheDocument();
+    expect(screen.getByRole("table", { name: "Model usage table" })).toBeInTheDocument();
+  });
+
   test("keeps the embedded log panel searchable and clearable", async () => {
     vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
     vi.spyOn(management, "getUsageStats").mockResolvedValue(usageStats());
