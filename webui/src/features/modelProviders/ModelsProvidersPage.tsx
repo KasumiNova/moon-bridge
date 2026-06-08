@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { LoadingState } from "../../components/LoadingState";
 import { useI18n } from "../../i18n/I18nProvider";
-import type { ConfigResource, ResourceKind } from "../../rpc/types";
+import type { ConfigGraph, ConfigResource, ResourceKind } from "../../rpc/types";
 import { CreateResourcePanel } from "../configGraph/CreateResourcePanel";
 import { ResourceEditorCard } from "../configGraph/ResourceEditorCard";
 import { useConfigGraph } from "../configGraph/useConfigGraph";
@@ -42,24 +43,11 @@ export function ModelsProvidersPage() {
                 revision={graph.data.revision}
                 title={t("resource.kind.provider")}
               />
-              <section className="provider-offers" aria-labelledby={`provider-${provider.id}-offers-heading`}>
-                <div className="section-heading section-heading--compact">
-                  <h3 id={`provider-${provider.id}-offers-heading`}>
-                    {t("modelsProviders.offers", { count: offersByProvider.get(provider.id)?.length ?? 0 })}
-                  </h3>
-                  <CreateResourcePanel graph={graph.data} kind="provider_offer" providerId={provider.id} />
-                </div>
-                <div className="resource-card-list resource-card-list--compact">
-                  {(offersByProvider.get(provider.id) ?? []).map((offer) => (
-                    <ResourceEditorCard
-                      key={offer.id}
-                      resource={offer}
-                      revision={graph.data.revision}
-                      title={t("resource.kind.offer")}
-                    />
-                  ))}
-                </div>
-              </section>
+              <ProviderOffers
+                graph={graph.data}
+                provider={provider}
+                offers={offersByProvider.get(provider.id) ?? []}
+              />
             </section>
           ))}
         </div>
@@ -104,7 +92,6 @@ export function ModelsProvidersPage() {
 function resourcesByKind(resources: ConfigResource[], kind: ResourceKind) {
   return resources.filter((resource) => resource.kind === kind);
 }
-
 function groupOffersByProvider(offers: ConfigResource[]) {
   const groups = new Map<string, ConfigResource[]>();
   for (const offer of offers) {
@@ -118,4 +105,53 @@ function groupOffersByProvider(offers: ConfigResource[]) {
 
 function providerIdForOffer(offer: ConfigResource) {
   return offer.id.split("/", 1)[0] ?? "";
+}
+
+function ProviderOffers({
+  graph,
+  provider,
+  offers
+}: {
+  graph: ConfigGraph;
+  provider: ConfigResource;
+  offers: ConfigResource[];
+}) {
+  const { t } = useI18n();
+  const [open, setOpen] = useState(false);
+  const headingId = `provider-${provider.id}-offers-heading`;
+  const bodyId = `provider-${provider.id}-offers-body`;
+  return (
+    <section className="provider-offers" aria-labelledby={headingId} data-open={open ? "true" : undefined}>
+      <div className="provider-offers__bar">
+        <button
+          type="button"
+          className="provider-offers__toggle"
+          aria-expanded={open}
+          aria-controls={bodyId}
+          onClick={() => setOpen((value) => !value)}
+        >
+          <span className="material-symbol provider-offers__chevron" aria-hidden="true">
+            chevron_right
+          </span>
+          <span className="material-symbol provider-offers__icon" aria-hidden="true">
+            smart_toy
+          </span>
+          <h3 id={headingId}>{t("modelsProviders.offers", { count: offers.length })}</h3>
+        </button>
+        <CreateResourcePanel graph={graph} kind="provider_offer" providerId={provider.id} />
+      </div>
+      {open ? (
+        <div className="resource-card-list resource-card-list--compact" id={bodyId}>
+          {offers.map((offer) => (
+            <ResourceEditorCard
+              key={offer.id}
+              resource={offer}
+              revision={graph.revision}
+              title={t("resource.kind.offer")}
+            />
+          ))}
+        </div>
+      ) : null}
+    </section>
+  );
 }

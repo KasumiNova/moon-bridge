@@ -1,4 +1,14 @@
-import { type ChangeEvent, type KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type ChangeEvent,
+  type ComponentPropsWithoutRef,
+  type KeyboardEvent,
+  type ReactNode,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import { configDescriptions, type ConfigPath } from "../../configDocs/configDescriptions";
 import type { FieldSchema } from "../../rpc/types";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -54,7 +64,7 @@ export function SchemaField({
   const hintId = `${id}-hint`;
   const errorId = `${id}-error`;
   const helpId = `${id}-help`;
-  const helpText = fieldHelpText(field, docPath, locale);
+  const helpParts = fieldHelpParts(field, docPath, locale);
   const fieldError = error || parseError;
   const describedBy = [
     field.secret ? hintId : undefined,
@@ -66,6 +76,7 @@ export function SchemaField({
 
   if (field.control === "select" || (field.enum?.length ?? 0) > 0) {
     const labelId = `${id}-label`;
+    const selected = typeof value === "string" ? value : "";
     const options: SelectMenuOption[] = (field.enum ?? []).map((option) => ({
       value: option,
       label: optionLabel(option),
@@ -73,29 +84,30 @@ export function SchemaField({
       dotClassName: optionDotClass(field, option)
     }));
     return (
-      <div className={schemaFieldClass(wide)}>
-        <FieldTopline
-          field={field}
-          helpId={helpId}
-          helpOpen={helpOpen}
-          helpText={helpText}
-          id={id}
-          labelId={labelId}
-          labelForControl={false}
-          setHelpOpen={setHelpOpen}
-        />
+      <OutlinedField
+        field={field}
+        helpId={helpId}
+        helpOpen={helpOpen}
+        helpParts={helpParts}
+        setHelpOpen={setHelpOpen}
+        id={id}
+        labelId={labelId}
+        filled={selected.length > 0}
+        invalid={Boolean(fieldError)}
+        variant="select"
+        messages={<FieldMessages errorId={errorId} hintId={hintId} error={fieldError} secret={field.secret} />}
+      >
         <SelectMenu
           id={id}
           options={options}
-          value={typeof value === "string" ? value : ""}
+          value={selected}
           onChange={(next) => commit(next)}
           disabled={disabled}
           labelledBy={labelId}
           ariaLabel={field.label}
           describedBy={describedBy}
         />
-        <FieldMessages errorId={errorId} hintId={hintId} error={fieldError} secret={field.secret} />
-      </div>
+      </OutlinedField>
     );
   }
 
@@ -112,7 +124,7 @@ export function SchemaField({
               field={field}
               helpId={helpId}
               helpOpen={helpOpen}
-              helpText={helpText}
+              helpParts={helpParts}
               setHelpOpen={setHelpOpen}
             />
           </span>
@@ -140,16 +152,20 @@ export function SchemaField({
 
   if (field.control === "textarea") {
     return (
-      <div className={schemaFieldClass(wide)}>
-        <FieldTopline
-          field={field}
-          helpId={helpId}
-          helpOpen={helpOpen}
-          helpText={helpText}
-          id={id}
-          setHelpOpen={setHelpOpen}
-        />
-        <textarea
+      <OutlinedField
+        field={field}
+        helpId={helpId}
+        helpOpen={helpOpen}
+        helpParts={helpParts}
+        setHelpOpen={setHelpOpen}
+        id={id}
+        filled={text.length > 0}
+        invalid={Boolean(fieldError)}
+        variant="textarea"
+        wide={wide}
+        messages={<FieldMessages errorId={errorId} hintId={hintId} error={fieldError} secret={field.secret} />}
+      >
+        <AutoGrowTextarea
           aria-describedby={describedBy}
           aria-invalid={fieldError ? "true" : undefined}
           id={id}
@@ -158,8 +174,7 @@ export function SchemaField({
           onChange={(event) => updateText(event, onChange, field)}
           onBlur={commitOnBlur}
         />
-        <FieldMessages errorId={errorId} hintId={hintId} error={fieldError} secret={field.secret} />
-      </div>
+      </OutlinedField>
     );
   }
 
@@ -172,7 +187,7 @@ export function SchemaField({
           field={field}
           helpId={helpId}
           helpOpen={helpOpen}
-          helpText={helpText}
+          helpParts={helpParts}
           id={jsonExpanded ? id : summaryId}
           setHelpOpen={setHelpOpen}
         />
@@ -219,15 +234,18 @@ export function SchemaField({
   }
 
   return (
-    <div className={schemaFieldClass(wide)}>
-      <FieldTopline
-        field={field}
-        helpId={helpId}
-        helpOpen={helpOpen}
-        helpText={helpText}
-        id={id}
-        setHelpOpen={setHelpOpen}
-      />
+    <OutlinedField
+      field={field}
+      helpId={helpId}
+      helpOpen={helpOpen}
+      helpParts={helpParts}
+      setHelpOpen={setHelpOpen}
+      id={id}
+      filled={text.length > 0}
+      invalid={Boolean(fieldError)}
+      leadingIcon={fieldLeadingIcon(field)}
+      messages={<FieldMessages errorId={errorId} hintId={hintId} error={fieldError} secret={field.secret} />}
+    >
       <input
         aria-describedby={describedBy}
         autoComplete={field.secret ? "new-password" : undefined}
@@ -239,8 +257,7 @@ export function SchemaField({
         onChange={(event) => updateText(event, onChange, field)}
         onBlur={commitOnBlur}
       />
-      <FieldMessages errorId={errorId} hintId={hintId} error={fieldError} secret={field.secret} />
-    </div>
+    </OutlinedField>
   );
 
   function updateJSON(next: string) {
@@ -282,11 +299,118 @@ export function SchemaField({
   }
 }
 
+type FieldHelpParts = {
+  subhead: string;
+  body: string;
+  metas: { label?: string; value: string }[];
+};
+
+// Outlined MD3 text field: the label rides the notched border (floating up when
+// focused or populated), with an optional leading icon and the help affordance
+// pinned to the top-right of the border.
+function OutlinedField({
+  field,
+  helpId,
+  helpOpen,
+  helpParts,
+  setHelpOpen,
+  id,
+  labelId,
+  filled,
+  invalid,
+  leadingIcon,
+  variant = "input",
+  wide,
+  messages,
+  children
+}: {
+  field: FieldSchema;
+  helpId: string;
+  helpOpen: boolean;
+  helpParts: FieldHelpParts;
+  setHelpOpen: (open: boolean | ((current: boolean) => boolean)) => void;
+  id: string;
+  labelId?: string;
+  filled: boolean;
+  invalid?: boolean;
+  leadingIcon?: string;
+  variant?: "input" | "textarea" | "select";
+  wide?: boolean;
+  messages?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className={wide ? "mb-field mb-field--wide" : "mb-field"}
+      data-variant={variant}
+      data-filled={filled ? "true" : undefined}
+      data-invalid={invalid ? "true" : undefined}
+      data-leading={leadingIcon ? "true" : undefined}
+    >
+      <div className="mb-field__control">
+        {leadingIcon ? (
+          <span className="mb-field__leading material-symbol" aria-hidden="true">
+            {leadingIcon}
+          </span>
+        ) : null}
+        {children}
+        <label className="mb-field__label" id={labelId} htmlFor={id}>
+          {field.label}
+          {field.required ? <span className="mb-field__required" aria-hidden="true">*</span> : null}
+        </label>
+        <FieldHelpButton
+          field={field}
+          helpId={helpId}
+          helpOpen={helpOpen}
+          helpParts={helpParts}
+          setHelpOpen={setHelpOpen}
+        />
+      </div>
+      {messages}
+    </div>
+  );
+}
+
+// Textarea that starts compact (single row) and grows with its content up to a
+// cap, then scrolls — avoiding a large reserved block for long prompts.
+function AutoGrowTextarea({ value, ...props }: ComponentPropsWithoutRef<"textarea"> & { value: string }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) {
+      return;
+    }
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 260)}px`;
+  }, [value]);
+  return <textarea {...props} ref={ref} value={value} rows={1} />;
+}
+
+function fieldLeadingIcon(field: FieldSchema): string | undefined {
+  if (field.secret || field.control === "secret") {
+    return "key";
+  }
+  const path = field.path.toLowerCase();
+  if (path.includes("url") || path.includes("endpoint") || path.includes("addr")) {
+    return "link";
+  }
+  if (path.includes("model")) {
+    return "smart_toy";
+  }
+  if (path.includes("agent")) {
+    return "badge";
+  }
+  if (field.type === "number" || field.control === "number") {
+    return "tag";
+  }
+  return undefined;
+}
+
 function FieldTopline({
   field,
   helpId,
   helpOpen,
-  helpText,
+  helpParts,
   id,
   labelForControl = true,
   labelId,
@@ -295,7 +419,7 @@ function FieldTopline({
   field: FieldSchema;
   helpId: string;
   helpOpen: boolean;
-  helpText: string;
+  helpParts: FieldHelpParts;
   id: string;
   labelForControl?: boolean;
   labelId?: string;
@@ -324,7 +448,7 @@ function FieldTopline({
           field={field}
           helpId={helpId}
           helpOpen={helpOpen}
-          helpText={helpText}
+          helpParts={helpParts}
           setHelpOpen={setHelpOpen}
         />
       </span>
@@ -336,13 +460,13 @@ function FieldHelpButton({
   field,
   helpId,
   helpOpen,
-  helpText,
+  helpParts,
   setHelpOpen
 }: {
   field: FieldSchema;
   helpId: string;
   helpOpen: boolean;
-  helpText: string;
+  helpParts: FieldHelpParts;
   setHelpOpen: (open: boolean | ((current: boolean) => boolean)) => void;
 }) {
   const { t } = useI18n();
@@ -380,11 +504,21 @@ function FieldHelpButton({
           setHelpOpen(false);
         }}
       >
-        ?
+        <span className="material-symbol" aria-hidden="true">help</span>
       </button>
       {helpOpen ? (
-        <span className="schema-field__tooltip" id={helpId} role="tooltip">
-          {helpText}
+        <span className="rich-tooltip" id={helpId} role="tooltip">
+          {helpParts.subhead ? <span className="rich-tooltip__subhead">{helpParts.subhead}</span> : null}
+          {helpParts.body ? <span className="rich-tooltip__body">{helpParts.body}</span> : null}
+          {helpParts.metas.length ? (
+            <span className="rich-tooltip__metas">
+              {helpParts.metas.map((meta, index) => (
+                <span className="rich-tooltip__chip" key={index}>
+                  {meta.label ? `${meta.label}: ${meta.value}` : meta.value}
+                </span>
+              ))}
+            </span>
+          ) : null}
         </span>
       ) : null}
     </span>
@@ -456,19 +590,30 @@ function inputType(field: FieldSchema) {
   return "text";
 }
 
-function fieldHelpText(field: FieldSchema, docPath: ConfigPath | undefined, locale: "en-US" | "zh-CN") {
+function fieldHelpParts(
+  field: FieldSchema,
+  docPath: ConfigPath | undefined,
+  locale: "en-US" | "zh-CN"
+): FieldHelpParts {
   const entry = docPath ? configDescriptions[docPath] : undefined;
+  const metas: { label?: string; value: string }[] = [];
   if (entry) {
-    return [
-      entry.description[locale],
-      `Type: ${entry.type}`,
-      entry.defaultValue ? `Default: ${entry.defaultValue}` : undefined,
-      entry.sensitive || field.secret ? "Sensitive" : undefined
-    ].filter(Boolean).join(" ");
+    metas.push({ label: "Type", value: entry.type });
+    if (entry.defaultValue) {
+      metas.push({ label: "Default", value: String(entry.defaultValue) });
+    }
+    if (entry.sensitive || field.secret) {
+      metas.push({ value: "Sensitive" });
+    }
+    return { subhead: field.label, body: entry.description[locale], metas };
   }
-  return `${field.label}. Type: ${field.type}. ${field.required ? "Required." : "Optional."} ${
-    field.secret ? "Sensitive." : ""
-  } ${field.hotReloadable ? "Saved in realtime." : "May require restart."}`.trim();
+  metas.push({ label: "Type", value: field.type });
+  metas.push({ value: field.required ? "Required" : "Optional" });
+  if (field.secret) {
+    metas.push({ value: "Sensitive" });
+  }
+  metas.push({ value: field.hotReloadable ? "Saved in realtime" : "May require restart" });
+  return { subhead: field.label, body: "", metas };
 }
 
 function optionLabel(option: string) {

@@ -26,7 +26,7 @@ describe("ResourceEditorCard", () => {
     );
 
     expect(screen.getByRole("heading", { name: "anthropic" })).toBeInTheDocument();
-    expect(screen.getByText("Provider")).toBeInTheDocument();
+    expect(document.querySelector(".resource-kind-icon")).toBeInTheDocument();
     expect(within(screen.getByLabelText("anthropic status")).getByText("Saved")).toBeInTheDocument();
     expect(screen.getByLabelText("Base URL")).toBeInTheDocument();
     expect(screen.getByLabelText("API Key")).toHaveAttribute("type", "password");

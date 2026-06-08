@@ -81,10 +81,36 @@ export function ResourceEditorCard({
       <div className="resource-editor-card__header">
         <div className="resource-editor-card__identity">
           <div className="resource-editor-card__identity-line">
-            <span className="resource-kind-chip">{resourceTitle}</span>
+            <span className="resource-kind-icon material-symbol" aria-hidden="true">
+              {kindIcon(resource.kind)}
+            </span>
             <h3>{resource.id}</h3>
           </div>
           <div className="resource-editor-card__facts">
+            <span className="resource-editor-card__status-group" aria-label={`${label} status`}>
+              <span className={`status-pill status-pill--${resource.status}`}>
+                {t(statusLabelKeys[resource.status])}
+              </span>
+              {resource.runtimeImpact === "critical" ? (
+                <span className="status-pill status-pill--critical">
+                  {t(impactLabelKeys[resource.runtimeImpact])}
+                </span>
+              ) : null}
+              {liveStatus ? (
+                <motion.span
+                  key={liveStatus}
+                  className={`editor-live-status editor-live-status--${liveStatus}`}
+                  initial={{ opacity: 0, scale: 0.85, y: -2 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={springs.spatialFast}
+                >
+                  <span className="material-symbol" aria-hidden="true">
+                    {liveStatusIcon(liveStatus)}
+                  </span>
+                  {t(liveStatusKeys[liveStatus])}
+                </motion.span>
+              ) : null}
+            </span>
             <span className="resource-fact">
               <span className="material-symbol" aria-hidden="true">list_alt</span>
               {t(fieldCount === 1 ? "resource.fieldCount.one" : "resource.fieldCount.many", { count: fieldCount })}
@@ -97,35 +123,11 @@ export function ResourceEditorCard({
             </span>
           </div>
         </div>
-        <div className="resource-editor-card__meta">
-          <div className="resource-editor-card__status" aria-label={`${label} status`}>
-            <span className={`status-pill status-pill--${resource.status}`}>
-              {t(statusLabelKeys[resource.status])}
-            </span>
-            {resource.runtimeImpact === "critical" ? (
-              <span className="status-pill status-pill--critical">
-                {t(impactLabelKeys[resource.runtimeImpact])}
-              </span>
-            ) : null}
-          </div>
-          {liveStatus ? (
-            <motion.span
-              key={liveStatus}
-              className={`editor-live-status editor-live-status--${liveStatus}`}
-              initial={{ opacity: 0, scale: 0.85, y: -2 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={springs.spatialFast}
-            >
-              <span className="material-symbol" aria-hidden="true">
-                {liveStatusIcon(liveStatus)}
-              </span>
-              {t(liveStatusKeys[liveStatus])}
-            </motion.span>
-          ) : null}
-          {canDelete ? (
+        {canDelete ? (
+          <div className="resource-editor-card__meta">
             <button
               type="button"
-              className="resource-delete-button"
+              className="fab-button fab-button--danger"
               aria-label={t("resource.delete", { title: resourceTitle, id: resource.id })}
               onClick={() => {
                 setConfirmingDelete(true);
@@ -135,8 +137,8 @@ export function ResourceEditorCard({
               <span className="material-symbol" aria-hidden="true">delete</span>
               {t("resource.deleteShort")}
             </button>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
       </div>
 
       {confirmingDelete ? (
@@ -178,38 +180,56 @@ export function ResourceEditorCard({
 
       <EditorStatusProvider report={reportFieldStatus}>
         <div className="resource-field-groups">
-          {fieldGroups.map((group) => (
-            <div
-              aria-label={t(group.labelKey)}
-              className={`resource-field-group resource-field-group--${group.key}`}
-              key={group.key}
-              role="group"
-            >
-              <div className="resource-field-group__header">
-                <h4>
-                  <span className="material-symbol" aria-hidden="true">
-                    {group.key === "identity" ? "badge" : "tune"}
+          {fieldGroups.map((group) => {
+            const toggleFields = group.fields.filter(isToggleField);
+            const inputFields = group.fields.filter((field) => !isToggleField(field));
+            return (
+              <div
+                aria-label={t(group.labelKey)}
+                className={`resource-field-group resource-field-group--${group.key}`}
+                key={group.key}
+                role="group"
+              >
+                <div className="resource-field-group__header">
+                  <h4>
+                    <span className="material-symbol" aria-hidden="true">
+                      {group.key === "identity" ? "badge" : "tune"}
+                    </span>
+                    {t(group.labelKey)}
+                  </h4>
+                  <span>
+                    {t(group.fields.length === 1 ? "resource.fieldCount.one" : "resource.fieldCount.many", {
+                      count: group.fields.length
+                    })}
                   </span>
-                  {t(group.labelKey)}
-                </h4>
-                <span>
-                  {t(group.fields.length === 1 ? "resource.fieldCount.one" : "resource.fieldCount.many", {
-                    count: group.fields.length
-                  })}
-                </span>
-              </div>
-              <div className="form-grid">
-                {group.fields.map((field) => (
-                  <div
-                    className={fieldGridClass(field)}
-                    key={`${resource.kind}-${resource.id}-${field.path}`}
-                  >
-                    <GraphResourceField field={field} resource={resource} revision={revision} />
+                </div>
+                {inputFields.length ? (
+                  <div className="form-grid">
+                    {inputFields.map((field) => (
+                      <div
+                        className={fieldGridClass(field)}
+                        key={`${resource.kind}-${resource.id}-${field.path}`}
+                      >
+                        <GraphResourceField field={field} resource={resource} revision={revision} />
+                      </div>
+                    ))}
                   </div>
-                ))}
+                ) : null}
+                {toggleFields.length ? (
+                  <div className="switch-bank">
+                    {toggleFields.map((field) => (
+                      <GraphResourceField
+                        field={field}
+                        resource={resource}
+                        revision={revision}
+                        key={`${resource.kind}-${resource.id}-${field.path}`}
+                      />
+                    ))}
+                  </div>
+                ) : null}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </EditorStatusProvider>
     </motion.section>
@@ -221,6 +241,29 @@ type FieldGroup = {
   labelKey: MessageKey;
   fields: FieldSchema[];
 };
+
+const kindIcons: Record<string, string> = {
+  provider: "dns",
+  offer: "smart_toy",
+  model: "smart_toy",
+  route: "alt_route",
+  defaults: "tune",
+  server: "lan",
+  cache: "database",
+  persistence: "save",
+  store: "database",
+  proxy: "swap_horiz",
+  plugin: "extension",
+  extension: "extension"
+};
+
+function kindIcon(kind: string): string {
+  return kindIcons[kind] ?? "tune";
+}
+
+function isToggleField(field: FieldSchema): boolean {
+  return field.type === "boolean" || field.control === "switch";
+}
 
 function deriveLiveStatus(
   statuses: Record<string, AutosaveFieldStatus>

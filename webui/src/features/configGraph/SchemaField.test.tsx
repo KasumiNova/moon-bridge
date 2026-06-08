@@ -184,7 +184,7 @@ describe("SchemaField", () => {
       <SchemaField field={field} value="Be concise." onChange={() => undefined} />
     );
 
-    expect(screen.getByLabelText("System prompt").closest(".schema-field")).toHaveClass("schema-field--wide");
+    expect(screen.getByLabelText("System prompt").closest(".mb-field")).toHaveClass("mb-field--wide");
 
     unmount();
     renderWithConsoleProviders(

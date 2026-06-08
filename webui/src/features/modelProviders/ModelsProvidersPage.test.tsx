@@ -12,6 +12,13 @@ describe("ModelsProvidersPage", () => {
     vi.restoreAllMocks();
   });
 
+  async function expandOffers(providerPanel: HTMLElement) {
+    const toggle = within(providerPanel).getByRole("button", { name: /Provider Offers/ });
+    if (toggle.getAttribute("aria-expanded") !== "true") {
+      await userEvent.click(toggle);
+    }
+  }
+
   test("places Providers above Models and omits enabled toggles", async () => {
     vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
     vi.spyOn(configGraph, "patchConfigGraph").mockResolvedValue({
@@ -29,6 +36,7 @@ describe("ModelsProvidersPage", () => {
     expect(providers.compareDocumentPosition(offerHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(providers.compareDocumentPosition(models) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(within(screen.getByLabelText("anthropic status")).getByText("Saved")).toBeInTheDocument();
+    await expandOffers(providerPanel);
     expect(within(providerPanel).getByText("anthropic/claude-sonnet")).toBeInTheDocument();
     expect(screen.queryByLabelText(/^enabled$/i)).not.toBeInTheDocument();
   });
@@ -79,7 +87,10 @@ describe("ModelsProvidersPage", () => {
       ]
     });
 
+    vi.useRealTimers();
+    await expandOffers(screen.getByLabelText("Provider anthropic"));
     const offerPanel = screen.getByText("anthropic/claude-sonnet").closest("section")!;
+    vi.useFakeTimers();
     fireEvent.change(within(offerPanel).getByLabelText("Priority"), {
       target: { value: "5" }
     });
@@ -383,6 +394,7 @@ describe("ModelsProvidersPage", () => {
 
     renderWithConsoleProviders(<ModelsProvidersPage />);
 
+    await expandOffers(await screen.findByLabelText("Provider anthropic"));
     const offerPanel = (await screen.findByText("anthropic/claude-sonnet")).closest("section")!;
     await userEvent.click(within(offerPanel).getByRole("button", {
       name: "Delete Offer anthropic/claude-sonnet"
