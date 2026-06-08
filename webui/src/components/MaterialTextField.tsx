@@ -197,12 +197,17 @@ const MaterialTextField = forwardRef<MaterialTextFieldElement, MaterialTextField
       value
     ]);
 
+    const resolvedClassName = mergeClassNames(
+      className,
+      type !== "textarea" && rows === undefined ? "material-text-field--single-line" : undefined
+    );
+
     return createElement(
       tagName,
       {
         ref: setFieldRef,
         autoFocus,
-        className,
+        className: resolvedClassName,
         id,
         onBlur
       },
@@ -211,6 +216,10 @@ const MaterialTextField = forwardRef<MaterialTextFieldElement, MaterialTextField
     );
   }
 );
+
+function mergeClassNames(...classNames: Array<string | undefined>) {
+  return classNames.filter(Boolean).join(" ");
+}
 
 function assignRef<T>(ref: ForwardedRef<T>, value: T | null) {
   if (typeof ref === "function") {

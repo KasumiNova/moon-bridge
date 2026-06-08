@@ -41,8 +41,11 @@ describe("RpcTestPage", () => {
 
     expect(getMaterialSelect(container, "Model")).toBeInTheDocument();
     expect(getMaterialTextField(container, "Input")).toHaveProperty("type", "textarea");
+    expect(getMaterialTextField(container, "Input")).not.toHaveClass("material-text-field--single-line");
     expect(getMaterialTextField(container, "Max Output Tokens")).toHaveProperty("type", "number");
+    expect(getMaterialTextField(container, "Max Output Tokens")).toHaveClass("material-text-field--single-line");
     expect(getMaterialTextField(container, "Temperature")).toHaveProperty("type", "number");
+    expect(getMaterialTextField(container, "Temperature")).toHaveClass("material-text-field--single-line");
     expect(getMaterialButton(container, "Send")).toBeInTheDocument();
   });
 

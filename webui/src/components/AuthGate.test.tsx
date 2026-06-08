@@ -37,6 +37,7 @@ describe("AuthGate", () => {
     const tokenField = getMaterialTextField(document, "Token");
     const submitButton = getMaterialButton(document, "Save token");
     expect(tokenField.type).toBe("password");
+    expect(tokenField).toHaveClass("material-text-field--single-line");
     expect(document.querySelector(".auth-field input")).not.toBeInTheDocument();
     expect(document.querySelector(".auth-card__submit")).not.toBeInTheDocument();
     expect(submitButton.type).toBe("submit");

@@ -160,6 +160,7 @@ describe("SchemaField", () => {
     const fieldElement = getMaterialTextField(document, "Base URL");
 
     expect(fieldElement.label).toBe("Base URL");
+    expect(fieldElement).toHaveClass("material-text-field--single-line");
     expect(fieldElement.getAttribute("spellcheck")).toBe("false");
     expect(fieldElement.closest(".mb-field")?.querySelector(".mb-field__label")).not.toBeInTheDocument();
     expect(fieldElement.querySelector("[slot='leading-icon']")).toHaveTextContent("link");
@@ -268,6 +269,7 @@ describe("SchemaField", () => {
     expect(jsonEditor).toBeInTheDocument();
     expect(jsonEditor).not.toHaveFocus();
     expect(jsonEditor).toHaveClass("schema-json-editor--fixed");
+    expect(jsonEditor).not.toHaveClass("material-text-field--single-line");
     expect(jsonEditor).toHaveAttribute("spellcheck", "false");
     setMaterialTextFieldValue(jsonEditor, "{\n  \"support\": \"enabled\"\n}");
 
@@ -310,6 +312,7 @@ describe("SchemaField", () => {
     );
 
     expect(getMaterialTextField(document, "System prompt").closest(".mb-field")).toHaveClass("mb-field--wide");
+    expect(getMaterialTextField(document, "System prompt")).not.toHaveClass("material-text-field--single-line");
 
     unmount();
     renderWithConsoleProviders(

@@ -197,7 +197,7 @@ export const baseStyles = `
 
   .auth-token-field {
     width: 100%;
-    min-height: 48px;
+    min-height: 44px;
     --md-filled-text-field-container-color: var(--mb-color-surface-container-highest);
     --md-filled-text-field-focus-active-indicator-color: var(--mb-color-primary);
     --md-filled-text-field-focus-label-text-color: var(--mb-color-primary);

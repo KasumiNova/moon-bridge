@@ -316,6 +316,20 @@ export const formStyles = `  .form-grid {
     --md-outlined-text-field-error-supporting-text-color: var(--mb-color-error);
   }
 
+  md-outlined-text-field.material-text-field--single-line {
+    --md-outlined-text-field-top-space: 12px;
+    --md-outlined-text-field-bottom-space: 12px;
+    --md-outlined-text-field-input-text-line-height: 1.25rem;
+  }
+
+  md-filled-text-field.material-text-field--single-line {
+    --md-filled-text-field-top-space: 12px;
+    --md-filled-text-field-bottom-space: 12px;
+    --md-filled-text-field-with-label-top-space: 4px;
+    --md-filled-text-field-with-label-bottom-space: 4px;
+    --md-filled-text-field-input-text-line-height: 1.25rem;
+  }
+
   .mb-field[data-variant="textarea"] md-outlined-text-field,
   .schema-json-editor {
     --md-outlined-text-field-input-text-font: var(--mb-font-mono);

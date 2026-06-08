@@ -26,7 +26,7 @@ describe("LogsPage", () => {
     expect(getMaterialFilterChip(document.body, "Pause")).toBeInTheDocument();
     expect(getMaterialButton(document.body, "Copy")).toBeInTheDocument();
     expect(getMaterialButton(document.body, "Download")).toBeInTheDocument();
-    expect(getMaterialTextField(document.body, "Search logs")).toBeInTheDocument();
+    expect(getMaterialTextField(document.body, "Search logs")).toHaveClass("material-text-field--single-line");
     const topActions = document.querySelector(".logs-panel__actions");
     const toolbarActions = document.querySelector(".logs-toolbar__actions");
     expect(topActions).toBeInTheDocument();
