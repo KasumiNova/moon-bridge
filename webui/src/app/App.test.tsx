@@ -117,6 +117,21 @@ describe("AppShell", () => {
     expect(screen.getByRole("navigation", { name: /console sections/i })).not.toHaveTextContent("Diagnostics");
     expect(screen.getByRole("navigation", { name: /console sections/i })).not.toHaveTextContent("Logs");
   });
+
+  test("gives the navigation rail a tonal backing surface without a shadow", () => {
+    renderWithConsoleProviders(
+      <MemoryRouter>
+        <AppShell content={<div>Console content</div>} />
+      </MemoryRouter>
+    );
+
+    const shellStyle = document.querySelector("style")?.textContent ?? "";
+    const railRule = shellStyle.match(/\.navigation-rail \{[^}]+\}/)?.[0] ?? "";
+
+    expect(railRule).toContain("background: var(--mb-color-surface-container-low)");
+    expect(railRule).toContain("box-shadow: none");
+    expect(railRule).not.toContain("background: transparent");
+  });
 });
 
 function getMaterialButton(

@@ -14,7 +14,9 @@ export const shellLayoutStyles = `  .workspace {
     align-items: center;
     gap: 4px;
     padding: 14px 8px;
-    background: transparent;
+    border-right: 1px solid color-mix(in srgb, var(--mb-color-outline-variant) 70%, transparent);
+    background: var(--mb-color-surface-container-low);
+    box-shadow: none;
   }
 
   .nav-item {
