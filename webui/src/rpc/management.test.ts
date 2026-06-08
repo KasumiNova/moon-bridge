@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 import {
   exportConfig,
+  getUsageStats,
   importConfig,
   listProviders,
   validateConfig
@@ -81,5 +82,44 @@ describe("management RPC client", () => {
     expect(fetchMock.mock.calls[0][1]?.headers).toMatchObject({
       "X-Confirm-Secrets": "true"
     });
+  });
+
+  test("getUsageStats reads stable model usage metrics", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      response({
+        totals: {
+          requests: 2,
+          input_tokens: 300,
+          output_tokens: 80,
+          cache_creation: 40,
+          cache_read: 120,
+          cache_hit_rate: 40,
+          cache_write_rate: 13.3,
+          cache_rw_ratio: 3,
+          total_cost: 0.42,
+          duration: "1m"
+        },
+        by_model: [
+          {
+            model: "claude-sonnet",
+            actual_model: "claude-3-5-sonnet",
+            requests: 2,
+            input_tokens: 300,
+            output_tokens: 80,
+            cache_creation: 40,
+            cache_read: 120,
+            cache_hit_rate: 40,
+            cost: 0.42,
+            avg_cost_per_mtoken: 1105.26
+          }
+        ]
+      })
+    );
+
+    const stats = await getUsageStats();
+
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/v1/stats/usage");
+    expect(stats.by_model[0].actual_model).toBe("claude-3-5-sonnet");
+    expect(stats.totals.cache_rw_ratio).toBe(3);
   });
 });

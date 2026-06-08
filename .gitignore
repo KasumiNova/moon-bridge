@@ -10,6 +10,7 @@ __pycache__/
 .planning/
 .superpowers/
 .worktrees/
+docs/superpowers/reports/
 helloagents/
 AGENTS.md
 CLAUDE.md

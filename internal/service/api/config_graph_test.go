@@ -4,6 +4,9 @@ import (
 	"net/http"
 	"testing"
 
+	"moonbridge/internal/config"
+	dbsqlite "moonbridge/internal/extension/db/sqlite"
+	"moonbridge/internal/extension/plugin"
 	"moonbridge/internal/service/configgraph"
 )
 
@@ -147,6 +150,47 @@ func TestValidateConfigGraphReturnsCandidateWithoutCommit(t *testing.T) {
 	defaults = assertGraphResource(t, graph, configgraph.ResourceDefaults, "main")
 	if got := defaults.Value["model"]; got != "claude-sonnet" {
 		t.Fatalf("committed defaults model = %q, want unchanged claude-sonnet", got)
+	}
+}
+
+func TestCreateConfigResourceUsesRegistryExtensionSpecs(t *testing.T) {
+	registry := plugin.NewRegistry(nil)
+	registry.Register(dbsqlite.NewPlugin())
+	enabled := true
+	f := newFixtureWithOptions(t, fixtureOptions{
+		registry: registry,
+		mutateConfig: func(cfg *config.Config) {
+			cfg.Extensions = map[string]config.ExtensionSettings{
+				dbsqlite.PluginName: {
+					Enabled: &enabled,
+					RawConfig: map[string]any{
+						"path": ":memory:",
+					},
+				},
+			}
+		},
+	})
+	revision := currentGraphRevision(t, f)
+
+	resp := f.request("POST", "/config/resources/model", map[string]any{
+		"baseRevision": revision,
+		"id":           "review-model",
+		"value": map[string]any{
+			"display_name":   "Review Model",
+			"context_window": 128000,
+		},
+	})
+	if resp.Code != http.StatusOK {
+		t.Fatalf("POST /config/resources/model returned %d: %s", resp.Code, resp.Body.String())
+	}
+
+	var patch configgraph.PatchResponse
+	f.decode(resp, &patch)
+	if patch.Result != configgraph.ResultCommitted {
+		t.Fatalf("Create resource result = %q, want %q; errors=%v", patch.Result, configgraph.ResultCommitted, patch.Errors)
+	}
+	if _, ok := f.rt.Current().Config.Models["review-model"]; !ok {
+		t.Fatal("runtime config missing created model")
 	}
 }
 

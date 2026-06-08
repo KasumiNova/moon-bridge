@@ -1,7 +1,9 @@
 import { screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { renderWithConsoleProviders } from "../../test/renderWithConsoleProviders";
 import * as configGraph from "../../rpc/configGraph";
+import * as management from "../../rpc/management";
 import { configGraphFixture } from "../../test/configGraphFixtures";
 import { SearchToolsPage } from "./SearchToolsPage";
 
@@ -25,7 +27,8 @@ describe("SearchToolsPage", () => {
     expect(within(screen.getByLabelText("Extension db_sqlite status")).getByText("Saved")).toBeInTheDocument();
     expect(within(screen.getByLabelText("Proxy main status")).getByText("Critical")).toBeInTheDocument();
 
-    expect(screen.getByLabelText("Support")).toHaveValue("auto");
+    expect(within(screen.getByRole("group", { name: "Support" })).getByRole("button", { name: "auto" }))
+      .toHaveAttribute("aria-pressed", "true");
     expect(screen.getByText("db_sqlite")).toBeInTheDocument();
     expect(screen.getByLabelText("Response Proxy")).toBeInTheDocument();
     expect(screen.queryByLabelText(/yaml/i)).not.toBeInTheDocument();
@@ -41,5 +44,85 @@ describe("SearchToolsPage", () => {
     expect(screen.getByRole("heading", { level: 2, name: "扩展" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "代理" })).toBeInTheDocument();
     expect(within(screen.getByLabelText("代理 main status")).getByText("关键运行时")).toBeInTheDocument();
+  });
+
+  test("creates an extension from the extensions section", async () => {
+    vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
+    vi.spyOn(management, "listExtensions").mockResolvedValue(["db_sqlite", "metrics"]);
+    const create = vi.spyOn(configGraph, "createConfigResource").mockResolvedValue({
+      result: "committed",
+      revision: "rev-2",
+      graph: configGraphFixture({ revision: "rev-2" })
+    });
+
+    renderWithConsoleProviders(<SearchToolsPage />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Add Extension" }));
+    const form = screen.getByRole("form", { name: "Create Extension" });
+    expect(within(form).queryByRole("textbox", { name: "Extension ID" })).not.toBeInTheDocument();
+    expect(within(form).getByRole("group", { name: "Extension ID" })).toBeInTheDocument();
+    await userEvent.click(within(form).getByRole("button", { name: "metrics" }));
+    await userEvent.click(screen.getByRole("button", { name: "Create Extension" }));
+
+    expect(create).toHaveBeenCalledWith("extension", {
+      baseRevision: "rev-1",
+      id: "metrics",
+      value: {
+        enabled: true
+      }
+    });
+  });
+
+  test("lets users disable a new extension and read create field help", async () => {
+    vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
+    vi.spyOn(management, "listExtensions").mockResolvedValue(["db_sqlite", "metrics"]);
+    const create = vi.spyOn(configGraph, "createConfigResource").mockResolvedValue({
+      result: "committed",
+      revision: "rev-2",
+      graph: configGraphFixture({ revision: "rev-2" })
+    });
+
+    renderWithConsoleProviders(<SearchToolsPage />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Add Extension" }));
+    const form = screen.getByRole("form", { name: "Create Extension" });
+    await userEvent.click(within(form).getByRole("button", { name: "Help for Enabled" }));
+    expect(within(form).getByRole("tooltip")).toHaveTextContent("Enables model-level or global extensions");
+    await userEvent.click(within(form).getByRole("button", { name: "metrics" }));
+    await userEvent.click(within(form).getByRole("switch", { name: "Enabled" }));
+    await userEvent.click(within(form).getByRole("button", { name: "Create Extension" }));
+
+    expect(create).toHaveBeenCalledWith("extension", {
+      baseRevision: "rev-1",
+      id: "metrics",
+      value: {
+        enabled: false
+      }
+    });
+  });
+
+  test("deletes extensions but not singleton search or proxy resources", async () => {
+    vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
+    const remove = vi.spyOn(configGraph, "deleteConfigResource").mockResolvedValue({
+      result: "committed",
+      revision: "rev-2",
+      graph: configGraphFixture({
+        revision: "rev-2",
+        resources: configGraphFixture().resources.filter((resource) => resource.id !== "db_sqlite")
+      })
+    });
+
+    renderWithConsoleProviders(<SearchToolsPage />);
+
+    expect(await screen.findByRole("heading", { level: 2, name: "Web Search" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Delete Web Search main" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Delete Proxy main" })).not.toBeInTheDocument();
+
+    const extensionPanel = screen.getByText("db_sqlite").closest("section")!;
+    await userEvent.click(within(extensionPanel).getByRole("button", { name: "Delete Extension db_sqlite" }));
+    await userEvent.click(within(extensionPanel).getByRole("button", { name: "Confirm delete db_sqlite" }));
+
+    expect(remove).toHaveBeenCalledWith("extension", "db_sqlite", "rev-1");
+    expect(screen.queryByText("db_sqlite")).not.toBeInTheDocument();
   });
 });

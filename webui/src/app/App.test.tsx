@@ -27,8 +27,7 @@ describe("AppShell", () => {
       "Defaults",
       "Search & Tools",
       "Storage",
-      "Security",
-      "Logs"
+      "Security"
     ]);
     expect(document.querySelector(".navigation-rail")?.textContent).not.toContain("Config");
     expect(document.querySelector(".navigation-rail")?.textContent).not.toContain("RPC Test");
@@ -49,6 +48,19 @@ describe("AppShell", () => {
     expect(screen.queryByRole("button", { name: /apply/i })).not.toBeInTheDocument();
   });
 
+  test("uses app-styled locale actions instead of a native browser select", () => {
+    renderWithConsoleProviders(
+      <MemoryRouter>
+        <AppShell content={<div>Console content</div>} />
+      </MemoryRouter>
+    );
+
+    expect(document.querySelector(".top-app-bar__meta select")).not.toBeInTheDocument();
+    expect(screen.getByRole("group", { name: /language/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "English" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "中文" })).toHaveAttribute("aria-pressed", "false");
+  });
+
   test("keeps route content in a named main landmark with mobile-safe nav labels", () => {
     renderWithConsoleProviders(
       <MemoryRouter>
@@ -61,5 +73,6 @@ describe("AppShell", () => {
     expect(screen.getByRole("link", { name: /search & tools/i })).toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: /console sections/i })).not.toHaveTextContent("YAML");
     expect(screen.getByRole("navigation", { name: /console sections/i })).not.toHaveTextContent("Diagnostics");
+    expect(screen.getByRole("navigation", { name: /console sections/i })).not.toHaveTextContent("Logs");
   });
 });

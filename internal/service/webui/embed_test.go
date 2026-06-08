@@ -4,6 +4,7 @@ import (
 	"io/fs"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -71,6 +72,36 @@ func TestEmbeddedReturnsHandler(t *testing.T) {
 
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
+	}
+}
+
+func TestEmbeddedIndexReferencesExistingAssets(t *testing.T) {
+	handler := webui.Embedded()
+
+	index := httptest.NewRecorder()
+	handler.ServeHTTP(index, httptest.NewRequest(http.MethodGet, "/console/", nil))
+	if index.Code != http.StatusOK {
+		t.Fatalf("index status = %d, body = %s", index.Code, index.Body.String())
+	}
+
+	scriptSrcs := regexp.MustCompile(`src="(/console/assets/[^"]+)"`).FindAllStringSubmatch(index.Body.String(), -1)
+	if len(scriptSrcs) == 0 {
+		t.Fatalf("index does not reference any console script asset: %s", index.Body.String())
+	}
+
+	for _, match := range scriptSrcs {
+		assetPath := match[1]
+		recorder := httptest.NewRecorder()
+		handler.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, assetPath, nil))
+		if recorder.Code != http.StatusOK {
+			t.Fatalf("asset %s status = %d, body = %s", assetPath, recorder.Code, recorder.Body.String())
+		}
+		if contentType := recorder.Header().Get("Content-Type"); !strings.Contains(contentType, "javascript") {
+			t.Fatalf("asset %s Content-Type = %q, want javascript", assetPath, contentType)
+		}
+		if recorder.Body.Len() == 0 {
+			t.Fatalf("asset %s is empty", assetPath)
+		}
 	}
 }
 

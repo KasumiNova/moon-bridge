@@ -1,6 +1,7 @@
 import { LoadingState } from "../../components/LoadingState";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { ConfigResource, ResourceKind } from "../../rpc/types";
+import { CreateResourcePanel } from "../configGraph/CreateResourcePanel";
 import { ResourceEditorCard } from "../configGraph/ResourceEditorCard";
 import { useConfigGraph } from "../configGraph/useConfigGraph";
 import { PageHeader, QueryErrorState } from "../shared";
@@ -19,6 +20,8 @@ export function ModelsProvidersPage() {
   const providers = resourcesByKind(graph.data.resources, "provider");
   const offers = resourcesByKind(graph.data.resources, "provider_offer");
   const models = resourcesByKind(graph.data.resources, "model");
+  const offersByProvider = groupOffersByProvider(offers);
+  const unmatchedOffers = offers.filter((offer) => !providers.some((provider) => provider.id === providerIdForOffer(offer)));
 
   return (
     <section className="page-stack" aria-labelledby="models-providers-title">
@@ -27,35 +30,62 @@ export function ModelsProvidersPage() {
       </PageHeader>
 
       <section className="content-panel" aria-labelledby="providers-heading">
-        <h2 id="providers-heading">{t("modelsProviders.providers", { count: providers.length })}</h2>
+        <div className="section-heading">
+          <h2 id="providers-heading">{t("modelsProviders.providers", { count: providers.length })}</h2>
+          <CreateResourcePanel graph={graph.data} kind="provider" />
+        </div>
         <div className="resource-card-list">
           {providers.map((provider) => (
-            <ResourceEditorCard
-              key={provider.id}
-              resource={provider}
-              revision={graph.data.revision}
-              title={t("resource.kind.provider")}
-            />
+            <section className="provider-resource-group" aria-label={`Provider ${provider.id}`} key={provider.id}>
+              <ResourceEditorCard
+                resource={provider}
+                revision={graph.data.revision}
+                title={t("resource.kind.provider")}
+              />
+              <section className="provider-offers" aria-labelledby={`provider-${provider.id}-offers-heading`}>
+                <div className="section-heading section-heading--compact">
+                  <h3 id={`provider-${provider.id}-offers-heading`}>
+                    {t("modelsProviders.offers", { count: offersByProvider.get(provider.id)?.length ?? 0 })}
+                  </h3>
+                  <CreateResourcePanel graph={graph.data} kind="provider_offer" providerId={provider.id} />
+                </div>
+                <div className="resource-card-list resource-card-list--compact">
+                  {(offersByProvider.get(provider.id) ?? []).map((offer) => (
+                    <ResourceEditorCard
+                      key={offer.id}
+                      resource={offer}
+                      revision={graph.data.revision}
+                      title={t("resource.kind.offer")}
+                    />
+                  ))}
+                </div>
+              </section>
+            </section>
           ))}
         </div>
       </section>
 
-      <section className="content-panel" aria-labelledby="offers-heading">
-        <h2 id="offers-heading">{t("modelsProviders.offers", { count: offers.length })}</h2>
-        <div className="resource-card-list">
-          {offers.map((offer) => (
-            <ResourceEditorCard
-              key={offer.id}
-              resource={offer}
-              revision={graph.data.revision}
-              title={t("resource.kind.offer")}
-            />
-          ))}
-        </div>
-      </section>
+      {unmatchedOffers.length > 0 ? (
+        <section className="content-panel" aria-labelledby="offers-heading">
+          <h2 id="offers-heading">{t("modelsProviders.offers", { count: unmatchedOffers.length })}</h2>
+          <div className="resource-card-list">
+            {unmatchedOffers.map((offer) => (
+              <ResourceEditorCard
+                key={offer.id}
+                resource={offer}
+                revision={graph.data.revision}
+                title={t("resource.kind.offer")}
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <section className="content-panel" aria-labelledby="models-heading">
-        <h2 id="models-heading">{t("modelsProviders.models", { count: models.length })}</h2>
+        <div className="section-heading">
+          <h2 id="models-heading">{t("modelsProviders.models", { count: models.length })}</h2>
+          <CreateResourcePanel graph={graph.data} kind="model" />
+        </div>
         <div className="resource-card-list">
           {models.map((model) => (
             <ResourceEditorCard
@@ -73,4 +103,19 @@ export function ModelsProvidersPage() {
 
 function resourcesByKind(resources: ConfigResource[], kind: ResourceKind) {
   return resources.filter((resource) => resource.kind === kind);
+}
+
+function groupOffersByProvider(offers: ConfigResource[]) {
+  const groups = new Map<string, ConfigResource[]>();
+  for (const offer of offers) {
+    const providerId = providerIdForOffer(offer);
+    const group = groups.get(providerId) ?? [];
+    group.push(offer);
+    groups.set(providerId, group);
+  }
+  return groups;
+}
+
+function providerIdForOffer(offer: ConfigResource) {
+  return offer.id.split("/", 1)[0] ?? "";
 }

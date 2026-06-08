@@ -1,4 +1,5 @@
 import { act, fireEvent, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { renderWithConsoleProviders } from "../../test/renderWithConsoleProviders";
 import * as configGraph from "../../rpc/configGraph";
@@ -24,8 +25,8 @@ describe("RoutesPage", () => {
     expect(screen.getByLabelText("Provider")).toBeInTheDocument();
     expect(screen.getByLabelText("Display Name")).toBeInTheDocument();
     expect(screen.getByLabelText("Context Window")).toBeInTheDocument();
-    expect(screen.getByLabelText("Web Search")).toBeInTheDocument();
-    expect(screen.getByLabelText("Extensions")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Web Search.*1 key/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Extensions.*0 keys/ })).toBeInTheDocument();
     expect(screen.queryByLabelText(/priority/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/fallback/i)).not.toBeInTheDocument();
   });
@@ -58,6 +59,52 @@ describe("RoutesPage", () => {
         }
       ]
     });
+  });
+
+  test("creates a route from current graph model and provider options", async () => {
+    vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
+    const create = vi.spyOn(configGraph, "createConfigResource").mockResolvedValue({
+      result: "committed",
+      revision: "rev-2",
+      graph: configGraphFixture({ revision: "rev-2" })
+    });
+
+    renderWithConsoleProviders(<RoutesPage />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Add Route" }));
+    await userEvent.type(screen.getByLabelText("Route alias"), "fast");
+    await userEvent.click(screen.getByRole("button", { name: "Create Route" }));
+
+    expect(create).toHaveBeenCalledWith("route", {
+      baseRevision: "rev-1",
+      id: "fast",
+      value: {
+        model: "claude-sonnet",
+        provider: "anthropic"
+      }
+    });
+  });
+
+  test("deletes a route after inline confirmation", async () => {
+    vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
+    const remove = vi.spyOn(configGraph, "deleteConfigResource").mockResolvedValue({
+      result: "committed",
+      revision: "rev-2",
+      graph: configGraphFixture({
+        revision: "rev-2",
+        resources: configGraphFixture().resources.filter((resource) => resource.kind !== "route")
+      })
+    });
+
+    renderWithConsoleProviders(<RoutesPage />);
+
+    const routePanel = await screen.findByLabelText("Route primary");
+    await userEvent.click(within(routePanel).getByRole("button", { name: "Delete Route primary" }));
+    expect(remove).not.toHaveBeenCalled();
+    await userEvent.click(within(routePanel).getByRole("button", { name: "Confirm delete primary" }));
+
+    expect(remove).toHaveBeenCalledWith("route", "primary", "rev-1");
+    expect(screen.queryByLabelText("Route primary")).not.toBeInTheDocument();
   });
 });
 

@@ -37,7 +37,7 @@ describe("config graph console smoke flow", () => {
     expect(nav).toHaveTextContent("Overview");
     expect(nav).toHaveTextContent("Models & Providers");
     expect(nav).toHaveTextContent("Search & Tools");
-    expect(nav).toHaveTextContent("Logs");
+    expect(nav).not.toHaveTextContent("Logs");
     expect(nav).not.toHaveTextContent("Config");
     expect(nav).not.toHaveTextContent("YAML");
     expect(nav).not.toHaveTextContent("Diagnostics");
@@ -58,18 +58,31 @@ describe("config graph console smoke flow", () => {
     expect(screen.getByLabelText("anthropic status")).toHaveTextContent("Saved");
   });
 
-  test("overview loads runtime state from the config graph", async () => {
+  test("overview loads model usage and embedded logs", async () => {
     mockFetch({
-      graph: configGraphFixture()
+      graph: configGraphFixture(),
+      logs: [
+        {
+          timestamp: "2026-06-07T00:00:00Z",
+          level: "INFO",
+          message: "server started",
+          raw: "time=2026-06-07T00:00:00Z level=INFO msg=server-started"
+        }
+      ],
+      usage: usageFixture()
     });
 
     renderWithConsoleProviders(<OverviewPage />);
 
     expect(document.documentElement.dataset.theme).toBe("dark");
     expect(localStorage.getItem(CONSOLE_THEME_STORAGE_KEY)).toBe("dark");
-    expect(await screen.findByText("Transform")).toBeInTheDocument();
-    expect(screen.getAllByText("Valid").length).toBeGreaterThan(0);
-    expect(screen.getByText("rev-1")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Usage Analytics" })).toBeInTheDocument();
+    expect(await screen.findByText("2 requests")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: /Token split chart/ })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Backend logs" })).toBeInTheDocument();
+    expect(screen.getByText(/server-started/)).toBeInTheDocument();
+    expect(screen.queryByText("Transform")).not.toBeInTheDocument();
+    expect(screen.queryByText("rev-1")).not.toBeInTheDocument();
   });
 
   test("editing a field patches the config graph directly", async () => {
@@ -182,11 +195,13 @@ describe("config graph console smoke flow", () => {
 function mockFetch({
   graph,
   patch,
-  logs = []
+  logs = [],
+  usage = emptyUsageFixture()
 }: {
   graph: ConfigGraph;
   patch?: PatchResponse;
   logs?: unknown[];
+  usage?: unknown;
 }) {
   const calls: FetchCall[] = [];
   const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -209,6 +224,9 @@ function mockFetch({
     }
     if (url === "/api/v1/logs/stream") {
       return new Response(new ReadableStream<Uint8Array>(), { status: 200 });
+    }
+    if (url === "/api/v1/stats/usage") {
+      return jsonResponse(usage);
     }
     throw new Error(`Unexpected fetch: ${method} ${url}`);
   });
@@ -239,4 +257,53 @@ function fieldError(
   message: string
 ): FieldError {
   return { resourceKind, resourceId, field, code, message };
+}
+
+function usageFixture() {
+  return {
+    totals: {
+      requests: 2,
+      input_tokens: 300,
+      output_tokens: 80,
+      cache_creation: 40,
+      cache_read: 120,
+      cache_hit_rate: 40,
+      cache_write_rate: 13.3,
+      cache_rw_ratio: 3,
+      total_cost: 0.42,
+      duration: "1m"
+    },
+    by_model: [
+      {
+        model: "claude-sonnet",
+        actual_model: "claude-3-5-sonnet",
+        requests: 2,
+        input_tokens: 300,
+        output_tokens: 80,
+        cache_creation: 40,
+        cache_read: 120,
+        cache_hit_rate: 40,
+        cost: 0.42,
+        avg_cost_per_mtoken: 1105.26
+      }
+    ]
+  };
+}
+
+function emptyUsageFixture() {
+  return {
+    totals: {
+      requests: 0,
+      input_tokens: 0,
+      output_tokens: 0,
+      cache_creation: 0,
+      cache_read: 0,
+      cache_hit_rate: 0,
+      cache_write_rate: 0,
+      cache_rw_ratio: 0,
+      total_cost: 0,
+      duration: "0s"
+    },
+    by_model: []
+  };
 }

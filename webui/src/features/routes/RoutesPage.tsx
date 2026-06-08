@@ -1,6 +1,7 @@
 import { LoadingState } from "../../components/LoadingState";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { ConfigResource } from "../../rpc/types";
+import { CreateResourcePanel } from "../configGraph/CreateResourcePanel";
 import { ResourceEditorCard } from "../configGraph/ResourceEditorCard";
 import { useConfigGraph } from "../configGraph/useConfigGraph";
 import { PageHeader, QueryErrorState } from "../shared";
@@ -23,6 +24,13 @@ export function RoutesPage() {
       <PageHeader eyebrow={t("pageEyebrow.aliases")} title={t("nav.routes")}>
         {t("routes.description")}
       </PageHeader>
+
+      <section className="content-panel" aria-labelledby="routes-list-heading">
+        <div className="section-heading">
+          <h2 id="routes-list-heading">{t("routes.listTitle", { count: routes.length })}</h2>
+          <CreateResourcePanel graph={graph.data} kind="route" />
+        </div>
+      </section>
 
       {routes.map((route) => (
         <RouteEditor key={route.id} resource={route} revision={graph.data.revision} />

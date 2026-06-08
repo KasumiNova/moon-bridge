@@ -122,6 +122,37 @@ export type StatsSummary = {
   duration: string;
 };
 
+export type UsageStats = {
+  totals: UsageStatsTotals;
+  by_model: UsageStatsModelRow[];
+};
+
+export type UsageStatsTotals = {
+  requests: number;
+  input_tokens: number;
+  output_tokens: number;
+  cache_creation: number;
+  cache_read: number;
+  cache_hit_rate: number;
+  cache_write_rate: number;
+  cache_rw_ratio: number;
+  total_cost: number;
+  duration: string;
+};
+
+export type UsageStatsModelRow = {
+  model: string;
+  actual_model: string;
+  requests: number;
+  input_tokens: number;
+  output_tokens: number;
+  cache_creation: number;
+  cache_read: number;
+  cache_hit_rate: number;
+  cost: number;
+  avg_cost_per_mtoken: number;
+};
+
 export type SessionInfo = {
   key: string;
   model?: string;

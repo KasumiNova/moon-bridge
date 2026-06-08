@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"moonbridge/internal/config"
+	dbsqlite "moonbridge/internal/extension/db/sqlite"
 	runtimepkg "moonbridge/internal/service/runtime"
 )
 
@@ -244,6 +245,43 @@ func TestServicePatchSavesRestartRequiredChangeWithoutReload(t *testing.T) {
 	}
 	if rt.current.AuthToken != cfg.AuthToken {
 		t.Fatalf("runtime AuthToken = %q, want unchanged %q", rt.current.AuthToken, cfg.AuthToken)
+	}
+}
+
+func TestServiceCreateResourceAcceptsExistingRegisteredExtensionConfig(t *testing.T) {
+	cfg := testConfig()
+	enabled := true
+	cfg.Extensions = map[string]config.ExtensionSettings{
+		dbsqlite.PluginName: {
+			Enabled: &enabled,
+			RawConfig: map[string]any{
+				"path": ":memory:",
+			},
+		},
+	}
+	svc, store, rt := newServiceForTest(cfg, "rev-1")
+	store.nextRevision = "rev-2"
+	svc.WithExtensionSpecs(dbsqlite.ConfigSpecs())
+
+	resp, err := svc.CreateResource(context.Background(), ResourceModel, "review-model", map[string]any{
+		"display_name":   "Review Model",
+		"context_window": 128000,
+	})
+
+	if err != nil {
+		t.Fatalf("CreateResource() error = %v", err)
+	}
+	if resp.Result != ResultCommitted {
+		t.Fatalf("CreateResource().Result = %q, want %q; errors=%v", resp.Result, ResultCommitted, resp.Errors)
+	}
+	if resp.Revision != "rev-2" {
+		t.Fatalf("CreateResource().Revision = %q, want rev-2", resp.Revision)
+	}
+	if _, ok := store.cfg.Models["review-model"]; !ok {
+		t.Fatal("stored config missing created model")
+	}
+	if _, ok := rt.current.Models["review-model"]; !ok {
+		t.Fatal("runtime config missing created model after reload")
 	}
 }
 

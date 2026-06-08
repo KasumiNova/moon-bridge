@@ -24,7 +24,8 @@ describe("DefaultsPage", () => {
     expect(within(screen.getByLabelText("Log main status")).getByText("Saved")).toBeInTheDocument();
     expect(screen.getAllByText("Hot reload").length).toBeGreaterThan(0);
     expect(screen.getByLabelText("Model")).toHaveValue("claude-sonnet");
-    expect(screen.getByLabelText("Level")).toHaveValue("info");
+    expect(within(screen.getByRole("group", { name: "Level" })).getByRole("button", { name: "info" }))
+      .toHaveAttribute("aria-pressed", "true");
   });
 
   test("autosaves defaults through graph patches", async () => {
@@ -56,6 +57,17 @@ describe("DefaultsPage", () => {
         }
       ]
     });
+  });
+
+  test("does not expose delete actions for singleton default resources", async () => {
+    vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
+
+    renderWithConsoleProviders(<DefaultsPage />);
+
+    expect(await screen.findByRole("heading", { level: 2, name: "Defaults" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Delete Defaults main" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Delete Trace main" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Delete Log main" })).not.toBeInTheDocument();
   });
 });
 

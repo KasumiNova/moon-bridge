@@ -6,21 +6,56 @@ import { renderWithConsoleProviders } from "../../test/renderWithConsoleProvider
 import { SchemaField } from "./SchemaField";
 
 describe("SchemaField", () => {
-  test("renders enum fields as selects", async () => {
+  test("renders enum fields as app-styled option buttons", async () => {
     const field: FieldSchema = {
       path: "protocol",
       type: "string",
       label: "Protocol",
       control: "select",
-      enum: ["anthropic", "openai-response"],
+      enum: ["anthropic", "openai-response", "openai-chat", "google-genai"],
       hotReloadable: true
     };
     const onChange = vi.fn();
     renderWithConsoleProviders(<SchemaField field={field} value="anthropic" onChange={onChange} />);
 
-    await userEvent.selectOptions(screen.getByLabelText("Protocol"), "openai-response");
+    expect(document.querySelector(".schema-field select")).not.toBeInTheDocument();
+    const group = screen.getByRole("group", { name: "Protocol" });
+    expect(group).toBeInTheDocument();
+    expect(document.querySelector("label[for='schema-field-protocol']")).not.toBeInTheDocument();
+    expect(document.getElementById("schema-field-protocol")).toBe(group);
+    expect(group).toHaveAttribute("aria-labelledby", "schema-field-protocol-label");
+    expect(document.getElementById("schema-field-protocol-label")).toHaveTextContent("Protocol");
+    expect(screen.getByRole("button", { name: /Anthropic/ })).toHaveAttribute("aria-pressed", "true");
+
+    await userEvent.click(screen.getByRole("button", { name: /OpenAI Responses/ }));
 
     expect(onChange).toHaveBeenCalledWith("openai-response");
+  });
+
+  test("shows field help from config docs on demand", async () => {
+    const field: FieldSchema = {
+      path: "base_url",
+      type: "string",
+      label: "Base URL",
+      hotReloadable: true
+    };
+
+    renderWithConsoleProviders(
+      <SchemaField
+        field={field}
+        value="https://api.anthropic.com"
+        onChange={() => undefined}
+        docPath="providers.<key>.base_url"
+      />
+    );
+
+    const helpButton = screen.getByRole("button", { name: "Help for Base URL" });
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+
+    await userEvent.click(helpButton);
+
+    expect(screen.getByRole("tooltip")).toHaveTextContent("Upstream provider API URL");
+    expect(helpButton).toHaveAttribute("aria-describedby");
   });
 
   test("renders secret fields without exposing the value", () => {
@@ -63,10 +98,32 @@ describe("SchemaField", () => {
     const onChange = vi.fn();
     renderWithConsoleProviders(<SchemaField field={field} value={1024} onChange={onChange} />);
 
+    expect(screen.getByLabelText("Max tokens")).toHaveAttribute("type", "text");
+
     await userEvent.clear(screen.getByLabelText("Max tokens"));
     await userEvent.type(screen.getByLabelText("Max tokens"), "2048");
 
     expect(onChange).toHaveBeenLastCalledWith(2048);
+  });
+
+  test("rejects invalid numeric input without emitting autosave changes", async () => {
+    const field: FieldSchema = {
+      path: "max_tokens",
+      type: "number",
+      label: "Max tokens",
+      hotReloadable: true
+    };
+    const onChange = vi.fn();
+    renderWithConsoleProviders(<SchemaField field={field} value={1024} onChange={onChange} />);
+
+    const input = screen.getByLabelText("Max tokens");
+    await userEvent.clear(input);
+    onChange.mockClear();
+    await userEvent.type(input, "abc");
+
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByRole("alert")).toHaveTextContent("Invalid number");
+    expect(onChange).not.toHaveBeenCalled();
   });
 
   test("shows an inline JSON error without emitting invalid object values", async () => {
@@ -80,12 +137,39 @@ describe("SchemaField", () => {
     const onChange = vi.fn();
     renderWithConsoleProviders(<SchemaField field={field} value={{ input_price: 3 }} onChange={onChange} />);
 
-    await userEvent.clear(screen.getByLabelText("Pricing"));
-    await userEvent.type(screen.getByLabelText("Pricing"), "{{");
+    expect(screen.queryByLabelText("Pricing JSON editor")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Pricing.*1 key/ })).toBeInTheDocument();
 
-    expect(screen.getByLabelText("Pricing")).toHaveAttribute("aria-invalid", "true");
+    await userEvent.click(screen.getByRole("button", { name: /Pricing.*1 key/ }));
+    expect(screen.getByLabelText("Pricing JSON editor")).toHaveFocus();
+    await userEvent.clear(screen.getByLabelText("Pricing JSON editor"));
+    await userEvent.type(screen.getByLabelText("Pricing JSON editor"), "{{");
+
+    expect(screen.getByLabelText("Pricing JSON editor")).toHaveAttribute("aria-invalid", "true");
     expect(screen.getByRole("alert")).toHaveTextContent("Invalid JSON");
     expect(onChange).not.toHaveBeenCalled();
+  });
+
+  test("toggles boolean fields with an app-styled switch instead of a native checkbox", async () => {
+    const field: FieldSchema = {
+      path: "enabled",
+      type: "boolean",
+      label: "Enabled",
+      control: "switch",
+      hotReloadable: true
+    };
+    const onChange = vi.fn();
+
+    renderWithConsoleProviders(<SchemaField field={field} value={false} onChange={onChange} />);
+
+    expect(document.querySelector(".schema-field input[type='checkbox']")).not.toBeInTheDocument();
+
+    const toggle = screen.getByRole("switch", { name: "Enabled" });
+    expect(toggle).toHaveAttribute("aria-checked", "false");
+
+    await userEvent.click(toggle);
+
+    expect(onChange).toHaveBeenCalledWith(true);
   });
 
   test("marks textarea and object controls as wide layout fields", () => {
@@ -112,6 +196,6 @@ describe("SchemaField", () => {
       />
     );
 
-    expect(screen.getByLabelText("Extensions").closest(".schema-field")).toHaveClass("schema-field--wide");
+    expect(screen.getByRole("button", { name: /Extensions.*0 keys/ }).closest(".schema-field")).toHaveClass("schema-field--wide");
   });
 });

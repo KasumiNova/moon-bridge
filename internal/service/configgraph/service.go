@@ -23,9 +23,10 @@ type Runtime interface {
 }
 
 type Service struct {
-	store   Store
-	runtime Runtime
-	logger  *slog.Logger
+	store          Store
+	runtime        Runtime
+	logger         *slog.Logger
+	extensionSpecs []config.ExtensionConfigSpec
 }
 
 func NewService(store Store, rt Runtime, logger *slog.Logger) *Service {
@@ -39,6 +40,11 @@ func NewService(store Store, rt Runtime, logger *slog.Logger) *Service {
 		logger = slog.Default()
 	}
 	return &Service{store: store, runtime: rt, logger: logger}
+}
+
+func (s *Service) WithExtensionSpecs(specs []config.ExtensionConfigSpec) *Service {
+	s.extensionSpecs = append([]config.ExtensionConfigSpec(nil), specs...)
+	return s
 }
 
 func (s *Service) Graph(context.Context) (Graph, error) {
@@ -169,7 +175,7 @@ func (s *Service) DeleteResource(ctx context.Context, kind ResourceKind, id stri
 }
 
 func (s *Service) acceptCandidate(ctx context.Context, fc config.FileConfig, revision string, ops []PatchOp, commit bool) (PatchResponse, error) {
-	candidate, errs := runtimeConfigFromFileConfig(fc, ops)
+	candidate, errs := s.runtimeConfigFromFileConfig(fc, ops)
 	if len(errs) > 0 {
 		return PatchResponse{Result: ResultValidationRejected, Revision: revision, Errors: errs}, nil
 	}
@@ -214,8 +220,8 @@ func (s *Service) acceptCandidate(ctx context.Context, fc config.FileConfig, rev
 	return PatchResponse{Result: ResultCommitted, Revision: nextRevision, Graph: &graph}, nil
 }
 
-func runtimeConfigFromFileConfig(fc config.FileConfig, ops []PatchOp) (config.Config, []FieldError) {
-	cfg, err := config.FromFileConfig(fc)
+func (s *Service) runtimeConfigFromFileConfig(fc config.FileConfig, ops []PatchOp) (config.Config, []FieldError) {
+	cfg, err := config.FromFileConfigWithOptions(fc, config.LoadOptions{ExtensionSpecs: s.extensionSpecs})
 	if err != nil {
 		return config.Config{}, []FieldError{runtimeFieldError(ops, "configValidationRejected", err)}
 	}

@@ -22,7 +22,11 @@ type deleteConfigResourceRequest struct {
 }
 
 func (r *Router) configGraphService() *configgraph.Service {
-	return configgraph.NewService(r.store, r.runtime, slog.Default())
+	svc := configgraph.NewService(r.store, r.runtime, slog.Default())
+	if r.registry != nil {
+		svc.WithExtensionSpecs(r.registry.ConfigSpecs())
+	}
+	return svc
 }
 
 func (r *Router) handleGetConfigGraph(w http.ResponseWriter, req *http.Request) {

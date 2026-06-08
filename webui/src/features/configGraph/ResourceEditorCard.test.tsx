@@ -82,7 +82,7 @@ describe("ResourceEditorCard", () => {
     expect(screen.getAllByText("变更后重启").length).toBeGreaterThan(0);
   });
 
-  test("groups identity fields before advanced object fields", () => {
+  test("merges object fields into settings instead of an Advanced JSON group", () => {
     vi.spyOn(configGraph, "patchConfigGraph").mockResolvedValue({
       result: "committed",
       revision: "rev-2"
@@ -107,14 +107,13 @@ describe("ResourceEditorCard", () => {
 
     const identityGroup = screen.getByRole("group", { name: "Identity" });
     const standardGroup = screen.getByRole("group", { name: "Settings" });
-    const advancedGroup = screen.getByRole("group", { name: "Advanced JSON" });
 
     expect(within(identityGroup).getByLabelText("Model")).toBeInTheDocument();
     expect(within(identityGroup).getByLabelText("Upstream Name")).toBeInTheDocument();
     expect(within(standardGroup).getByLabelText("Priority")).toBeInTheDocument();
-    expect(within(advancedGroup).getByLabelText("Pricing")).toBeInTheDocument();
-    expect(within(advancedGroup).getByLabelText("Overrides")).toBeInTheDocument();
-    expect(identityGroup.compareDocumentPosition(advancedGroup) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(standardGroup).getByRole("button", { name: /Pricing.*1 key/ })).toBeInTheDocument();
+    expect(within(standardGroup).getByRole("button", { name: /Overrides.*0 keys/ })).toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: "Advanced JSON" })).not.toBeInTheDocument();
   });
 
   test("keeps plain long text fields in settings instead of advanced JSON", () => {
@@ -137,5 +136,35 @@ describe("ResourceEditorCard", () => {
     const settingsGroup = screen.getByRole("group", { name: "Settings" });
     expect(within(settingsGroup).getByLabelText("Description")).toBeInTheDocument();
     expect(screen.queryByRole("group", { name: "Advanced JSON" })).not.toBeInTheDocument();
+  });
+
+  test("classifies field widths by expected content density", () => {
+    vi.spyOn(configGraph, "patchConfigGraph").mockResolvedValue({
+      result: "committed",
+      revision: "rev-2"
+    });
+    const model = resource("model", "claude-sonnet", "Claude Sonnet", {
+      display_name: "Claude Sonnet",
+      context_window: 200000,
+      default_reasoning_level: "medium",
+      description: "Balanced model",
+      extensions: {}
+    }, [
+      field("display_name", "Display Name"),
+      field("context_window", "Context Window", "number", "number"),
+      field("default_reasoning_level", "Default Reasoning Level"),
+      field("description", "Description", "string", "textarea"),
+      field("extensions", "Extensions", "object", "object")
+    ]);
+
+    renderWithConsoleProviders(
+      <ResourceEditorCard resource={model} revision="rev-1" title="Model" />
+    );
+
+    expect(screen.getByLabelText("Display Name").closest(".form-grid__medium")).toBeInTheDocument();
+    expect(screen.getByLabelText("Context Window").closest(".form-grid__compact")).toBeInTheDocument();
+    expect(screen.getByLabelText("Default Reasoning Level").closest(".form-grid__compact")).toBeInTheDocument();
+    expect(screen.getByLabelText("Description").closest(".form-grid__wide")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Extensions.*0 keys/ }).closest(".form-grid__wide")).toBeInTheDocument();
   });
 });

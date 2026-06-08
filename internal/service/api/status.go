@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"sort"
 	"time"
+
+	"moonbridge/internal/service/stats"
 )
 
 // ---- Status ----
@@ -113,6 +115,120 @@ func (r *Router) handleGetStatsSummary(w http.ResponseWriter, req *http.Request)
 		"total_cost":     summary.TotalCost,
 		"duration":       summary.Duration.String(),
 	})
+}
+
+// GET /stats/usage
+func (r *Router) handleGetStatsUsage(w http.ResponseWriter, req *http.Request) {
+	if r.stats == nil {
+		respondJSON(w, http.StatusOK, emptyUsageStatsResponse())
+		return
+	}
+
+	respondJSON(w, http.StatusOK, usageStatsFromSummary(r.stats.Summary()))
+}
+
+type usageStatsResponse struct {
+	Totals  usageTotals     `json:"totals"`
+	ByModel []usageModelRow `json:"by_model"`
+}
+
+type usageTotals struct {
+	Requests       int64   `json:"requests"`
+	InputTokens    int64   `json:"input_tokens"`
+	OutputTokens   int64   `json:"output_tokens"`
+	CacheCreation  int64   `json:"cache_creation"`
+	CacheRead      int64   `json:"cache_read"`
+	CacheHitRate   float64 `json:"cache_hit_rate"`
+	CacheWriteRate float64 `json:"cache_write_rate"`
+	CacheRWRatio   float64 `json:"cache_rw_ratio"`
+	TotalCost      float64 `json:"total_cost"`
+	Duration       string  `json:"duration"`
+}
+
+type usageModelRow struct {
+	Model             string  `json:"model"`
+	ActualModel       string  `json:"actual_model"`
+	Requests          int64   `json:"requests"`
+	InputTokens       int64   `json:"input_tokens"`
+	OutputTokens      int64   `json:"output_tokens"`
+	CacheCreation     int64   `json:"cache_creation"`
+	CacheRead         int64   `json:"cache_read"`
+	CacheHitRate      float64 `json:"cache_hit_rate"`
+	Cost              float64 `json:"cost"`
+	AvgCostPerMTokens float64 `json:"avg_cost_per_mtoken"`
+}
+
+func emptyUsageStatsResponse() usageStatsResponse {
+	return usageStatsResponse{
+		Totals: usageTotals{
+			Duration: "0s",
+		},
+		ByModel: []usageModelRow{},
+	}
+}
+
+func usageStatsFromSummary(summary stats.Summary) usageStatsResponse {
+	rows := make([]usageModelRow, 0, len(summary.ByModel))
+	for model, modelStats := range summary.ByModel {
+		if modelStats == nil {
+			continue
+		}
+		rows = append(rows, usageModelRow{
+			Model:             model,
+			ActualModel:       summary.ActualModelNames[model],
+			Requests:          modelStats.Requests,
+			InputTokens:       modelStats.InputTokens,
+			OutputTokens:      modelStats.OutputTokens,
+			CacheCreation:     modelStats.CacheCreation,
+			CacheRead:         modelStats.CacheRead,
+			CacheHitRate:      rate(modelStats.CacheRead, modelStats.InputTokens),
+			Cost:              modelStats.Cost,
+			AvgCostPerMTokens: costPerMTokens(modelStats.Cost, modelStats.InputTokens+modelStats.OutputTokens),
+		})
+	}
+	sort.Slice(rows, func(i, j int) bool {
+		if rows[i].Cost == rows[j].Cost {
+			return rows[i].Model < rows[j].Model
+		}
+		return rows[i].Cost > rows[j].Cost
+	})
+
+	return usageStatsResponse{
+		Totals: usageTotals{
+			Requests:       summary.Requests,
+			InputTokens:    summary.InputTokens,
+			OutputTokens:   summary.OutputTokens,
+			CacheCreation:  summary.CacheCreation,
+			CacheRead:      summary.CacheRead,
+			CacheHitRate:   summary.CacheHitRate,
+			CacheWriteRate: summary.CacheWriteRate,
+			CacheRWRatio:   ratio(summary.CacheRead, summary.CacheCreation),
+			TotalCost:      summary.TotalCost,
+			Duration:       summary.Duration.String(),
+		},
+		ByModel: rows,
+	}
+}
+
+func rate(numerator, denominator int64) float64 {
+	if denominator <= 0 {
+		return 0
+	}
+	return float64(numerator) / float64(denominator) * 100
+}
+
+func ratio(numerator, denominator int64) float64 {
+	if denominator <= 0 {
+		return 0
+	}
+	return float64(numerator) / float64(denominator)
+}
+
+func costPerMTokens(cost float64, tokens int64) float64 {
+	if tokens <= 0 {
+		return 0
+	}
+	return cost / float64(tokens) * 1_000_000
 }
 
 // GET /version

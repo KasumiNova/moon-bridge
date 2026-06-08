@@ -6,6 +6,8 @@ export const queryKeys = {
   configGraph: ["config", "graph"] as const,
   changes: ["changes"] as const,
   logsRecent: (limit?: number) => ["logs", "recent", { limit }] as const,
+  extensions: ["extensions"] as const,
   statsSummary: ["stats", "summary"] as const,
+  usageStats: ["stats", "usage"] as const,
   sessions: ["sessions"] as const
 };

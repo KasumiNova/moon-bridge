@@ -18,6 +18,7 @@ import type {
   SessionInfo,
   StatsSummary,
   StatusResponse,
+  UsageStats,
   ValidationResult,
   WebSearchSettings
 } from "./types";
@@ -114,4 +115,5 @@ export const putExtension = (name: string, body: Record<string, unknown>) =>
   apiFetch<MutationAccepted>(`/extensions/${encodeURIComponent(name)}`, { method: "PUT", body });
 
 export const getStatsSummary = () => apiFetch<StatsSummary>("/stats/summary");
+export const getUsageStats = () => apiFetch<UsageStats>("/stats/usage");
 export const getSessions = () => apiFetch<SessionInfo[]>("/sessions");

@@ -3,7 +3,6 @@ import { App } from "./App";
 import type { MessageKey } from "../i18n/messages";
 import { useI18n } from "../i18n/I18nProvider";
 import { DefaultsPage } from "../features/defaults/DefaultsPage";
-import { LogsPage } from "../features/logs/LogsPage";
 import { ModelsProvidersPage } from "../features/modelProviders/ModelsProvidersPage";
 import { OverviewPage } from "../features/overview/OverviewPage";
 import { RoutesPage } from "../features/routes/RoutesPage";
@@ -24,7 +23,7 @@ export const routes = [
   { path: "search-tools", element: <SearchToolsPage /> },
   { path: "storage", element: <StoragePage /> },
   { path: "security", element: <SecurityPage /> },
-  { path: "logs", element: <LogsPage /> }
+  { path: "logs", element: <Navigate to="/overview#logs" replace /> }
 ];
 
 export const router = createBrowserRouter(

@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import type { ConfigResource, FieldSchema } from "../../rpc/types";
 import { SchemaField } from "./SchemaField";
+import { configDocPathForResource } from "./configDocPath";
 import { useAutosaveField, type SaveFieldRequest } from "./useAutosaveField";
 import { useGraphFieldSaver } from "./useConfigGraph";
 
@@ -32,6 +33,7 @@ export function GraphResourceField({
       error={autosave.error?.message}
       field={field}
       idPrefix={`${resource.kind}-${resource.id}`}
+      docPath={configDocPathForResource(resource, field)}
       onChange={autosave.setValue}
       status={autosave.status}
       value={autosave.value}

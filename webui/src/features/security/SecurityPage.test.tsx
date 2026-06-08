@@ -20,7 +20,7 @@ describe("SecurityPage", () => {
     expect(within(screen.getByLabelText("Server main status")).getByText("Restart required")).toBeInTheDocument();
     expect(within(screen.getByLabelText("Server main status")).getByText("Critical")).toBeInTheDocument();
     expect(screen.getByLabelText("Address")).toHaveValue(":38440");
-    expect(screen.getByLabelText("Max Sessions")).toHaveValue(64);
+    expect(screen.getByLabelText("Max Sessions")).toHaveValue("64");
     expect(screen.getByLabelText("Session TTL")).toHaveValue("24h");
     expect(screen.getByLabelText("Auth Token")).toHaveValue("");
     expect(screen.queryByDisplayValue("******")).not.toBeInTheDocument();
