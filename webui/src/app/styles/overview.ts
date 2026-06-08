@@ -41,11 +41,11 @@ export const overviewStyles = `  .metric-grid {
     flex-wrap: wrap;
   }
 
-  .segmented-control.usage-range button {
-    min-height: 34px;
-    padding: 0 14px;
-    font-size: 0.8rem;
-    font-weight: 640;
+  .usage-range {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex-wrap: wrap;
   }
 
   .usage-summary-grid {

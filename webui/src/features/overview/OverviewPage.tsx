@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { motion } from "motion/react";
 import { LoadingState } from "../../components/LoadingState";
+import { MaterialFilterChip } from "../../components/MaterialFilterChip";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { MessageKey } from "../../i18n/messages";
 import { getUsageStats, type UsageRange } from "../../rpc/management";
@@ -52,19 +53,18 @@ export function OverviewPage() {
             <p>{t("overview.usageDescription")}</p>
           </div>
           <div className="usage-heading-controls">
-            <div className="segmented-control usage-range" role="group" aria-label={t("overview.rangeLabel")}>
+            <md-chip-set className="usage-range" role="group" aria-label={t("overview.rangeLabel")}>
               {usageRanges.map((option) => (
-                <button
+                <MaterialFilterChip
                   key={option}
-                  type="button"
-                  aria-pressed={range === option}
-                  className={range === option ? "active-button" : undefined}
-                  onClick={() => setRange(option)}
+                  value={option}
+                  selected={range === option}
+                  onSelect={setRange}
                 >
                   {t(usageRangeLabelKeys[option])}
-                </button>
+                </MaterialFilterChip>
               ))}
-            </div>
+            </md-chip-set>
             {usage.data ? (
               <span className="status-pill status-pill--muted">{formatDuration(usage.data.totals.duration)}</span>
             ) : null}

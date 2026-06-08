@@ -1,4 +1,4 @@
-import { act, fireEvent, screen, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { renderWithConsoleProviders } from "../../test/renderWithConsoleProviders";
@@ -13,11 +13,43 @@ describe("ModelsProvidersPage", () => {
   });
 
   async function expandOffers(providerPanel: HTMLElement) {
-    const toggle = within(providerPanel).getByRole("button", { name: /Provider Offers/ });
+    const toggle = getProviderOffersToggle(providerPanel);
     if (toggle.getAttribute("aria-expanded") !== "true") {
       await userEvent.click(toggle);
     }
   }
+
+  function getProviderOffersToggle(providerPanel: HTMLElement) {
+    const toggle = providerPanel.querySelector(".provider-offers__toggle");
+    if (!(toggle instanceof HTMLElement)) {
+      throw new Error("Provider offers toggle was not rendered.");
+    }
+    return toggle;
+  }
+
+  test("uses a Material Web icon button for provider offer disclosure", async () => {
+    vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
+
+    renderWithConsoleProviders(<ModelsProvidersPage />);
+
+    const providerPanel = await screen.findByLabelText("Provider anthropic");
+    const toggle = getProviderOffersToggle(providerPanel);
+
+    expect(toggle.tagName.toLowerCase()).toBe("md-icon-button");
+    expect(toggle).toHaveAttribute("aria-label", "Provider Offers (1)");
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(within(providerPanel).queryByText("anthropic/claude-sonnet")).not.toBeInTheDocument();
+
+    await userEvent.click(toggle);
+
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(within(providerPanel).getByText("anthropic/claude-sonnet")).toBeInTheDocument();
+
+    await userEvent.click(toggle);
+
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(within(providerPanel).queryByText("anthropic/claude-sonnet")).not.toBeInTheDocument();
+  });
 
   test("places Providers above Models and omits enabled toggles", async () => {
     vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
@@ -68,10 +100,9 @@ describe("ModelsProvidersPage", () => {
     const providerPanel = (await screen.findByRole("heading", { level: 3, name: "anthropic" }))
       .closest("section")!;
     vi.useFakeTimers();
-    fireEvent.change(within(providerPanel).getByLabelText("Base URL"), {
-      target: { value: "https://api.anthropic.test" }
-    });
-    fireEvent.blur(within(providerPanel).getByLabelText("Base URL"));
+    const baseUrlField = getMaterialTextField(providerPanel, "Base URL");
+    setMaterialTextFieldValue(baseUrlField, "https://api.anthropic.test");
+    fireEvent.blur(baseUrlField);
 
     await advanceAutosave();
 
@@ -91,10 +122,9 @@ describe("ModelsProvidersPage", () => {
     await expandOffers(screen.getByLabelText("Provider anthropic"));
     const offerPanel = screen.getByText("anthropic/claude-sonnet").closest("section")!;
     vi.useFakeTimers();
-    fireEvent.change(within(offerPanel).getByLabelText("Priority"), {
-      target: { value: "5" }
-    });
-    fireEvent.blur(within(offerPanel).getByLabelText("Priority"));
+    const priorityField = getMaterialTextField(offerPanel, "Priority");
+    setMaterialTextFieldValue(priorityField, "5");
+    fireEvent.blur(priorityField);
 
     await advanceAutosave();
 
@@ -121,14 +151,22 @@ describe("ModelsProvidersPage", () => {
 
     renderWithConsoleProviders(<ModelsProvidersPage />);
 
-    await userEvent.click(await screen.findByRole("button", { name: "Add Provider" }));
+    await waitForMaterialButton(document, "Add Provider");
+    await userEvent.click(getMaterialButton(document, "Add Provider", "filled"));
     const form = screen.getByRole("form", { name: "Create Provider" });
-    await userEvent.type(within(form).getByLabelText("Provider ID"), "openai");
-    await userEvent.type(within(form).getByLabelText("Base URL"), "https://api.openai.com/v1");
-    await userEvent.type(within(form).getByLabelText("API key"), "sk-test");
-    await userEvent.click(within(form).getByRole("button", { name: "Create Provider" }));
+    const providerIdField = getMaterialTextField(form, "Provider ID");
+    const baseUrlField = getMaterialTextField(form, "Base URL");
+    const apiKeyField = getMaterialTextField(form, "API key");
+    expect(apiKeyField.type).toBe("password");
+    expect(getMaterialButton(form, "Create Provider", "filled")).toHaveProperty("type", "submit");
+    expect(form.querySelectorAll("input")).toHaveLength(0);
 
-    expect(create).toHaveBeenCalledWith("provider", {
+    setMaterialTextFieldValue(providerIdField, "openai");
+    setMaterialTextFieldValue(baseUrlField, "https://api.openai.com/v1");
+    setMaterialTextFieldValue(apiKeyField, "sk-test");
+    await submitMaterialForm(form, "Create Provider");
+
+    await waitFor(() => expect(create).toHaveBeenCalledWith("provider", {
       baseRevision: "rev-1",
       id: "openai",
       value: {
@@ -136,7 +174,7 @@ describe("ModelsProvidersPage", () => {
         api_key: "sk-test",
         protocol: "openai-response"
       }
-    });
+    }));
   });
 
   test("lets users choose provider protocol and read create field help", async () => {
@@ -149,18 +187,24 @@ describe("ModelsProvidersPage", () => {
 
     renderWithConsoleProviders(<ModelsProvidersPage />);
 
-    await userEvent.click(await screen.findByRole("button", { name: "Add Provider" }));
+    await waitForMaterialButton(document, "Add Provider");
+    await userEvent.click(getMaterialButton(document, "Add Provider", "filled"));
     const form = screen.getByRole("form", { name: "Create Provider" });
-    await userEvent.click(within(form).getByRole("button", { name: "Help for Protocol" }));
+    const helpButton = getMaterialIconButton(form, "Help for Protocol");
+    expect(helpButton.tagName.toLowerCase()).toBe("md-icon-button");
+    await userEvent.click(helpButton);
     expect(within(form).getByRole("tooltip")).toHaveTextContent("Selects the upstream API format");
 
-    await userEvent.type(within(form).getByLabelText("Provider ID"), "gemini");
-    await userEvent.type(within(form).getByLabelText("Base URL"), "https://generativelanguage.googleapis.com");
-    await userEvent.type(within(form).getByLabelText("API key"), "gemini-key");
-    await userEvent.click(within(form).getByRole("button", { name: "Gemini" }));
-    await userEvent.click(within(form).getByRole("button", { name: "Create Provider" }));
+    setMaterialTextFieldValue(getMaterialTextField(form, "Provider ID"), "gemini");
+    setMaterialTextFieldValue(getMaterialTextField(form, "Base URL"), "https://generativelanguage.googleapis.com");
+    setMaterialTextFieldValue(getMaterialTextField(form, "API key"), "gemini-key");
+    const geminiChip = getMaterialFilterChip(form, "Gemini");
+    expect(geminiChip.selected).toBe(false);
+    await userEvent.click(geminiChip);
+    expect(geminiChip.selected).toBe(true);
+    await submitMaterialForm(form, "Create Provider");
 
-    expect(create).toHaveBeenCalledWith("provider", {
+    await waitFor(() => expect(create).toHaveBeenCalledWith("provider", {
       baseRevision: "rev-1",
       id: "gemini",
       value: {
@@ -168,7 +212,7 @@ describe("ModelsProvidersPage", () => {
         api_key: "gemini-key",
         protocol: "google-genai"
       }
-    });
+    }));
   });
 
   test("uses wider create panel field tracks than dense resource editors", async () => {
@@ -181,12 +225,39 @@ describe("ModelsProvidersPage", () => {
 
     renderWithConsoleProviders(<ModelsProvidersPage />);
 
-    await userEvent.click(await screen.findByRole("button", { name: "Add Provider" }));
+    await waitForMaterialButton(document, "Add Provider");
+    await userEvent.click(getMaterialButton(document, "Add Provider", "filled"));
     const form = screen.getByRole("form", { name: "Create Provider" });
 
-    expect(within(form).getByLabelText("Provider ID").parentElement).toHaveClass("form-field--create-track");
-    expect(within(form).getByLabelText("Base URL").parentElement).toHaveClass("form-field--create-track");
-    expect(within(form).getByRole("group", { name: "Protocol" }).parentElement).toHaveClass("form-field--create-track");
+    expect(getMaterialTextField(form, "Provider ID").closest(".form-field--create-track")).toBeInTheDocument();
+    expect(getMaterialTextField(form, "Base URL").closest(".form-field--create-track")).toBeInTheDocument();
+    expect(getMaterialChipSet(form, "Protocol").closest(".form-field--create-track")).toBeInTheDocument();
+  });
+
+  test("renders create text fields with official Material labels and trailing help slots", async () => {
+    vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
+
+    renderWithConsoleProviders(<ModelsProvidersPage />);
+
+    await waitForMaterialButton(document, "Add Provider");
+    await userEvent.click(getMaterialButton(document, "Add Provider", "filled"));
+    const providerForm = screen.getByRole("form", { name: "Create Provider" });
+    const providerIdField = getMaterialTextField(providerForm, "Provider ID");
+    expect(providerIdField.label).toBe("Provider ID");
+    expect(providerIdField).not.toHaveAttribute("aria-labelledby");
+    expect(providerIdField).toHaveAttribute("spellcheck", "false");
+    expect(providerIdField.closest(".form-field--create-track")?.querySelector(".schema-field__label")).not.toBeInTheDocument();
+    expect(getMaterialTrailingIconButton(providerIdField, "Help for Provider ID")).toBeInTheDocument();
+
+    await userEvent.click(getMaterialButton(providerForm, "Cancel", "outlined"));
+    await waitForMaterialButton(document, "Add Model");
+    await userEvent.click(getMaterialButton(document, "Add Model", "filled"));
+    const modelForm = screen.getByRole("form", { name: "Create Model" });
+    const contextWindowField = getMaterialTextField(modelForm, "Context window");
+    expect(contextWindowField.label).toBe("Context window");
+    expect(contextWindowField).toHaveAttribute("spellcheck", "false");
+    expect(contextWindowField.closest(".form-field--create-track")?.querySelector(".schema-field__label")).not.toBeInTheDocument();
+    expect(getMaterialTrailingIconButton(contextWindowField, "Help for Context window")).toBeInTheDocument();
   });
 
   test("creates a model with a 128k default context window", async () => {
@@ -199,20 +270,21 @@ describe("ModelsProvidersPage", () => {
 
     renderWithConsoleProviders(<ModelsProvidersPage />);
 
-    await userEvent.click(await screen.findByRole("button", { name: "Add Model" }));
+    await waitForMaterialButton(document, "Add Model");
+    await userEvent.click(getMaterialButton(document, "Add Model", "filled"));
     const form = screen.getByRole("form", { name: "Create Model" });
-    await userEvent.type(within(form).getByLabelText("Model ID"), "gpt-4o");
-    await userEvent.type(within(form).getByLabelText("Display name"), "GPT-4o");
-    await userEvent.click(within(form).getByRole("button", { name: "Create Model" }));
+    setMaterialTextFieldValue(getMaterialTextField(form, "Model ID"), "gpt-4o");
+    setMaterialTextFieldValue(getMaterialTextField(form, "Display name"), "GPT-4o");
+    await submitMaterialForm(form, "Create Model");
 
-    expect(create).toHaveBeenCalledWith("model", {
+    await waitFor(() => expect(create).toHaveBeenCalledWith("model", {
       baseRevision: "rev-1",
       id: "gpt-4o",
       value: {
         display_name: "GPT-4o",
         context_window: 128000
       }
-    });
+    }));
   });
 
   test("lets users edit model context window through presets or custom input", async () => {
@@ -225,27 +297,28 @@ describe("ModelsProvidersPage", () => {
 
     renderWithConsoleProviders(<ModelsProvidersPage />);
 
-    await userEvent.click(await screen.findByRole("button", { name: "Add Model" }));
+    await waitForMaterialButton(document, "Add Model");
+    await userEvent.click(getMaterialButton(document, "Add Model", "filled"));
     const form = screen.getByRole("form", { name: "Create Model" });
-    await userEvent.click(within(form).getByRole("button", { name: "Help for Context window" }));
+    await userEvent.click(getMaterialIconButton(form, "Help for Context window"));
     expect(within(form).getByRole("tooltip")).toHaveTextContent("Maximum context tokens");
-    await userEvent.click(within(form).getByRole("button", { name: "400k" }));
-    expect(within(form).getByLabelText("Context window")).toHaveValue("400000");
+    const presetChip = getMaterialFilterChip(form, "400k");
+    await userEvent.click(presetChip);
+    expect(getMaterialTextField(form, "Context window").value).toBe("400000");
 
-    await userEvent.clear(within(form).getByLabelText("Context window"));
-    await userEvent.type(within(form).getByLabelText("Context window"), "640000");
-    await userEvent.type(within(form).getByLabelText("Model ID"), "gpt-large");
-    await userEvent.type(within(form).getByLabelText("Display name"), "GPT Large");
-    await userEvent.click(within(form).getByRole("button", { name: "Create Model" }));
+    setMaterialTextFieldValue(getMaterialTextField(form, "Context window"), "640000");
+    setMaterialTextFieldValue(getMaterialTextField(form, "Model ID"), "gpt-large");
+    setMaterialTextFieldValue(getMaterialTextField(form, "Display name"), "GPT Large");
+    await submitMaterialForm(form, "Create Model");
 
-    expect(create).toHaveBeenCalledWith("model", {
+    await waitFor(() => expect(create).toHaveBeenCalledWith("model", {
       baseRevision: "rev-1",
       id: "gpt-large",
       value: {
         display_name: "GPT Large",
         context_window: 640000
       }
-    });
+    }));
   });
 
   test("rejects non-positive custom model context windows", async () => {
@@ -258,18 +331,18 @@ describe("ModelsProvidersPage", () => {
 
     renderWithConsoleProviders(<ModelsProvidersPage />);
 
-    await userEvent.click(await screen.findByRole("button", { name: "Add Model" }));
+    await waitForMaterialButton(document, "Add Model");
+    await userEvent.click(getMaterialButton(document, "Add Model", "filled"));
     const form = screen.getByRole("form", { name: "Create Model" });
-    await userEvent.clear(within(form).getByLabelText("Context window"));
-    await userEvent.type(within(form).getByLabelText("Context window"), "0");
-    await userEvent.type(within(form).getByLabelText("Model ID"), "zero-window");
-    await userEvent.click(within(form).getByRole("button", { name: "Create Model" }));
+    setMaterialTextFieldValue(getMaterialTextField(form, "Context window"), "0");
+    setMaterialTextFieldValue(getMaterialTextField(form, "Model ID"), "zero-window");
+    await submitMaterialForm(form, "Create Model");
 
     expect(await within(form).findByRole("alert")).toHaveTextContent(
       "Context window must be greater than zero."
     );
     expect(create).not.toHaveBeenCalled();
-    expect(within(form).getByLabelText("Context window")).toHaveValue("0");
+    expect(getMaterialTextField(form, "Context window").value).toBe("0");
   });
 
   test("creates a provider offer inside the selected provider section", async () => {
@@ -283,12 +356,13 @@ describe("ModelsProvidersPage", () => {
     renderWithConsoleProviders(<ModelsProvidersPage />);
 
     const providerPanel = await screen.findByLabelText("Provider anthropic");
-    await userEvent.click(within(providerPanel).getByRole("button", { name: "Add Offer" }));
+    await userEvent.click(getMaterialButton(providerPanel, "Add Offer", "filled"));
     const form = within(providerPanel).getByRole("form", { name: "Create Offer" });
-    await userEvent.type(within(form).getByLabelText("Upstream name"), "claude-3-5-sonnet-latest");
-    await userEvent.click(within(form).getByRole("button", { name: "Create Offer" }));
+    expect(getMaterialSelect(form, "Model").value).toBe("claude-sonnet");
+    setMaterialTextFieldValue(getMaterialTextField(form, "Upstream name"), "claude-3-5-sonnet-latest");
+    await submitMaterialForm(form, "Create Offer");
 
-    expect(create).toHaveBeenCalledWith("provider_offer", {
+    await waitFor(() => expect(create).toHaveBeenCalledWith("provider_offer", {
       baseRevision: "rev-1",
       id: "anthropic/claude-sonnet",
       value: {
@@ -302,7 +376,7 @@ describe("ModelsProvidersPage", () => {
           cache_read_price: 0
         }
       }
-    });
+    }));
   });
 
   test("rejects invalid provider offer numbers without submitting the create request", async () => {
@@ -316,15 +390,14 @@ describe("ModelsProvidersPage", () => {
     renderWithConsoleProviders(<ModelsProvidersPage />);
 
     const providerPanel = await screen.findByLabelText("Provider anthropic");
-    await userEvent.click(within(providerPanel).getByRole("button", { name: "Add Offer" }));
+    await userEvent.click(getMaterialButton(providerPanel, "Add Offer", "filled"));
     const form = within(providerPanel).getByRole("form", { name: "Create Offer" });
-    await userEvent.clear(within(form).getByLabelText("Priority"));
-    await userEvent.type(within(form).getByLabelText("Priority"), "fast");
-    await userEvent.type(within(form).getByLabelText("Upstream name"), "claude-3-5-sonnet-latest");
-    await userEvent.click(within(form).getByRole("button", { name: "Create Offer" }));
+    setMaterialTextFieldValue(getMaterialTextField(form, "Priority"), "fast");
+    setMaterialTextFieldValue(getMaterialTextField(form, "Upstream name"), "claude-3-5-sonnet-latest");
+    await submitMaterialForm(form, "Create Offer");
 
     expect(screen.getByRole("alert")).toHaveTextContent("Priority must be a valid number.");
-    expect(within(form).getByLabelText("Priority")).toHaveValue("fast");
+    expect(getMaterialTextField(form, "Priority").value).toBe("fast");
     expect(create).not.toHaveBeenCalled();
   });
 
@@ -344,16 +417,17 @@ describe("ModelsProvidersPage", () => {
 
     renderWithConsoleProviders(<ModelsProvidersPage />);
 
-    await userEvent.click(await screen.findByRole("button", { name: "Add Provider" }));
+    await waitForMaterialButton(document, "Add Provider");
+    await userEvent.click(getMaterialButton(document, "Add Provider", "filled"));
     const form = screen.getByRole("form", { name: "Create Provider" });
-    await userEvent.type(within(form).getByLabelText("Provider ID"), "anthropic");
-    await userEvent.type(within(form).getByLabelText("Base URL"), "https://api.anthropic.com");
-    await userEvent.type(within(form).getByLabelText("API key"), "sk-ant");
-    await userEvent.click(within(form).getByRole("button", { name: "Create Provider" }));
+    setMaterialTextFieldValue(getMaterialTextField(form, "Provider ID"), "anthropic");
+    setMaterialTextFieldValue(getMaterialTextField(form, "Base URL"), "https://api.anthropic.com");
+    setMaterialTextFieldValue(getMaterialTextField(form, "API key"), "sk-ant");
+    await submitMaterialForm(form, "Create Provider");
 
     expect(await screen.findByRole("alert")).toHaveTextContent('provider "anthropic" already exists');
-    expect(within(form).getByLabelText("Provider ID")).toHaveValue("anthropic");
-    expect(within(form).getByLabelText("Base URL")).toHaveValue("https://api.anthropic.com");
+    expect(getMaterialTextField(form, "Provider ID").value).toBe("anthropic");
+    expect(getMaterialTextField(form, "Base URL").value).toBe("https://api.anthropic.com");
   });
 
   test("deletes provider resources only after inline confirmation", async () => {
@@ -371,10 +445,10 @@ describe("ModelsProvidersPage", () => {
     renderWithConsoleProviders(<ModelsProvidersPage />);
 
     const providerPanel = await screen.findByLabelText("Provider anthropic");
-    await userEvent.click(within(providerPanel).getByRole("button", { name: "Delete Provider anthropic" }));
+    await userEvent.click(getMaterialButton(providerPanel, "Delete Provider anthropic", "filled"));
 
     expect(remove).not.toHaveBeenCalled();
-    await userEvent.click(within(providerPanel).getByRole("button", { name: "Confirm delete anthropic" }));
+    await userEvent.click(getMaterialButton(providerPanel, "Confirm delete anthropic", "filled"));
 
     expect(remove).toHaveBeenCalledWith("provider", "anthropic", "rev-1");
     expect(screen.queryByLabelText("Provider anthropic")).not.toBeInTheDocument();
@@ -396,12 +470,8 @@ describe("ModelsProvidersPage", () => {
 
     await expandOffers(await screen.findByLabelText("Provider anthropic"));
     const offerPanel = (await screen.findByText("anthropic/claude-sonnet")).closest("section")!;
-    await userEvent.click(within(offerPanel).getByRole("button", {
-      name: "Delete Offer anthropic/claude-sonnet"
-    }));
-    await userEvent.click(within(offerPanel).getByRole("button", {
-      name: "Confirm delete anthropic/claude-sonnet"
-    }));
+    await userEvent.click(getMaterialButton(offerPanel, "Delete Offer anthropic/claude-sonnet", "filled"));
+    await userEvent.click(getMaterialButton(offerPanel, "Confirm delete anthropic/claude-sonnet", "filled"));
 
     expect(remove).toHaveBeenCalledWith("provider_offer", "anthropic/claude-sonnet", "rev-1");
     expect(screen.queryByText("anthropic/claude-sonnet")).not.toBeInTheDocument();
@@ -425,8 +495,8 @@ describe("ModelsProvidersPage", () => {
 
     const modelPanel = (await screen.findByRole("heading", { level: 3, name: "claude-sonnet" }))
       .closest("section")!;
-    await userEvent.click(within(modelPanel).getByRole("button", { name: "Delete Model claude-sonnet" }));
-    await userEvent.click(within(modelPanel).getByRole("button", { name: "Confirm delete claude-sonnet" }));
+    await userEvent.click(getMaterialButton(modelPanel, "Delete Model claude-sonnet", "filled"));
+    await userEvent.click(getMaterialButton(modelPanel, "Confirm delete claude-sonnet", "filled"));
 
     expect(await within(modelPanel).findByRole("alert")).toHaveTextContent(
       'model "claude-sonnet" is still referenced'
@@ -440,4 +510,141 @@ async function advanceAutosave() {
     await vi.advanceTimersByTimeAsync(450);
     await Promise.resolve();
   });
+}
+
+type MaterialTextFieldElement = HTMLElement & {
+  label: string;
+  type: string;
+  value: string;
+};
+
+type MaterialSelectElement = HTMLElement & {
+  label: string;
+  value: string;
+};
+
+function getMaterialTextField(container: ParentNode, label: string) {
+  const element = Array.from(container.querySelectorAll<MaterialTextFieldElement>("md-outlined-text-field")).find(
+    (candidate) => materialElementLabel(candidate) === label
+  );
+  if (!element) {
+    throw new Error(`Expected a Material Web outlined text field labelled "${label}".`);
+  }
+  return element;
+}
+
+function getMaterialSelect(container: ParentNode, label: string) {
+  const element = Array.from(container.querySelectorAll<MaterialSelectElement>("md-outlined-select")).find(
+    (candidate) => materialElementLabel(candidate) === label
+  );
+  if (!element) {
+    throw new Error(`Expected a Material Web select labelled "${label}".`);
+  }
+  return element;
+}
+
+function materialElementLabel(element: HTMLElement & { label?: string }) {
+  const labelledBy = element.getAttribute("aria-labelledby");
+  if (labelledBy) {
+    return labelledBy
+      .split(/\s+/)
+      .map((id) => document.getElementById(id)?.textContent?.trim() ?? "")
+      .filter(Boolean)
+      .join(" ");
+  }
+  return element.label || element.getAttribute("aria-label") || element.getAttribute("label") || "";
+}
+
+function getMaterialButton(container: ParentNode, label: string, variant: "filled" | "outlined" = "outlined") {
+  const tagName = variant === "filled" ? "md-filled-button" : "md-outlined-button";
+  const element = Array.from(container.querySelectorAll(tagName)).find(
+    (candidate) => {
+      const accessibleLabel = candidate.getAttribute("aria-label") ?? candidate.textContent ?? "";
+      return accessibleLabel.includes(label);
+    }
+  );
+  if (!element) {
+    throw new Error(`Expected a Material Web ${variant} button labelled "${label}".`);
+  }
+  return element as HTMLElement & { type: string };
+}
+
+async function waitForMaterialButton(container: ParentNode, label: string, variant: "filled" | "outlined" = "filled") {
+  await screen.findByText((_, element) => (
+    element?.tagName.toLowerCase() === (variant === "filled" ? "md-filled-button" : "md-outlined-button") &&
+    Boolean(element.textContent?.includes(label))
+  ));
+  return getMaterialButton(container, label, variant);
+}
+
+function getMaterialIconButton(container: ParentNode, label: string) {
+  const element = Array.from(container.querySelectorAll("md-icon-button")).find(
+    (candidate) => candidate.getAttribute("aria-label") === label
+  );
+  if (!element) {
+    throw new Error(`Expected a Material Web icon button labelled "${label}".`);
+  }
+  return element as HTMLElement;
+}
+
+function getMaterialTrailingIconButton(container: ParentNode, label: string) {
+  const element = Array.from(container.querySelectorAll("md-icon-button")).find(
+    (candidate) => candidate.getAttribute("slot") === "trailing-icon" && candidate.getAttribute("aria-label") === label
+  );
+  if (!element) {
+    throw new Error(`Expected a Material Web trailing icon button labelled "${label}".`);
+  }
+  return element as HTMLElement;
+}
+
+function getMaterialFilterChip(container: ParentNode, label: string) {
+  const element = Array.from(container.querySelectorAll("md-filter-chip")).find(
+    (candidate) => candidate.textContent?.trim() === label
+  );
+  if (!element) {
+    throw new Error(`Expected a Material Web filter chip labelled "${label}".`);
+  }
+  return element as HTMLElement & { selected: boolean };
+}
+
+function getMaterialChipSet(container: ParentNode, label: string) {
+  const element = Array.from(container.querySelectorAll("md-chip-set")).find(
+    (candidate) => candidate.getAttribute("aria-label") === label
+  );
+  if (!element) {
+    throw new Error(`Expected a Material Web chip set labelled "${label}".`);
+  }
+  return element as HTMLElement;
+}
+
+function setMaterialTextFieldValue(element: MaterialTextFieldElement, value: string) {
+  act(() => {
+    element.value = value;
+    element.dispatchEvent(new InputEvent("input", { bubbles: true, composed: true }));
+  });
+}
+
+async function submitMaterialForm(container: ParentNode, submitLabel: string) {
+  const button = getMaterialButton(container, submitLabel, "filled");
+  const form = button.closest("form");
+  if (!form) {
+    throw new Error("Expected Material Web submit button inside a form.");
+  }
+  let clicked = false;
+  let submitted = false;
+  button.addEventListener("click", () => {
+    clicked = true;
+  }, { once: true });
+  form.addEventListener("submit", () => {
+    submitted = true;
+  }, { once: true });
+  await userEvent.click(button);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(clicked).toBe(true);
+  if (!submitted) {
+    await act(async () => {
+      form.requestSubmit();
+      await Promise.resolve();
+    });
+  }
 }

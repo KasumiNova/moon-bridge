@@ -1,5 +1,8 @@
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
+import { MaterialIconButton, MaterialOutlinedButton } from "../../components/MaterialButton";
+import { MaterialFilterChip } from "../../components/MaterialFilterChip";
+import { MaterialOutlinedTextField } from "../../components/MaterialTextField";
 import { useI18n } from "../../i18n/I18nProvider";
 import { createLogStream, getRecentLogs } from "../../rpc/logs";
 import type { LogEntry } from "../../rpc/types";
@@ -10,7 +13,6 @@ type LogLevelFilter = (typeof logLevels)[number];
 
 export function LogPanel({ labelledBy, embedded }: { labelledBy?: string; embedded?: boolean }) {
   const { t } = useI18n();
-  const searchId = useId();
   const [entries, setEntries] = useState<LogEntry[]>([]);
   const [filter, setFilter] = useState("");
   const [levelFilter, setLevelFilter] = useState<LogLevelFilter>("ALL");
@@ -79,49 +81,46 @@ export function LogPanel({ labelledBy, embedded }: { labelledBy?: string; embedd
 
       <div className="logs-toolbar">
         <div className="logs-toolbar__actions">
-          <div className="segmented-control" role="group" aria-label={t("logs.followMode")}>
-            <button
-              aria-pressed={follow}
-              className={follow ? "active-button" : undefined}
-              type="button"
-              onClick={() => setFollow(true)}
-            >
+          <md-chip-set className="logs-chip-set logs-follow-mode" role="group" aria-label={t("logs.followMode")}>
+            <MaterialFilterChip value="follow" selected={follow} onSelect={() => setFollow(true)}>
               {t("logs.follow")}
-            </button>
-            <button
-              aria-pressed={!follow}
-              className={!follow ? "active-button" : undefined}
-              type="button"
-              onClick={() => setFollow(false)}
-            >
+            </MaterialFilterChip>
+            <MaterialFilterChip value="pause" selected={!follow} onSelect={() => setFollow(false)}>
               {t("logs.pause")}
-            </button>
-          </div>
-          <button type="button" disabled={visibleEntries.length === 0} onClick={() => copyLogs(visibleEntries)}>
+            </MaterialFilterChip>
+          </md-chip-set>
+          <MaterialOutlinedButton
+            disabled={visibleEntries.length === 0}
+            icon="content_copy"
+            onClick={() => copyLogs(visibleEntries)}
+          >
             {t("logs.copy")}
-          </button>
-          <button type="button" disabled={visibleEntries.length === 0} onClick={() => downloadLogs(visibleEntries)}>
+          </MaterialOutlinedButton>
+          <MaterialOutlinedButton
+            disabled={visibleEntries.length === 0}
+            icon="download"
+            onClick={() => downloadLogs(visibleEntries)}
+          >
             {t("logs.download")}
-          </button>
+          </MaterialOutlinedButton>
         </div>
         <p className="logs-count">
           {t("logs.visibleCount", { visible: visibleEntries.length, total: entries.length })}
         </p>
       </div>
 
-      <div className="log-level-filter" role="group" aria-label={t("logs.levelFilter")}>
+      <md-chip-set className="logs-chip-set log-level-filter" role="group" aria-label={t("logs.levelFilter")}>
         {logLevels.map((level) => (
-          <button
-            className={levelFilter === level ? "active-button" : undefined}
+          <MaterialFilterChip
             key={level}
-            aria-pressed={levelFilter === level}
-            type="button"
-            onClick={() => setLevelFilter(level)}
+            value={level}
+            selected={levelFilter === level}
+            onSelect={setLevelFilter}
           >
             {level === "ALL" ? t("logs.levelAll") : level}
-          </button>
+          </MaterialFilterChip>
         ))}
-      </div>
+      </md-chip-set>
 
       {streamError ? (
         <p className="logs-stream-status" role="status">
@@ -135,24 +134,20 @@ export function LogPanel({ labelledBy, embedded }: { labelledBy?: string; embedd
         </p>
       ) : null}
 
-      <div className="search-field logs-search">
-        <label htmlFor={searchId}>{t("logs.search")}</label>
-        <span className="search-field__control">
-          <span className="material-symbol" aria-hidden="true">search</span>
-          <input
-            id={searchId}
-            value={filter}
-            onChange={(event) => setFilter(event.currentTarget.value)}
-          />
-          <button
-            aria-label={t("logs.clearSearch")}
-            type="button"
-            disabled={filter.length === 0}
-            onClick={() => setFilter("")}
-          >
-            <span className="material-symbol" aria-hidden="true">close</span>
-          </button>
-        </span>
+      <div className="logs-search">
+        <MaterialOutlinedTextField
+          className="logs-search__field"
+          label={t("logs.search")}
+          type="search"
+          value={filter}
+          onInput={setFilter}
+        />
+        <MaterialIconButton
+          disabled={filter.length === 0}
+          icon="close"
+          label={t("logs.clearSearch")}
+          onClick={() => setFilter("")}
+        />
       </div>
 
       <div className="log-output" aria-label={t("logs.output")}>

@@ -34,6 +34,21 @@ describe("SecurityPage", () => {
 
     expect(await screen.findByRole("heading", { level: 2, name: "服务访问" })).toBeInTheDocument();
     expect(within(screen.getByLabelText("服务访问 main status")).getByText("需要重启")).toBeInTheDocument();
-    expect(screen.getByText("输入新值以替换已保存的密钥。")).toBeInTheDocument();
+    expect(getMaterialTextField(document, "Auth Token").supportingText).toBe("输入新值以替换已保存的密钥。");
   });
 });
+
+type MaterialTextFieldElement = HTMLElement & {
+  label: string;
+  supportingText: string;
+};
+
+function getMaterialTextField(container: ParentNode, label: string) {
+  const element = Array.from(container.querySelectorAll<MaterialTextFieldElement>("md-outlined-text-field")).find(
+    (candidate) => candidate.label === label || candidate.getAttribute("aria-label") === label
+  );
+  if (!element) {
+    throw new Error(`Expected a Material Web outlined text field labelled "${label}".`);
+  }
+  return element;
+}

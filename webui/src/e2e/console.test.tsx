@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { AppShell } from "../app/App";
@@ -101,8 +101,9 @@ describe("config graph console smoke flow", () => {
 
     renderWithConsoleProviders(<DefaultsPage />);
 
-    const modelField = await screen.findByLabelText("Model");
-    fireEvent.change(modelField, { target: { value: "gpt-4o" } });
+    await screen.findByLabelText("Defaults main");
+    const modelField = getMaterialTextField(document, "Model");
+    setMaterialTextFieldValue(modelField, "gpt-4o");
     fireEvent.blur(modelField);
 
     await waitFor(() => {
@@ -133,11 +134,12 @@ describe("config graph console smoke flow", () => {
 
     renderWithConsoleProviders(<DefaultsPage />);
 
-    const model = await screen.findByLabelText("Model");
-    fireEvent.change(model, { target: { value: "invalid-model" } });
+    await screen.findByLabelText("Defaults main");
+    const model = getMaterialTextField(document, "Model");
+    setMaterialTextFieldValue(model, "invalid-model");
     fireEvent.blur(model);
 
-    expect(model).toHaveValue("invalid-model");
+    expect(model.value).toBe("invalid-model");
     expect(await screen.findByRole("alert")).toHaveTextContent("Model is invalid");
   });
 
@@ -155,12 +157,13 @@ describe("config graph console smoke flow", () => {
 
     renderWithConsoleProviders(<SecurityPage />);
 
-    const address = await screen.findByLabelText("Address");
-    fireEvent.change(address, { target: { value: ":9999" } });
+    await screen.findByLabelText("Server main");
+    const address = getMaterialTextField(document, "Address");
+    setMaterialTextFieldValue(address, ":9999");
     fireEvent.blur(address);
 
     await waitFor(() => {
-      expect(address).toHaveValue(":38440");
+      expect(address.value).toBe(":38440");
     });
     expect(await screen.findByRole("alert")).toHaveTextContent("Runtime rejected");
   });
@@ -189,7 +192,7 @@ describe("config graph console smoke flow", () => {
     expect(await screen.findByText(/server-started/)).toBeInTheDocument();
     expect(screen.getByText(/database-unavailable/)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "ERROR" }));
+    fireEvent.click(getMaterialFilterChip(document, "ERROR"));
 
     expect(screen.queryByText(/server-started/)).not.toBeInTheDocument();
     expect(screen.getByText(/database-unavailable/)).toBeInTheDocument();
@@ -252,6 +255,50 @@ function parseBody(body: BodyInit | null | undefined) {
 
 function findPatch(calls: FetchCall[]) {
   return calls.find((call) => call.url === "/api/v1/config/graph" && call.init?.method === "PATCH");
+}
+
+type MaterialTextFieldElement = HTMLElement & {
+  label: string;
+  value: string;
+};
+
+function getMaterialTextField(container: ParentNode, label: string) {
+  const element = Array.from(container.querySelectorAll<MaterialTextFieldElement>("md-outlined-text-field")).find(
+    (candidate) => materialElementLabel(candidate) === label
+  );
+  if (!element) {
+    throw new Error(`Expected a Material Web outlined text field labelled "${label}".`);
+  }
+  return element;
+}
+
+function materialElementLabel(element: HTMLElement & { label?: string }) {
+  const labelledBy = element.getAttribute("aria-labelledby");
+  if (labelledBy) {
+    return labelledBy
+      .split(/\s+/)
+      .map((id) => document.getElementById(id)?.textContent?.trim() ?? "")
+      .filter(Boolean)
+      .join(" ");
+  }
+  return element.label || element.getAttribute("aria-label") || element.getAttribute("label") || "";
+}
+
+function setMaterialTextFieldValue(element: MaterialTextFieldElement, value: string) {
+  act(() => {
+    element.value = value;
+    element.dispatchEvent(new InputEvent("input", { bubbles: true, composed: true }));
+  });
+}
+
+function getMaterialFilterChip(container: ParentNode, label: string) {
+  const element = Array.from(container.querySelectorAll("md-filter-chip")).find(
+    (candidate) => candidate.textContent?.trim() === label
+  );
+  if (!element) {
+    throw new Error(`Expected a Material Web filter chip labelled "${label}".`);
+  }
+  return element as HTMLElement;
 }
 
 function fieldError(

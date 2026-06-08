@@ -164,43 +164,33 @@ export const resourceEditorStyles = `  .resource-editor-card {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    border: 0;
-    border-radius: 16px;
     padding: 0 18px 0 16px;
-    color: var(--mb-color-on-primary-container);
-    background: var(--mb-color-primary-container);
-    box-shadow: var(--mb-elevation-1);
     font-size: 0.82rem;
     font-weight: 680;
     white-space: nowrap;
-    cursor: pointer;
+    --md-filled-button-container-color: var(--mb-color-primary-container);
+    --md-filled-button-label-text-color: var(--mb-color-on-primary-container);
+    --md-filled-button-container-shape: 16px;
+    --md-filled-button-container-elevation: 1;
+    --md-filled-button-hover-container-elevation: 2;
+    --md-filled-button-pressed-container-elevation: 1;
+    --md-filled-button-icon-size: 20px;
     transition:
-      background var(--mb-duration-short) var(--mb-ease-standard),
-      box-shadow var(--mb-duration-short) var(--mb-ease-standard),
       transform var(--mb-duration-short) var(--mb-ease-spring);
   }
 
   .fab-button:hover {
-    box-shadow: var(--mb-elevation-2);
     transform: translateY(-1px);
   }
 
   .fab-button:active {
     transform: translateY(0);
-    box-shadow: var(--mb-elevation-1);
-  }
-
-  .fab-button .material-symbol {
-    font-size: 20px;
   }
 
   .fab-button--danger {
-    color: var(--mb-color-on-error-container);
-    background: var(--mb-color-error-container);
-  }
-
-  .fab-button--danger:hover {
-    background: color-mix(in srgb, var(--mb-color-error-container) 78%, var(--mb-color-error));
+    --md-filled-button-container-color: var(--mb-color-error-container);
+    --md-filled-button-label-text-color: var(--mb-color-on-error-container);
+    --md-filled-button-hover-state-layer-color: var(--mb-color-error);
   }
 
   .switch-bank {
@@ -235,9 +225,10 @@ export const resourceEditorStyles = `  .resource-editor-card {
   }
 
   .resource-delete-confirmation__confirm {
-    color: var(--mb-color-on-error);
-    background: var(--mb-color-error);
-    box-shadow: 0 2px 10px color-mix(in srgb, var(--mb-color-error) 22%, transparent);
+    --md-filled-button-container-color: var(--mb-color-error);
+    --md-filled-button-label-text-color: var(--mb-color-on-error);
+    --md-filled-button-hover-state-layer-color: var(--mb-color-on-error);
+    --md-filled-button-container-elevation: 1;
   }
 
   .resource-editor-card__summary {

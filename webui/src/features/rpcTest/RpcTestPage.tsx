@@ -1,5 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
+import { MaterialFilledButton } from "../../components/MaterialButton";
+import { MaterialSelect } from "../../components/MaterialSelect";
+import { MaterialOutlinedTextField } from "../../components/MaterialTextField";
 import {
   createResponse,
   listResponseModels,
@@ -50,51 +53,46 @@ export function RpcTestPage() {
       <PageHeader eyebrow={t("pageEyebrow.smokeTest")} title={t("nav.rpcTest")}>
         {t("rpc.description")}
       </PageHeader>
+      <style>{rpcTestStyles}</style>
       <div className="section-grid">
         <section className="content-panel">
           <h2>{t("rpc.request")}</h2>
           <form className="form-grid" onSubmit={submit}>
-            <label className="form-grid__wide">
-              {t("field.model")}
-              <select
-                value={model}
-                onChange={(event) => setModel(event.currentTarget.value)}
-              >
-                <option value="">{t("rpc.selectModel")}</option>
-                {models.data?.models.map((item) => (
-                  <option key={item.slug} value={item.slug}>
-                    {item.slug}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="form-grid__wide">
-              {t("field.input")}
-              <textarea
-                rows={6}
-                value={input}
-                onChange={(event) => setInput(event.currentTarget.value)}
-              />
-            </label>
-            <label>
-              {t("field.maxOutputTokens")}
-              <input
-                type="number"
-                value={maxTokens}
-                onChange={(event) => setMaxTokens(event.currentTarget.value)}
-              />
-            </label>
-            <label>
-              {t("field.temperature")}
-              <input
-                type="number"
-                step="0.1"
-                value={temperature}
-                onChange={(event) => setTemperature(event.currentTarget.value)}
-              />
-            </label>
+            <MaterialSelect
+              className="rpc-test-field form-grid__wide"
+              label={t("field.model")}
+              value={model}
+              onChange={setModel}
+              options={[
+                { label: t("rpc.selectModel"), value: "" },
+                ...(models.data?.models.map((item) => ({ label: item.slug, value: item.slug })) ?? [])
+              ]}
+            />
+            <MaterialOutlinedTextField
+              className="rpc-test-field form-grid__wide"
+              label={t("field.input")}
+              rows={6}
+              type="textarea"
+              value={input}
+              onInput={setInput}
+            />
+            <MaterialOutlinedTextField
+              className="rpc-test-field"
+              label={t("field.maxOutputTokens")}
+              type="number"
+              value={maxTokens}
+              onInput={setMaxTokens}
+            />
+            <MaterialOutlinedTextField
+              className="rpc-test-field"
+              label={t("field.temperature")}
+              step="0.1"
+              type="number"
+              value={temperature}
+              onInput={setTemperature}
+            />
             <div className="form-actions">
-              <button type="submit">{t("action.send")}</button>
+              <MaterialFilledButton type="submit">{t("action.send")}</MaterialFilledButton>
             </div>
           </form>
         </section>
@@ -111,3 +109,10 @@ export function RpcTestPage() {
     </section>
   );
 }
+
+const rpcTestStyles = `
+  .rpc-test-field {
+    width: 100%;
+    min-width: 0;
+  }
+`;

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { LoadingState } from "../../components/LoadingState";
+import { MaterialIconButton } from "../../components/MaterialButton";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { ConfigGraph, ConfigResource, ResourceKind } from "../../rpc/types";
 import { CreateResourcePanel } from "../configGraph/CreateResourcePanel";
@@ -120,24 +121,24 @@ function ProviderOffers({
   const [open, setOpen] = useState(false);
   const headingId = `provider-${provider.id}-offers-heading`;
   const bodyId = `provider-${provider.id}-offers-body`;
+  const offersLabel = t("modelsProviders.offers", { count: offers.length });
   return (
     <section className="provider-offers" aria-labelledby={headingId} data-open={open ? "true" : undefined}>
       <div className="provider-offers__bar">
-        <button
-          type="button"
-          className="provider-offers__toggle"
-          aria-expanded={open}
-          aria-controls={bodyId}
-          onClick={() => setOpen((value) => !value)}
-        >
-          <span className="material-symbol provider-offers__chevron" aria-hidden="true">
-            chevron_right
-          </span>
+        <div className="provider-offers__summary">
+          <MaterialIconButton
+            ariaExpanded={open}
+            className="provider-offers__toggle"
+            controls={bodyId}
+            icon="chevron_right"
+            label={offersLabel}
+            onClick={() => setOpen((value) => !value)}
+          />
           <span className="material-symbol provider-offers__icon" aria-hidden="true">
             smart_toy
           </span>
-          <h3 id={headingId}>{t("modelsProviders.offers", { count: offers.length })}</h3>
-        </button>
+          <h3 id={headingId}>{offersLabel}</h3>
+        </div>
         <CreateResourcePanel graph={graph} kind="provider_offer" providerId={provider.id} />
       </div>
       {open ? (

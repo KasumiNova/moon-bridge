@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { renderWithConsoleProviders } from "../../test/renderWithConsoleProviders";
 import * as logs from "../../rpc/logs";
@@ -23,20 +23,19 @@ describe("LogsPage", () => {
     expect(await screen.findByText(/server-started/)).toBeInTheDocument();
     expect(screen.getByText(/database-unavailable/)).toBeInTheDocument();
     expect(screen.getByText("3 of 3 logs")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Pause" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Copy" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Download" })).toBeInTheDocument();
+    expect(getMaterialFilterChip(document.body, "Pause")).toBeInTheDocument();
+    expect(getMaterialButton(document.body, "Copy")).toBeInTheDocument();
+    expect(getMaterialButton(document.body, "Download")).toBeInTheDocument();
+    expect(getMaterialTextField(document.body, "Search logs")).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("Search logs"), {
-      target: { value: "database" }
-    });
+    setMaterialTextFieldValue(getMaterialTextField(document.body, "Search logs"), "database");
 
     expect(screen.queryByText(/server-started/)).not.toBeInTheDocument();
     expect(screen.getByText(/database-unavailable/)).toBeInTheDocument();
     expect(screen.getByText("1 of 3 logs")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Pause" }));
-    expect(screen.getByRole("button", { name: "Follow" })).toBeInTheDocument();
+    fireEvent.click(getMaterialFilterChip(document.body, "Pause"));
+    expect(getMaterialFilterChip(document.body, "Follow")).toBeInTheDocument();
   });
 
   test("filters by level and copies only visible raw lines", async () => {
@@ -50,12 +49,12 @@ describe("LogsPage", () => {
 
     expect(await screen.findByText(/server-started/)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "ERROR" }));
+    fireEvent.click(getMaterialFilterChip(document.body, "ERROR"));
     expect(screen.queryByText(/server-started/)).not.toBeInTheDocument();
     expect(screen.getByText(/database-unavailable/)).toBeInTheDocument();
     expect(screen.getByText("1 of 3 logs")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Copy" }));
+    fireEvent.click(getMaterialButton(document.body, "Copy"));
 
     await waitFor(() => {
       expect(writeText).toHaveBeenCalledWith("time=2026-06-07T00:00:01Z level=ERROR msg=database-unavailable");
@@ -73,13 +72,13 @@ describe("LogsPage", () => {
     expect(await screen.findByText(/server-started/)).toBeInTheDocument();
 
     const followMode = screen.getByRole("group", { name: "Live follow mode" });
-    expect(within(followMode).getByRole("button", { name: "Follow" })).toHaveAttribute("aria-pressed", "true");
-    expect(within(followMode).getByRole("button", { name: "Pause" })).toHaveAttribute("aria-pressed", "false");
+    expect(getMaterialFilterChip(followMode, "Follow")).toHaveProperty("selected", true);
+    expect(getMaterialFilterChip(followMode, "Pause")).toHaveProperty("selected", false);
 
-    fireEvent.click(within(followMode).getByRole("button", { name: "Pause" }));
+    fireEvent.click(getMaterialFilterChip(followMode, "Pause"));
 
-    expect(within(followMode).getByRole("button", { name: "Follow" })).toHaveAttribute("aria-pressed", "false");
-    expect(within(followMode).getByRole("button", { name: "Pause" })).toHaveAttribute("aria-pressed", "true");
+    expect(getMaterialFilterChip(followMode, "Follow")).toHaveProperty("selected", false);
+    expect(getMaterialFilterChip(followMode, "Pause")).toHaveProperty("selected", true);
   });
 
   test("shows empty feedback and disables log actions when filters hide every row", async () => {
@@ -92,13 +91,11 @@ describe("LogsPage", () => {
 
     expect(await screen.findByText(/server-started/)).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("Search logs"), {
-      target: { value: "no matching backend event" }
-    });
+    setMaterialTextFieldValue(getMaterialTextField(document.body, "Search logs"), "no matching backend event");
 
     expect(screen.getByText("No logs match the current filters.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Copy" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Download" })).toBeDisabled();
+    expect(getMaterialButton(document.body, "Copy")).toHaveProperty("disabled", true);
+    expect(getMaterialButton(document.body, "Download")).toHaveProperty("disabled", true);
     expect(screen.getByText("0 of 3 logs")).toBeInTheDocument();
   });
 
@@ -125,8 +122,8 @@ describe("LogsPage", () => {
 
     expect(await screen.findByText(/server-started/)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "WARN" }));
-    fireEvent.click(screen.getByRole("button", { name: "Download" }));
+    fireEvent.click(getMaterialFilterChip(document.body, "WARN"));
+    fireEvent.click(getMaterialButton(document.body, "Download"));
 
     await expect(readBlobText(getBlob())).resolves.toBe("time=2026-06-07T00:00:02Z level=WARN msg=slow-request");
   });
@@ -166,6 +163,43 @@ describe("LogsPage", () => {
     });
   });
 });
+
+function getMaterialFilterChip(container: ParentNode, label: string) {
+  const element = Array.from(container.querySelectorAll("md-filter-chip")).find(
+    (chip) => chip.textContent?.trim() === label
+  );
+  if (!element) {
+    throw new Error(`Expected a Material Web filter chip labelled "${label}".`);
+  }
+  return element as HTMLElement & { selected: boolean };
+}
+
+function getMaterialButton(container: ParentNode, label: string) {
+  const element = Array.from(container.querySelectorAll("md-outlined-button")).find(
+    (button) => button.textContent?.includes(label)
+  );
+  if (!element) {
+    throw new Error(`Expected a Material Web outlined button labelled "${label}".`);
+  }
+  return element as HTMLElement & { disabled: boolean };
+}
+
+function getMaterialTextField(container: ParentNode, label: string) {
+  const element = Array.from(container.querySelectorAll("md-outlined-text-field")).find(
+    (textField) => (textField as HTMLElement & { label?: string }).label === label
+  );
+  if (!element) {
+    throw new Error(`Expected a Material Web outlined text field labelled "${label}".`);
+  }
+  return element as HTMLElement & { value: string };
+}
+
+function setMaterialTextFieldValue(element: HTMLElement & { value: string }, value: string) {
+  act(() => {
+    element.value = value;
+    element.dispatchEvent(new InputEvent("input", { bubbles: true, composed: true }));
+  });
+}
 
 function logEntries(): LogEntry[] {
   return [

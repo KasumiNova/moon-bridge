@@ -192,25 +192,28 @@ export const sharedResourceStyles = `  .metric-card,
     gap: 12px;
   }
 
-  .provider-offers__toggle {
+  .provider-offers__summary {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    border: 0;
-    border-radius: var(--mb-shape-md);
-    padding: 6px 14px 6px 6px;
     color: var(--mb-color-on-surface);
-    background: transparent;
-    box-shadow: none;
-    cursor: pointer;
-    transition: background var(--mb-duration-short) var(--mb-ease-standard);
   }
 
-  .provider-offers__toggle:hover {
-    background: color-mix(in srgb, var(--mb-color-on-surface) 6%, transparent);
+  .provider-offers__toggle {
+    --md-icon-button-icon-size: 20px;
+    --md-icon-button-icon-color: var(--mb-color-on-surface-variant);
+    --md-icon-button-hover-icon-color: var(--mb-color-on-surface-variant);
+    --md-icon-button-pressed-icon-color: var(--mb-color-primary);
+    flex: 0 0 auto;
+    transition: transform var(--mb-duration-medium) var(--mb-ease-spring);
   }
 
-  .provider-offers__toggle h3 {
+  .provider-offers__toggle[aria-expanded="true"] {
+    --md-icon-button-icon-color: var(--mb-color-primary);
+    transform: rotate(90deg);
+  }
+
+  .provider-offers__summary h3 {
     margin: 0;
     font-size: 0.86rem;
     font-weight: 680;
@@ -220,17 +223,6 @@ export const sharedResourceStyles = `  .metric-card,
   .provider-offers__icon {
     font-size: 18px;
     color: var(--mb-color-on-surface-variant);
-  }
-
-  .provider-offers__chevron {
-    font-size: 20px;
-    color: var(--mb-color-on-surface-variant);
-    transition: transform var(--mb-duration-medium) var(--mb-ease-spring);
-  }
-
-  .provider-offers[data-open="true"] .provider-offers__chevron {
-    transform: rotate(90deg);
-    color: var(--mb-color-primary);
   }
 
   .provider-offers .resource-card-list--compact {
@@ -271,8 +263,9 @@ export const sharedResourceStyles = `  .metric-card,
     gap: 8px;
     min-height: 40px;
     padding: 0 20px;
-    color: var(--mb-color-on-secondary-container);
-    background: var(--mb-color-secondary-container);
+    --md-filled-button-container-color: var(--mb-color-secondary-container);
+    --md-filled-button-label-text-color: var(--mb-color-on-secondary-container);
+    --md-filled-button-hover-state-layer-color: var(--mb-color-secondary);
   }
 
   .create-resource__panel {
@@ -309,20 +302,18 @@ export const sharedResourceStyles = `  .metric-card,
   }
 
   .icon-button {
-    width: 36px;
-    min-height: 36px;
-    display: inline-grid;
-    place-items: center;
-    padding: 0;
-    color: var(--mb-color-on-surface-variant);
-    background: transparent;
-    box-shadow: none;
-  }
-
-  .icon-button:hover,
-  .icon-button:focus-visible {
-    color: var(--mb-color-primary);
-    background: color-mix(in srgb, var(--mb-color-primary) 12%, transparent);
+    --md-icon-button-state-layer-width: 36px;
+    --md-icon-button-state-layer-height: 36px;
+    --md-icon-button-icon-size: 20px;
+    --md-icon-button-icon-color: var(--mb-color-on-surface-variant);
+    --md-icon-button-hover-icon-color: var(--mb-color-primary);
+    --md-icon-button-focus-icon-color: var(--mb-color-primary);
+    --md-icon-button-pressed-icon-color: var(--mb-color-primary);
+    --md-icon-button-hover-state-layer-color: var(--mb-color-primary);
+    --md-icon-button-focus-state-layer-color: var(--mb-color-primary);
+    --md-icon-button-pressed-state-layer-color: var(--mb-color-primary);
+    --md-icon-button-hover-state-layer-opacity: 0.12;
+    --md-icon-button-focus-state-layer-opacity: 0.12;
   }
 
 `;

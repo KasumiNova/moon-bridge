@@ -1,4 +1,4 @@
-import { fireEvent, screen, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { renderWithConsoleProviders } from "../../test/renderWithConsoleProviders";
 import { ApiError } from "../../rpc/http";
@@ -71,8 +71,18 @@ describe("OverviewPage", () => {
     expect(screen.getByRole("img", { name: /Token split chart.*Input tokens: 300.*Output tokens: 80/ })).toBeInTheDocument();
     expect(screen.getByRole("img", { name: /Cache split chart.*Cache write: 40.*Cache read: 120/ })).toBeInTheDocument();
     expect(screen.getByRole("img", { name: /Cost by model chart.*claude-sonnet: 0.42/ })).toBeInTheDocument();
+    expect(getMaterialFilterChip(document.body, "This session")).toHaveProperty("selected", true);
+    expect(getMaterialFilterChip(document.body, "24h")).toHaveProperty("selected", false);
 
-    const modelRow = screen.getByRole("row", { name: /claude-sonnet/i });
+    fireEvent.click(getMaterialFilterChip(document.body, "24h"));
+
+    expect(getMaterialFilterChip(document.body, "This session")).toHaveProperty("selected", false);
+    expect(getMaterialFilterChip(document.body, "24h")).toHaveProperty("selected", true);
+    await waitFor(() => {
+      expect(management.getUsageStats).toHaveBeenCalledWith("24h");
+    });
+
+    const modelRow = await screen.findByRole("row", { name: /claude-sonnet/i });
     expect(modelRow).toHaveTextContent("claude-3-5-sonnet");
     expect(modelRow).toHaveTextContent("¥0.42");
     expect(modelRow).toHaveTextContent("¥1,105.26/M");
@@ -94,14 +104,13 @@ describe("OverviewPage", () => {
 
     expect(await screen.findByText(/server-started/)).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("Search logs"), {
-      target: { value: "database" }
-    });
+    const searchField = getMaterialTextField(document.body, "Search logs");
+    setMaterialTextFieldValue(searchField, "database");
 
     expect(screen.queryByText(/server-started/)).not.toBeInTheDocument();
     expect(screen.getByText(/database-unavailable/)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Clear log search" }));
+    fireEvent.click(getMaterialIconButton(document.body, "Clear log search"));
 
     expect(screen.getByText(/server-started/)).toBeInTheDocument();
     expect(screen.getByText(/database-unavailable/)).toBeInTheDocument();
@@ -154,6 +163,43 @@ describe("OverviewPage", () => {
     expect(screen.getByRole("heading", { name: "Configuration graph unavailable" })).toBeInTheDocument();
   });
 });
+
+function getMaterialFilterChip(container: ParentNode, label: string) {
+  const element = Array.from(container.querySelectorAll("md-filter-chip")).find(
+    (chip) => chip.textContent?.trim() === label
+  );
+  if (!element) {
+    throw new Error(`Expected a Material Web filter chip labelled "${label}".`);
+  }
+  return element as HTMLElement & { selected: boolean };
+}
+
+function getMaterialTextField(container: ParentNode, label: string) {
+  const element = Array.from(container.querySelectorAll("md-outlined-text-field")).find(
+    (textField) => (textField as HTMLElement & { label?: string }).label === label
+  );
+  if (!element) {
+    throw new Error(`Expected a Material Web outlined text field labelled "${label}".`);
+  }
+  return element as HTMLElement & { value: string };
+}
+
+function getMaterialIconButton(container: ParentNode, label: string) {
+  const element = Array.from(container.querySelectorAll("md-icon-button")).find(
+    (iconButton) => iconButton.getAttribute("aria-label") === label
+  );
+  if (!element) {
+    throw new Error(`Expected a Material Web icon button labelled "${label}".`);
+  }
+  return element as HTMLElement;
+}
+
+function setMaterialTextFieldValue(element: HTMLElement & { value: string }, value: string) {
+  act(() => {
+    element.value = value;
+    element.dispatchEvent(new InputEvent("input", { bubbles: true, composed: true }));
+  });
+}
 
 function usageStats(): UsageStats {
   return {

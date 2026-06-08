@@ -1,4 +1,5 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
 import { renderWithConsoleProviders } from "../../test/renderWithConsoleProviders";
 import { field, resource } from "../../test/configGraphFixtures";
@@ -28,8 +29,8 @@ describe("ResourceEditorCard", () => {
     expect(screen.getByRole("heading", { name: "anthropic" })).toBeInTheDocument();
     expect(document.querySelector(".resource-kind-icon")).toBeInTheDocument();
     expect(within(screen.getByLabelText("anthropic status")).getByText("Saved")).toBeInTheDocument();
-    expect(screen.getByLabelText("Base URL")).toBeInTheDocument();
-    expect(screen.getByLabelText("API Key")).toHaveAttribute("type", "password");
+    expect(getMaterialTextField(document, "Base URL")).toBeInTheDocument();
+    expect(getMaterialTextField(document, "API Key")).toHaveProperty("type", "password");
   });
 
   test("surfaces restart and critical runtime metadata", () => {
@@ -108,11 +109,11 @@ describe("ResourceEditorCard", () => {
     const identityGroup = screen.getByRole("group", { name: "Identity" });
     const standardGroup = screen.getByRole("group", { name: "Settings" });
 
-    expect(within(identityGroup).getByLabelText("Model")).toBeInTheDocument();
-    expect(within(identityGroup).getByLabelText("Upstream Name")).toBeInTheDocument();
-    expect(within(standardGroup).getByLabelText("Priority")).toBeInTheDocument();
-    expect(within(standardGroup).getByRole("button", { name: /Pricing.*1 key/ })).toBeInTheDocument();
-    expect(within(standardGroup).getByRole("button", { name: /Overrides.*0 keys/ })).toBeInTheDocument();
+    expect(getMaterialTextField(identityGroup, "Model")).toBeInTheDocument();
+    expect(getMaterialTextField(identityGroup, "Upstream Name")).toBeInTheDocument();
+    expect(getMaterialTextField(standardGroup, "Priority")).toBeInTheDocument();
+    expect(getMaterialButton(standardGroup, /Pricing.*1 key/, "outlined")).toBeInTheDocument();
+    expect(getMaterialButton(standardGroup, /Overrides.*0 keys/, "outlined")).toBeInTheDocument();
     expect(screen.queryByRole("group", { name: "Advanced JSON" })).not.toBeInTheDocument();
   });
 
@@ -134,7 +135,7 @@ describe("ResourceEditorCard", () => {
     );
 
     const settingsGroup = screen.getByRole("group", { name: "Settings" });
-    expect(within(settingsGroup).getByLabelText("Description")).toBeInTheDocument();
+    expect(getMaterialTextField(settingsGroup, "Description")).toBeInTheDocument();
     expect(screen.queryByRole("group", { name: "Advanced JSON" })).not.toBeInTheDocument();
   });
 
@@ -161,10 +162,84 @@ describe("ResourceEditorCard", () => {
       <ResourceEditorCard resource={model} revision="rev-1" title="Model" />
     );
 
-    expect(screen.getByLabelText("Display Name").closest(".form-grid__medium")).toBeInTheDocument();
-    expect(screen.getByLabelText("Context Window").closest(".form-grid__compact")).toBeInTheDocument();
-    expect(screen.getByLabelText("Default Reasoning Level").closest(".form-grid__compact")).toBeInTheDocument();
-    expect(screen.getByLabelText("Description").closest(".form-grid__wide")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Extensions.*0 keys/ }).closest(".form-grid__wide")).toBeInTheDocument();
+    expect(getMaterialTextField(document, "Display Name").closest(".form-grid__medium")).toBeInTheDocument();
+    expect(getMaterialTextField(document, "Context Window").closest(".form-grid__compact")).toBeInTheDocument();
+    expect(getMaterialTextField(document, "Default Reasoning Level").closest(".form-grid__compact")).toBeInTheDocument();
+    expect(getMaterialTextField(document, "Description").closest(".form-grid__wide")).toBeInTheDocument();
+    expect(getMaterialButton(document, /Extensions.*0 keys/, "outlined").closest(".form-grid__wide")).toBeInTheDocument();
+  });
+
+  test("uses Material Web buttons for delete confirmation state changes", async () => {
+    vi.spyOn(configGraph, "patchConfigGraph").mockResolvedValue({
+      result: "committed",
+      revision: "rev-2"
+    });
+    const remove = vi.spyOn(configGraph, "deleteConfigResource").mockResolvedValue({
+      result: "committed",
+      revision: "rev-2"
+    });
+    const provider = resource("provider", "anthropic", "Anthropic", {
+      base_url: "https://api.anthropic.com"
+    }, [
+      field("base_url", "Base URL")
+    ]);
+
+    renderWithConsoleProviders(
+      <ResourceEditorCard resource={provider} revision="rev-1" title="Provider" />
+    );
+
+    const deleteButton = getMaterialButton(document, "Delete Provider anthropic", "filled");
+    expect(deleteButton).toHaveTextContent("Delete");
+
+    await userEvent.click(deleteButton);
+
+    expect(screen.getByText("Delete anthropic? This removes the resource from the active graph after save."))
+      .toBeInTheDocument();
+    expect(getMaterialButton(document, "Confirm delete anthropic", "filled")).toBeInTheDocument();
+    const cancelButton = getMaterialButton(document, "Cancel", "outlined");
+
+    await userEvent.click(cancelButton);
+
+    expect(screen.queryByText("Delete anthropic? This removes the resource from the active graph after save."))
+      .not.toBeInTheDocument();
+    expect(remove).not.toHaveBeenCalled();
+
+    await userEvent.click(getMaterialButton(document, "Delete Provider anthropic", "filled"));
+    await userEvent.click(getMaterialButton(document, "Confirm delete anthropic", "filled"));
+
+    await waitFor(() => expect(remove).toHaveBeenCalledWith("provider", "anthropic", "rev-1"));
   });
 });
+
+function getMaterialTextField(container: ParentNode, label: string) {
+  const element = Array.from(container.querySelectorAll("md-outlined-text-field")).find(
+    (textField) => materialElementLabel(textField as HTMLElement & { label?: string }) === label
+  );
+  if (!element) {
+    throw new Error(`Missing md-outlined-text-field: ${label}`);
+  }
+  return element as HTMLElement & { label: string; type: string; value: string };
+}
+
+function materialElementLabel(element: HTMLElement & { label?: string }) {
+  return element.label || element.getAttribute("aria-label") || element.getAttribute("label") || "";
+}
+
+function getMaterialButton(
+  container: ParentNode,
+  label: string | RegExp,
+  variant: "filled" | "outlined"
+) {
+  const tagName = variant === "filled" ? "md-filled-button" : "md-outlined-button";
+  const element = Array.from(container.querySelectorAll(tagName)).find(
+    (button) => {
+      const accessibleLabel = button.getAttribute("aria-label") ?? button.textContent ?? "";
+      return typeof label === "string" ? accessibleLabel.trim() === label : label.test(accessibleLabel);
+    }
+  );
+  if (!element) {
+    throw new Error(`Missing ${tagName} button: ${label}`);
+  }
+  expect(element.tagName.toLowerCase()).toBe(tagName);
+  return element;
+}

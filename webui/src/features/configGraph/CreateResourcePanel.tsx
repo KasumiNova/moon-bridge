@@ -1,7 +1,11 @@
-import { useId, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useId, useRef, useState, type FormEvent } from "react";
 import { configDescriptions, type ConfigPath } from "../../configDocs/configDescriptions";
 import type { ConfigGraph } from "../../rpc/types";
 import { useI18n } from "../../i18n/I18nProvider";
+import { MaterialFilledButton, MaterialIconButton, MaterialOutlinedButton } from "../../components/MaterialButton";
+import { MaterialFilterChip } from "../../components/MaterialFilterChip";
+import { MaterialSelect, type MaterialSelectOption } from "../../components/MaterialSelect";
+import { MaterialOutlinedTextField } from "../../components/MaterialTextField";
 import type { MessageKey } from "../../i18n/messages";
 import { MaterialSwitch } from "../../components/MaterialSwitch";
 import { useCreateConfigResource } from "./useConfigGraph";
@@ -134,27 +138,25 @@ export function CreateResourcePanel({
 
   return (
     <div className="create-resource">
-      <button
+      <MaterialFilledButton
         type="button"
         className="create-resource__add"
         disabled={extensionCreateDisabled}
         onClick={openPanel}
+        icon="add"
       >
-        <span className="material-symbol" aria-hidden="true">add</span>
         {addLabel}
-      </button>
+      </MaterialFilledButton>
       {open ? (
         <form className="create-resource__panel" aria-label={title} onSubmit={submit}>
           <div className="create-resource__header">
             <h3>{title}</h3>
-            <button
-              type="button"
+            <MaterialIconButton
               className="icon-button"
-              aria-label={t("create.close")}
+              icon="close"
+              label={t("create.close")}
               onClick={() => setOpen(false)}
-            >
-              <span className="material-symbol" aria-hidden="true">close</span>
-            </button>
+            />
           </div>
           {error ? (
             <p className="field-error" role="alert">
@@ -172,12 +174,12 @@ export function CreateResourcePanel({
             />
           </div>
           <div className="form-actions">
-            <button type="submit" disabled={create.isPending}>
+            <MaterialFilledButton type="submit" disabled={create.isPending}>
               {submitLabel}
-            </button>
-            <button type="button" className="secondary-button" onClick={() => setOpen(false)}>
+            </MaterialFilledButton>
+            <MaterialOutlinedButton className="secondary-button" onClick={() => setOpen(false)}>
               {t("create.cancel")}
-            </button>
+            </MaterialOutlinedButton>
           </div>
         </form>
       ) : null}
@@ -227,13 +229,12 @@ function CreateFields({
           onChange={(apiKey) => setValues({ ...values, apiKey })}
           secret
         />
-        <OptionGroup
+        <ChipOptionGroup
           helpText={fieldHelp("providers.<key>.protocol", "Selects the upstream API format.")}
           label={t("create.provider.protocol")}
           options={["openai-response", "openai-chat", "anthropic", "google-genai"]}
           value={values.protocol}
           onChange={(protocol) => setValues({ ...values, protocol })}
-          optionClassName={protocolOptionClass}
           optionLabel={protocolOptionLabel}
         />
       </>
@@ -274,17 +275,17 @@ function CreateFields({
           value={values.id}
           onChange={(id) => setValues({ ...values, id })}
         />
-        <OptionGroup
+        <SelectInput
           helpText={fieldHelp("routes.<alias>.model", "Local model used by this route.")}
           label={t("create.route.model")}
-          options={models.map((model) => model.id)}
+          options={toSelectOptions(models.map((model) => model.id))}
           value={values.model}
           onChange={(model) => setValues({ ...values, model })}
         />
-        <OptionGroup
+        <SelectInput
           helpText={fieldHelp("routes.<alias>.provider", "Provider that handles this route.")}
           label={t("create.route.provider")}
-          options={providers.map((provider) => provider.id)}
+          options={toSelectOptions(providers.map((provider) => provider.id))}
           value={values.provider}
           onChange={(provider) => setValues({ ...values, provider })}
         />
@@ -300,12 +301,12 @@ function CreateFields({
             helpText={fieldHelp("providers.<key>.key", "Provider that owns this offer.")}
             label={t("create.offer.provider")}
           />
-          <span className="schema-option schema-option--active">{providerId ?? values.provider}</span>
+          <span className="material-static-chip">{providerId ?? values.provider}</span>
         </div>
-        <OptionGroup
+        <SelectInput
           helpText={fieldHelp("providers.<key>.offers[].model", "Local model slug served by this offer.")}
           label={t("create.offer.model")}
-          options={models.map((model) => model.id)}
+          options={toSelectOptions(models.map((model) => model.id))}
           value={values.model}
           onChange={(model) => setValues({ ...values, model })}
         />
@@ -321,10 +322,10 @@ function CreateFields({
 
   return (
     <>
-      <OptionGroup
+      <SelectInput
         helpText="Stable extension identifier, for example metrics or db_sqlite."
         label={t("create.extension.id")}
-        options={availableExtensionIds}
+        options={toSelectOptions(availableExtensionIds)}
         value={values.id}
         onChange={(id) => setValues({ ...values, id })}
       />
@@ -352,25 +353,60 @@ function TextInput({
   value: string;
 }) {
   const id = useStableCreateId(label);
+  const help = useCreateFieldHelp(label);
   return (
-    <div className="form-field form-field--create-track">
-      <CreateFieldLabel helpText={helpText} inputId={id} label={label} />
-      <input
-        autoComplete={secret ? "new-password" : undefined}
-        id={id}
-        type={secret ? "password" : "text"}
-        value={value}
-        onChange={(event) => onChange(event.currentTarget.value)}
-      />
+    <div className="mb-field form-field--create-track" data-variant="input">
+      <div className="mb-field__control">
+        <MaterialOutlinedTextField
+          ariaDescribedBy={help.open ? help.helpId : undefined}
+          ariaLabel={label}
+          autoComplete={secret ? "new-password" : undefined}
+          id={id}
+          label={label}
+          trailingIcon={help.button("trailing-icon")}
+          type={secret ? "password" : "text"}
+          value={value}
+          onInput={onChange}
+        />
+        <CreateFieldHelpTooltip helpId={help.helpId} helpText={helpText} open={help.open} />
+      </div>
     </div>
   );
 }
 
-function OptionGroup({
+function SelectInput({
   helpText,
   label,
   onChange,
-  optionClassName,
+  options,
+  value
+}: {
+  helpText: string;
+  label: string;
+  onChange: (value: string) => void;
+  options: MaterialSelectOption[];
+  value: string;
+}) {
+  return (
+    <div className="mb-field form-field--create-track" data-variant="select">
+      <div className="mb-field__control">
+        <MaterialSelect
+          ariaLabel={label}
+          label={label}
+          onChange={onChange}
+          options={options}
+          supportingText={helpText}
+          value={value}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ChipOptionGroup({
+  helpText,
+  label,
+  onChange,
   optionLabel = (option) => option,
   options,
   value
@@ -378,7 +414,6 @@ function OptionGroup({
   helpText: string;
   label: string;
   onChange: (value: string) => void;
-  optionClassName?: (option: string) => string;
   optionLabel?: (option: string) => string;
   options: string[];
   value: string;
@@ -386,23 +421,18 @@ function OptionGroup({
   return (
     <div className="form-field form-field--create-track">
       <CreateFieldLabel helpText={helpText} label={label} />
-      <div className="schema-option-group" role="group" aria-label={label}>
+      <md-chip-set className="material-chip-group" role="group" aria-label={label}>
         {options.map((option) => (
-          <button
+          <MaterialFilterChip
             key={option}
-            type="button"
-            className={[
-              "schema-option",
-              optionClassName?.(option),
-              option === value ? "schema-option--active" : undefined
-            ].filter(Boolean).join(" ")}
-            aria-pressed={option === value}
-            onClick={() => onChange(option)}
+            selected={option === value}
+            value={option}
+            onSelect={onChange}
           >
             {optionLabel(option)}
-          </button>
+          </MaterialFilterChip>
         ))}
-      </div>
+      </md-chip-set>
     </div>
   );
 }
@@ -419,6 +449,7 @@ function ContextWindowInput({
   value: string;
 }) {
   const id = useStableCreateId(label);
+  const help = useCreateFieldHelp(label);
   const presets = [
     ["128k", "128000"],
     ["400k", "400000"],
@@ -426,29 +457,34 @@ function ContextWindowInput({
   ] as const;
 
   return (
-    <div className="form-field form-field--compound form-field--create-track">
-      <CreateFieldLabel helpText={helpText} inputId={id} label={label} />
+    <div className="mb-field form-field--compound form-field--create-track" data-variant="input">
       <div className="create-resource__compound-control">
-        <div className="schema-option-group" role="group" aria-label={`${label} presets`}>
+        <md-chip-set className="material-chip-group" role="group" aria-label={`${label} presets`}>
           {presets.map(([presetLabel, presetValue]) => (
-            <button
+            <MaterialFilterChip
               key={presetValue}
-              type="button"
-              className={value === presetValue ? "schema-option schema-option--active" : "schema-option"}
-              aria-pressed={value === presetValue}
-              onClick={() => onChange(presetValue)}
+              selected={value === presetValue}
+              value={presetValue}
+              onSelect={onChange}
             >
-              {presetLabel}
-            </button>
-          ))}
+            {presetLabel}
+          </MaterialFilterChip>
+        ))}
+      </md-chip-set>
+        <div className="mb-field__control">
+          <MaterialOutlinedTextField
+            ariaDescribedBy={help.open ? help.helpId : undefined}
+            ariaLabel={label}
+            id={id}
+            inputMode="numeric"
+            label={label}
+            trailingIcon={help.button("trailing-icon")}
+            type="text"
+            value={value}
+            onInput={onChange}
+          />
+          <CreateFieldHelpTooltip helpId={help.helpId} helpText={helpText} open={help.open} />
         </div>
-        <input
-          id={id}
-          inputMode="numeric"
-          type="text"
-          value={value}
-          onChange={(event) => onChange(event.currentTarget.value)}
-        />
       </div>
     </div>
   );
@@ -473,42 +509,28 @@ function SwitchInput({
   );
 }
 
-function CreateFieldLabel({
-  helpText,
-  inputId,
-  label
-}: {
-  helpText: string;
-  inputId?: string;
-  label: string;
-}) {
+function CreateFieldLabel({ helpText, label }: { helpText: string; label: string }) {
   return (
     <span className="schema-field__label-row">
-      {inputId ? (
-        <label className="schema-field__label" htmlFor={inputId}>
-          {label}
-        </label>
-      ) : (
-        <span className="schema-field__label">{label}</span>
-      )}
+      <span className="schema-field__label">{label}</span>
       <CreateFieldHelpButton helpText={helpText} label={label} />
     </span>
   );
 }
 
-function CreateFieldHelpButton({ helpText, label }: { helpText: string; label: string }) {
+function useCreateFieldHelp(label: string) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const openedByHover = useRef(false);
   const helpId = `${useStableCreateId(label)}-help`;
 
-  return (
-    <span className="schema-field__help-wrap">
-      <button
-        type="button"
+  return {
+    button: (slot?: string) => (
+      <MaterialIconButton
         className="schema-field__help"
-        aria-label={t("field.helpFor", { label })}
-        aria-describedby={open ? helpId : undefined}
+        describedBy={open ? helpId : undefined}
+        icon="help"
+        label={t("field.helpFor", { label })}
         onBlur={() => setOpen(false)}
         onClick={() => {
           if (openedByHover.current) {
@@ -519,7 +541,7 @@ function CreateFieldHelpButton({ helpText, label }: { helpText: string; label: s
           setOpen((current) => !current);
         }}
         onFocus={() => setOpen(true)}
-        onKeyDown={(event: KeyboardEvent<HTMLButtonElement>) => {
+        onKeyDown={(event) => {
           if (event.key === "Escape") {
             setOpen(false);
           }
@@ -533,14 +555,31 @@ function CreateFieldHelpButton({ helpText, label }: { helpText: string; label: s
           openedByHover.current = false;
           setOpen(false);
         }}
-      >
-        ?
-      </button>
-      {open ? (
-        <span className="schema-field__tooltip" id={helpId} role="tooltip">
-          {helpText}
-        </span>
-      ) : null}
+        slot={slot}
+      />
+    ),
+    helpId,
+    open
+  };
+}
+
+function CreateFieldHelpButton({ helpText, label }: { helpText: string; label: string }) {
+  const help = useCreateFieldHelp(label);
+  return (
+    <span className="schema-field__help-wrap">
+      {help.button()}
+      <CreateFieldHelpTooltip helpId={help.helpId} helpText={helpText} open={help.open} />
+    </span>
+  );
+}
+
+function CreateFieldHelpTooltip({ helpId, helpText, open }: { helpId: string; helpText: string; open: boolean }) {
+  if (!open) {
+    return null;
+  }
+  return (
+    <span className="rich-tooltip" id={helpId} role="tooltip">
+      {helpText}
     </span>
   );
 }
@@ -548,6 +587,10 @@ function CreateFieldHelpButton({ helpText, label }: { helpText: string; label: s
 function useStableCreateId(label: string) {
   const id = useId();
   return `create-resource-${id}-${label}`.replace(/[^a-zA-Z0-9_-]/g, "-");
+}
+
+function toSelectOptions(options: string[]): MaterialSelectOption[] {
+  return options.map((option) => ({ label: option, value: option }));
 }
 
 function defaultValues(
@@ -752,17 +795,4 @@ function protocolOptionLabel(option: string) {
     "google-genai": "Gemini"
   };
   return labels[option] ?? option;
-}
-
-function protocolOptionClass(option: string) {
-  if (option === "anthropic") {
-    return "schema-option--anthropic";
-  }
-  if (option === "openai-response" || option === "openai-chat") {
-    return "schema-option--openai";
-  }
-  if (option === "google-genai" || option === "gemini") {
-    return "schema-option--gemini";
-  }
-  return "schema-option--unknown";
 }

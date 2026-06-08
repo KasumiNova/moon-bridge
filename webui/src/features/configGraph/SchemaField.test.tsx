@@ -6,7 +6,7 @@ import { renderWithConsoleProviders } from "../../test/renderWithConsoleProvider
 import { SchemaField } from "./SchemaField";
 
 describe("SchemaField", () => {
-  test("renders enum fields as an accessible dropdown menu", async () => {
+  test("renders enum fields with the Material Web select", async () => {
     const field: FieldSchema = {
       path: "protocol",
       type: "string",
@@ -16,17 +16,39 @@ describe("SchemaField", () => {
       hotReloadable: true
     };
     const onChange = vi.fn();
-    renderWithConsoleProviders(<SchemaField field={field} value="anthropic" onChange={onChange} />);
+    renderWithConsoleProviders(
+      <SchemaField
+        field={field}
+        value="anthropic"
+        onChange={onChange}
+        docPath="providers.<key>.protocol"
+      />
+    );
 
     expect(document.querySelector(".schema-field select")).not.toBeInTheDocument();
-    const trigger = screen.getByRole("combobox", { name: "Protocol" });
-    expect(trigger).toHaveTextContent("Anthropic");
-    expect(trigger).toHaveAttribute("aria-expanded", "false");
-    expect(document.getElementById("schema-field-protocol-label")).toHaveTextContent("Protocol");
+    const materialSelect = await findMaterialSelect(document, "Protocol");
+    expect(document.querySelector(".select-menu")).not.toBeInTheDocument();
+    expect(materialSelect.value).toBe("anthropic");
+    const options = getMaterialSelectOptions(materialSelect);
+    expect(options.map((option) => option.value)).toEqual([
+      "anthropic",
+      "openai-response",
+      "openai-chat",
+      "google-genai"
+    ]);
+    expect(options.map((option) => option.displayText)).toEqual([
+      "Anthropic",
+      "OpenAI Responses",
+      "OpenAI Chat",
+      "Gemini"
+    ]);
+    expect(options[0].selected).toBe(true);
+    expect(materialSelect.label).toBe("Protocol");
+    expect(materialSelect.supportingText).toContain("Selects the upstream API format");
+    expect(materialSelect.closest(".mb-field")?.querySelector(".schema-field__help-wrap")).not.toBeInTheDocument();
+    expect(materialSelect.closest(".mb-field")?.querySelector("md-icon-button")).not.toBeInTheDocument();
 
-    await userEvent.click(trigger);
-    expect(trigger).toHaveAttribute("aria-expanded", "true");
-    await userEvent.click(screen.getByRole("option", { name: /OpenAI Responses/ }));
+    setMaterialSelectValue(materialSelect, "openai-response");
 
     expect(onChange).toHaveBeenCalledWith("openai-response");
   });
@@ -48,7 +70,8 @@ describe("SchemaField", () => {
       />
     );
 
-    const helpButton = screen.getByRole("button", { name: "Help for Base URL" });
+    const helpButton = getMaterialIconButton(document, "Help for Base URL");
+    expect(helpButton.tagName.toLowerCase()).toBe("md-icon-button");
     expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
 
     await userEvent.click(helpButton);
@@ -68,8 +91,38 @@ describe("SchemaField", () => {
 
     renderWithConsoleProviders(<SchemaField field={field} value="sk-secret" onChange={() => undefined} />);
 
-    expect(screen.getByLabelText("API key")).toHaveAttribute("type", "password");
-    expect(screen.getByLabelText("API key")).toHaveValue("");
+    const fieldElement = getMaterialTextField(document, "API key");
+    expect(document.querySelector(".mb-field__control input")).not.toBeInTheDocument();
+    expect(fieldElement.type).toBe("password");
+    expect(fieldElement.value).toBe("");
+  });
+
+  test("renders text fields with Material label and icon slots instead of an outer outlined field", () => {
+    const field: FieldSchema = {
+      path: "base_url",
+      type: "string",
+      label: "Base URL",
+      hotReloadable: true
+    };
+
+    renderWithConsoleProviders(
+      <SchemaField
+        field={field}
+        value="https://api.example.invalid"
+        onChange={() => undefined}
+        docPath="providers.<key>.base_url"
+      />
+    );
+
+    const fieldElement = getMaterialTextField(document, "Base URL");
+
+    expect(fieldElement.label).toBe("Base URL");
+    expect(fieldElement.getAttribute("spellcheck")).toBe("false");
+    expect(fieldElement.closest(".mb-field")?.querySelector(".mb-field__label")).not.toBeInTheDocument();
+    expect(fieldElement.querySelector("[slot='leading-icon']")).toHaveTextContent("link");
+    const trailing = fieldElement.querySelector("[slot='trailing-icon']");
+    expect(trailing?.tagName.toLowerCase()).toBe("md-icon-button");
+    expect(trailing).toHaveAttribute("aria-label", "Help for Base URL");
   });
 
   test("guides secret replacement without exposing the committed value", () => {
@@ -83,7 +136,7 @@ describe("SchemaField", () => {
 
     renderWithConsoleProviders(<SchemaField field={field} value="sk-secret" onChange={() => undefined} />);
 
-    expect(screen.getByText("Enter a new value to replace the saved secret.")).toBeInTheDocument();
+    expect(getMaterialTextField(document, "API key").supportingText).toBe("Enter a new value to replace the saved secret.");
     expect(screen.queryByDisplayValue("sk-secret")).not.toBeInTheDocument();
   });
 
@@ -97,10 +150,11 @@ describe("SchemaField", () => {
     const onChange = vi.fn();
     renderWithConsoleProviders(<SchemaField field={field} value={1024} onChange={onChange} />);
 
-    expect(screen.getByLabelText("Max tokens")).toHaveAttribute("type", "text");
+    const input = getMaterialTextField(document, "Max tokens");
+    expect(document.querySelector(".mb-field__control input")).not.toBeInTheDocument();
+    expect(input.type).toBe("text");
 
-    await userEvent.clear(screen.getByLabelText("Max tokens"));
-    await userEvent.type(screen.getByLabelText("Max tokens"), "2048");
+    setMaterialTextFieldValue(input, "2048");
 
     expect(onChange).toHaveBeenLastCalledWith(2048);
   });
@@ -115,12 +169,11 @@ describe("SchemaField", () => {
     const onChange = vi.fn();
     renderWithConsoleProviders(<SchemaField field={field} value={1024} onChange={onChange} />);
 
-    const input = screen.getByLabelText("Max tokens");
-    await userEvent.clear(input);
+    const input = getMaterialTextField(document, "Max tokens");
     onChange.mockClear();
-    await userEvent.type(input, "abc");
+    setMaterialTextFieldValue(input, "abc");
 
-    expect(input).toHaveAttribute("aria-invalid", "true");
+    expect(input.getAttribute("aria-invalid")).toBe("true");
     expect(screen.getByRole("alert")).toHaveTextContent("Invalid number");
     expect(onChange).not.toHaveBeenCalled();
   });
@@ -137,14 +190,14 @@ describe("SchemaField", () => {
     renderWithConsoleProviders(<SchemaField field={field} value={{ input_price: 3 }} onChange={onChange} />);
 
     expect(screen.queryByLabelText("Pricing JSON editor")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Pricing.*1 key/ })).toBeInTheDocument();
+    expect(getMaterialButton(document, /Pricing.*1 key/)).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: /Pricing.*1 key/ }));
-    expect(screen.getByLabelText("Pricing JSON editor")).toHaveFocus();
-    await userEvent.clear(screen.getByLabelText("Pricing JSON editor"));
-    await userEvent.type(screen.getByLabelText("Pricing JSON editor"), "{{");
+    await userEvent.click(getMaterialButton(document, /Pricing.*1 key/));
+    const jsonEditor = getMaterialTextField(document, "Pricing JSON editor");
+    expect(jsonEditor).toHaveFocus();
+    setMaterialTextFieldValue(jsonEditor, "{{");
 
-    expect(screen.getByLabelText("Pricing JSON editor")).toHaveAttribute("aria-invalid", "true");
+    expect(jsonEditor.getAttribute("aria-invalid")).toBe("true");
     expect(screen.getByRole("alert")).toHaveTextContent("Invalid JSON");
     expect(onChange).not.toHaveBeenCalled();
   });
@@ -184,7 +237,7 @@ describe("SchemaField", () => {
       <SchemaField field={field} value="Be concise." onChange={() => undefined} />
     );
 
-    expect(screen.getByLabelText("System prompt").closest(".mb-field")).toHaveClass("mb-field--wide");
+    expect(getMaterialTextField(document, "System prompt").closest(".mb-field")).toHaveClass("mb-field--wide");
 
     unmount();
     renderWithConsoleProviders(
@@ -195,7 +248,7 @@ describe("SchemaField", () => {
       />
     );
 
-    expect(screen.getByRole("button", { name: /Extensions.*0 keys/ }).closest(".schema-field")).toHaveClass("schema-field--wide");
+    expect(getMaterialButton(document, /Extensions.*0 keys/).closest(".schema-field")).toHaveClass("schema-field--wide");
   });
 });
 
@@ -207,6 +260,98 @@ function getMaterialSwitch(container: ParentNode, label: string) {
     throw new Error(`Expected a Material Web switch labelled "${label}".`);
   }
   return element as HTMLElement & { selected: boolean };
+}
+
+function getMaterialSelect(container: ParentNode, label: string) {
+  const element = Array.from(container.querySelectorAll("md-outlined-select")).find(
+    (selectElement) => materialElementLabel(selectElement as HTMLElement & { label?: string }) === label
+  );
+  if (!element) {
+    throw new Error(`Expected a Material Web select labelled "${label}".`);
+  }
+  return element as HTMLElement & { supportingText: string; value: string };
+}
+
+type MaterialSelectOptionElement = HTMLElement & {
+  displayText: string;
+  selected: boolean;
+  value: string;
+};
+
+function getMaterialSelectOptions(select: ParentNode) {
+  const options = Array.from(select.querySelectorAll<MaterialSelectOptionElement>("md-select-option"));
+  if (options.length === 0) {
+    throw new Error("Expected Material Web select options to be rendered.");
+  }
+  return options;
+}
+
+function getMaterialTextField(container: ParentNode, label: string) {
+  const element = Array.from(container.querySelectorAll("md-outlined-text-field")).find(
+    (textField) => materialElementLabel(textField as HTMLElement & { label?: string }) === label
+  );
+  if (!element) {
+    throw new Error(`Expected a Material Web text field labelled "${label}".`);
+  }
+  return element as HTMLElement & { label: string; supportingText: string; type: string; value: string };
+}
+
+function materialElementLabel(element: HTMLElement & { label?: string }) {
+  const labelledBy = element.getAttribute("aria-labelledby");
+  if (labelledBy) {
+    return labelledBy
+      .split(/\s+/)
+      .map((id) => document.getElementById(id)?.textContent?.trim() ?? "")
+      .filter(Boolean)
+      .join(" ");
+  }
+  return element.label || element.getAttribute("aria-label") || element.getAttribute("label") || "";
+}
+
+function getMaterialIconButton(container: ParentNode, label: string) {
+  const element = Array.from(container.querySelectorAll("md-icon-button")).find(
+    (button) => button.getAttribute("aria-label") === label
+  );
+  if (!element) {
+    throw new Error(`Expected a Material Web icon button labelled "${label}".`);
+  }
+  return element as HTMLElement;
+}
+
+function getMaterialButton(container: ParentNode, label: RegExp) {
+  const element = Array.from(container.querySelectorAll("md-outlined-button")).find(
+    (button) => label.test(button.getAttribute("aria-label") ?? button.textContent ?? "")
+  );
+  if (!element) {
+    throw new Error(`Expected a Material Web outlined button labelled "${label}".`);
+  }
+  return element as HTMLElement;
+}
+
+async function findMaterialSelect(container: ParentNode, label: string) {
+  const element = getMaterialSelect(container, label) as HTMLElement & {
+    label: string;
+    select: (value: string) => void;
+    supportingText: string;
+    updateComplete?: Promise<boolean>;
+    value: string;
+  };
+  await element.updateComplete;
+  return element;
+}
+
+function setMaterialTextFieldValue(element: HTMLElement & { value: string }, value: string) {
+  act(() => {
+    element.value = value;
+    element.dispatchEvent(new InputEvent("input", { bubbles: true, composed: true }));
+  });
+}
+
+function setMaterialSelectValue(element: HTMLElement & { select: (value: string) => void; value: string }, value: string) {
+  act(() => {
+    element.select(value);
+    element.dispatchEvent(new Event("change", { bubbles: true }));
+  });
 }
 
 function setMaterialSwitchSelected(element: HTMLElement & { selected: boolean }, selected: boolean) {

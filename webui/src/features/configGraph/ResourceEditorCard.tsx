@@ -4,6 +4,7 @@ import type { ConfigResource, FieldSchema, ResourceKind, ResourceStatus, Runtime
 import { useI18n } from "../../i18n/I18nProvider";
 import type { MessageKey } from "../../i18n/messages";
 import { springs } from "../../theme/motion";
+import { MaterialFilledButton, MaterialOutlinedButton } from "../../components/MaterialButton";
 import { EditorStatusProvider, type FieldStatusReporter } from "./editorStatus";
 import { GraphResourceField } from "./GraphResourceField";
 import type { AutosaveFieldStatus } from "./useAutosaveField";
@@ -125,18 +126,17 @@ export function ResourceEditorCard({
         </div>
         {canDelete ? (
           <div className="resource-editor-card__meta">
-            <button
-              type="button"
+            <MaterialFilledButton
+              ariaLabel={t("resource.delete", { title: resourceTitle, id: resource.id })}
               className="fab-button fab-button--danger"
-              aria-label={t("resource.delete", { title: resourceTitle, id: resource.id })}
+              icon="delete"
               onClick={() => {
                 setConfirmingDelete(true);
                 setDeleteError("");
               }}
             >
-              <span className="material-symbol" aria-hidden="true">delete</span>
               {t("resource.deleteShort")}
-            </button>
+            </MaterialFilledButton>
           </div>
         ) : null}
       </div>
@@ -155,17 +155,16 @@ export function ResourceEditorCard({
             </p>
           ) : null}
           <div className="resource-delete-confirmation__actions">
-            <button
-              type="button"
+            <MaterialFilledButton
+              ariaLabel={t("resource.confirmDelete", { id: resource.id })}
               className="resource-delete-confirmation__confirm"
-              aria-label={t("resource.confirmDelete", { id: resource.id })}
               disabled={deleteResource.isPending}
               onClick={confirmDelete}
             >
               {t("resource.confirmDeleteShort")}
-            </button>
-            <button
-              type="button"
+            </MaterialFilledButton>
+            <MaterialOutlinedButton
+              ariaLabel={t("resource.cancelDelete")}
               className="secondary-button"
               onClick={() => {
                 setConfirmingDelete(false);
@@ -173,7 +172,7 @@ export function ResourceEditorCard({
               }}
             >
               {t("resource.cancelDelete")}
-            </button>
+            </MaterialOutlinedButton>
           </div>
         </motion.div>
       ) : null}

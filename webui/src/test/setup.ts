@@ -92,6 +92,27 @@ if (!HTMLElement.prototype.attachInternals) {
   });
 }
 
+if (!Element.prototype.animate) {
+  Object.defineProperty(Element.prototype, "animate", {
+    configurable: true,
+    value: () =>
+      ({
+        addEventListener: () => undefined,
+        cancel: () => undefined,
+        commitStyles: () => undefined,
+        finish: () => undefined,
+        finished: Promise.resolve(),
+        pause: () => undefined,
+        persist: () => undefined,
+        play: () => undefined,
+        ready: Promise.resolve(),
+        removeEventListener: () => undefined,
+        reverse: () => undefined,
+        updatePlaybackRate: () => undefined
+      }) as unknown as Animation
+  });
+}
+
 if (!globalThis.localStorage) {
   const store = new Map<string, string>();
 

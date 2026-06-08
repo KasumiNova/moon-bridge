@@ -26,12 +26,8 @@ export const formStyles = `  .form-grid {
   .create-resource__compound-control {
     display: grid;
     grid-template-columns: minmax(0, auto) minmax(120px, 180px);
-    align-items: center;
+    align-items: start;
     gap: 10px;
-  }
-
-  .create-resource__compound-control input {
-    min-width: 0;
   }
 
   .schema-field__topline {
@@ -53,8 +49,7 @@ export const formStyles = `  .form-grid {
     gap: 6px;
   }
 
-  .schema-field__label,
-  .schema-field__checkbox-label {
+  .schema-field__label {
     color: inherit;
     font: inherit;
   }
@@ -76,43 +71,21 @@ export const formStyles = `  .form-grid {
   }
 
   .schema-field__help {
-    width: 20px;
-    height: 20px;
     min-height: 0;
-    display: inline-grid;
-    place-items: center;
-    border-radius: 999px;
-    padding: 0;
-    border: 0;
-    color: var(--mb-color-on-surface-variant);
-    background: transparent;
-    cursor: help;
-    box-shadow: none;
-    transition:
-      color var(--mb-duration-short) var(--mb-ease-standard),
-      background var(--mb-duration-short) var(--mb-ease-standard);
-  }
-
-  .schema-field__help .material-symbol {
-    font-size: 16px;
-  }
-
-  .schema-field__help:hover,
-  .schema-field__help:focus-visible {
-    color: var(--mb-color-primary);
-    background: color-mix(in srgb, var(--mb-color-primary) 14%, transparent);
-    box-shadow: none;
-  }
-
-  .mb-field__control > .schema-field__help-wrap {
-    position: absolute;
-    top: 0;
-    right: 8px;
-    transform: translateY(-50%);
-    align-items: center;
-    padding: 0 2px;
-    background: var(--mb-color-surface-container);
-    z-index: 3;
+    flex: 0 0 auto;
+    --md-icon-button-state-layer-width: 20px;
+    --md-icon-button-state-layer-height: 20px;
+    --md-icon-button-state-layer-shape: 999px;
+    --md-icon-button-icon-size: 16px;
+    --md-icon-button-icon-color: var(--mb-color-on-surface-variant);
+    --md-icon-button-hover-icon-color: var(--mb-color-primary);
+    --md-icon-button-focus-icon-color: var(--mb-color-primary);
+    --md-icon-button-pressed-icon-color: var(--mb-color-primary);
+    --md-icon-button-hover-state-layer-color: var(--mb-color-primary);
+    --md-icon-button-focus-state-layer-color: var(--mb-color-primary);
+    --md-icon-button-pressed-state-layer-color: var(--mb-color-primary);
+    --md-icon-button-hover-state-layer-opacity: 0.14;
+    --md-icon-button-focus-state-layer-opacity: 0.14;
   }
 
   .rich-tooltip {
@@ -165,12 +138,6 @@ export const formStyles = `  .form-grid {
     white-space: nowrap;
   }
 
-  .schema-field__checkbox-label {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-  }
-
   .schema-field__switch-line {
     width: 100%;
     min-width: 0;
@@ -185,7 +152,7 @@ export const formStyles = `  .form-grid {
     background: color-mix(in srgb, var(--mb-color-surface-container-high) 60%, transparent);
   }
 
-  .schema-option-group {
+  .material-chip-group {
     display: flex;
     align-items: center;
     gap: 7px;
@@ -193,7 +160,7 @@ export const formStyles = `  .form-grid {
     min-height: 38px;
   }
 
-  .schema-option {
+  .material-static-chip {
     min-height: 36px;
     border: 1px solid color-mix(in srgb, var(--mb-color-outline-variant) 80%, transparent);
     border-radius: var(--mb-shape-full);
@@ -205,199 +172,6 @@ export const formStyles = `  .form-grid {
     font-weight: 600;
   }
 
-  .schema-option:hover,
-  .schema-option:focus-visible {
-    border-color: var(--mb-color-primary);
-    background: color-mix(in srgb, var(--mb-color-primary) 12%, var(--mb-color-surface-container));
-  }
-
-  .schema-option--active {
-    border-color: transparent;
-    box-shadow: var(--mb-elevation-1);
-    font-weight: 700;
-  }
-
-  .schema-option--openai {
-    --schema-option-color: #3f8f5f;
-  }
-
-  .schema-option--anthropic {
-    --schema-option-color: #c56b2c;
-  }
-
-  .schema-option--gemini {
-    --schema-option-color: #7d5bd6;
-  }
-
-  .schema-option--unknown {
-    --schema-option-color: var(--mb-color-outline);
-  }
-
-  .schema-option--openai,
-  .schema-option--anthropic,
-  .schema-option--gemini,
-  .schema-option--unknown {
-    border-color: color-mix(in srgb, var(--schema-option-color) 68%, transparent);
-    color: color-mix(in srgb, var(--schema-option-color) 88%, var(--mb-color-on-surface));
-    background: color-mix(in srgb, var(--schema-option-color) 12%, var(--mb-color-surface-container));
-  }
-
-  .schema-option--active.schema-option--openai,
-  .schema-option--active.schema-option--anthropic,
-  .schema-option--active.schema-option--gemini,
-  .schema-option--active.schema-option--unknown {
-    color: #fff;
-    background: var(--schema-option-color);
-  }
-
-  .select-menu {
-    position: relative;
-    width: 100%;
-    min-width: 0;
-  }
-
-  .select-menu__trigger {
-    width: 100%;
-    min-height: 40px;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    border: 1px solid var(--mb-color-outline);
-    border-radius: var(--mb-shape-sm);
-    padding: 0 12px;
-    color: var(--mb-color-on-surface);
-    background: color-mix(in srgb, var(--mb-color-surface-container-highest) 72%, var(--mb-color-surface-container));
-    box-shadow: none;
-    font: inherit;
-    font-weight: 640;
-    text-align: left;
-    cursor: pointer;
-    transition:
-      border-color var(--mb-duration-short) var(--mb-ease-standard),
-      background var(--mb-duration-short) var(--mb-ease-standard),
-      box-shadow var(--mb-duration-short) var(--mb-ease-standard);
-  }
-
-  .select-menu__trigger:hover {
-    border-color: var(--mb-color-on-surface);
-    background: color-mix(in srgb, var(--mb-color-on-surface) 5%, var(--mb-color-surface-container-high));
-  }
-
-  .select-menu__trigger:focus-visible {
-    outline: 0;
-    border-color: var(--mb-color-primary);
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--mb-color-primary) 30%, transparent);
-  }
-
-  .select-menu[data-open="true"] .select-menu__trigger {
-    border-color: var(--mb-color-primary);
-    box-shadow: inset 0 -2px 0 0 var(--mb-color-primary);
-  }
-
-  .select-menu__value {
-    flex: 1 1 auto;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .select-menu__value[data-placeholder="true"] {
-    color: var(--mb-color-on-surface-variant);
-    font-weight: 560;
-  }
-
-  .select-menu__chevron {
-    flex: 0 0 auto;
-    font-size: 1.2rem;
-    color: var(--mb-color-on-surface-variant);
-    transition: transform var(--mb-duration-medium) var(--mb-ease-spring);
-  }
-
-  .select-menu[data-open="true"] .select-menu__chevron {
-    transform: rotate(180deg);
-    color: var(--mb-color-primary);
-  }
-
-  .select-menu__dot {
-    flex: 0 0 auto;
-    width: 10px;
-    height: 10px;
-    border-radius: var(--mb-shape-full);
-    background: var(--mb-color-outline);
-  }
-
-  .select-menu__dot--openai {
-    background: #3f8f5f;
-  }
-
-  .select-menu__dot--anthropic {
-    background: #c56b2c;
-  }
-
-  .select-menu__dot--gemini {
-    background: #7d5bd6;
-  }
-
-  .select-menu__dot--unknown {
-    background: var(--mb-color-outline);
-  }
-
-  .select-menu__list {
-    position: absolute;
-    z-index: 20;
-    top: calc(100% + 6px);
-    left: 0;
-    right: 0;
-    margin: 0;
-    padding: 6px;
-    list-style: none;
-    display: grid;
-    gap: 2px;
-    max-height: 280px;
-    overflow-y: auto;
-    border: 1px solid color-mix(in srgb, var(--mb-color-outline-variant) 70%, transparent);
-    border-radius: var(--mb-shape-md);
-    background: var(--mb-color-surface-container-high);
-    box-shadow: var(--mb-elevation-2);
-  }
-
-  .select-menu__option {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    min-height: 38px;
-    border-radius: var(--mb-shape-sm);
-    padding: 0 12px;
-    color: var(--mb-color-on-surface);
-    font-size: 0.84rem;
-    font-weight: 600;
-    cursor: pointer;
-  }
-
-  .select-menu__option-label {
-    flex: 1 1 auto;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .select-menu__option--active {
-    background: color-mix(in srgb, var(--mb-color-primary) 14%, transparent);
-  }
-
-  .select-menu__option--selected {
-    color: var(--mb-color-primary);
-    font-weight: 720;
-  }
-
-  .select-menu__check {
-    flex: 0 0 auto;
-    font-size: 1.1rem;
-    color: var(--mb-color-primary);
-  }
-
   .schema-json-summary {
     width: 100%;
     min-height: 44px;
@@ -405,13 +179,24 @@ export const formStyles = `  .form-grid {
     grid-template-columns: minmax(0, 1fr) auto auto;
     align-items: center;
     gap: 10px;
-    border: 1px solid color-mix(in srgb, var(--mb-color-outline-variant) 70%, transparent);
-    border-radius: var(--mb-shape-sm);
-    padding: 8px 12px;
-    color: var(--mb-color-on-surface);
-    background: color-mix(in srgb, var(--mb-color-surface-container-high) 72%, transparent);
-    box-shadow: none;
     text-align: left;
+    --md-outlined-button-container-height: 44px;
+    --md-outlined-button-container-shape: var(--mb-shape-sm);
+    --md-outlined-button-leading-space: 12px;
+    --md-outlined-button-trailing-space: 12px;
+    --md-outlined-button-outline-color: color-mix(in srgb, var(--mb-color-outline-variant) 70%, transparent);
+    --md-outlined-button-hover-outline-color: var(--mb-color-primary);
+    --md-outlined-button-focus-outline-color: var(--mb-color-primary);
+    --md-outlined-button-pressed-outline-color: var(--mb-color-primary);
+    --md-outlined-button-label-text-color: var(--mb-color-on-surface);
+    --md-outlined-button-hover-label-text-color: var(--mb-color-on-surface);
+    --md-outlined-button-focus-label-text-color: var(--mb-color-on-surface);
+    --md-outlined-button-pressed-label-text-color: var(--mb-color-on-surface);
+    --md-outlined-button-hover-state-layer-color: var(--mb-color-primary);
+    --md-outlined-button-focus-state-layer-color: var(--mb-color-primary);
+    --md-outlined-button-pressed-state-layer-color: var(--mb-color-primary);
+    --md-outlined-button-hover-state-layer-opacity: 0.08;
+    --md-outlined-button-focus-state-layer-opacity: 0.08;
   }
 
   .schema-json-summary span:first-child {
@@ -435,12 +220,6 @@ export const formStyles = `  .form-grid {
 
   .schema-field--wide {
     grid-column: 1 / -1;
-  }
-
-  .schema-field--wide textarea {
-    min-height: 132px;
-    font-family: var(--mb-font-mono);
-    line-height: 1.45;
   }
 
   .field-status {
@@ -501,50 +280,6 @@ export const formStyles = `  .form-grid {
     background: var(--mb-color-error-container);
   }
 
-  .form-grid input,
-  .form-grid textarea,
-  .textarea-field textarea {
-    width: 100%;
-    min-height: 40px;
-    border: 1px solid var(--mb-color-outline);
-    border-radius: var(--mb-shape-sm);
-    padding: 9px 12px;
-    color: var(--mb-color-on-surface);
-    background: transparent;
-    font: inherit;
-    appearance: none;
-    transition:
-      border-color var(--mb-duration-short) var(--mb-ease-standard),
-      box-shadow var(--mb-duration-short) var(--mb-ease-standard);
-  }
-
-  .form-grid textarea,
-  .textarea-field textarea {
-    resize: vertical;
-    line-height: 1.5;
-  }
-
-  .form-grid input:hover,
-  .form-grid textarea:hover,
-  .textarea-field textarea:hover {
-    border-color: var(--mb-color-on-surface);
-  }
-
-  .form-grid input:focus,
-  .form-grid textarea:focus,
-  .textarea-field textarea:focus {
-    outline: 0;
-    border-color: var(--mb-color-primary);
-    box-shadow: inset 0 0 0 1px var(--mb-color-primary);
-  }
-
-  .form-grid input[aria-invalid="true"],
-  .form-grid textarea[aria-invalid="true"] {
-    border-color: var(--mb-color-error);
-    box-shadow: inset 0 0 0 1px var(--mb-color-error);
-  }
-
-  /* Outlined MD3 field: floating label rides the notched top border. */
   .mb-field {
     position: relative;
     display: grid;
@@ -559,70 +294,38 @@ export const formStyles = `  .form-grid {
     min-width: 0;
   }
 
-  .mb-field__control input,
-  .mb-field__control textarea {
+  .mb-field md-outlined-text-field {
     width: 100%;
+    min-width: 0;
+    --md-outlined-text-field-container-shape: var(--mb-shape-sm);
+    --md-outlined-text-field-input-text-color: var(--mb-color-on-surface);
+    --md-outlined-text-field-input-text-size: 0.88rem;
+    --md-outlined-text-field-input-text-weight: 640;
+    --md-outlined-text-field-label-text-color: var(--mb-color-on-surface-variant);
+    --md-outlined-text-field-focus-label-text-color: var(--mb-color-primary);
+    --md-outlined-text-field-outline-color: var(--mb-color-outline);
+    --md-outlined-text-field-hover-outline-color: var(--mb-color-on-surface);
+    --md-outlined-text-field-focus-outline-color: var(--mb-color-primary);
+    --md-outlined-text-field-error-outline-color: var(--mb-color-error);
+    --md-outlined-text-field-error-focus-outline-color: var(--mb-color-error);
+    --md-outlined-text-field-error-label-text-color: var(--mb-color-error);
+    --md-outlined-text-field-error-focus-label-text-color: var(--mb-color-error);
+    --md-outlined-text-field-leading-icon-color: var(--mb-color-on-surface-variant);
+    --md-outlined-text-field-focus-leading-icon-color: var(--mb-color-on-surface-variant);
+    --md-outlined-text-field-trailing-icon-color: var(--mb-color-on-surface-variant);
+    --md-outlined-text-field-focus-trailing-icon-color: var(--mb-color-primary);
+    --md-outlined-text-field-supporting-text-color: var(--mb-color-on-surface-variant);
+    --md-outlined-text-field-error-supporting-text-color: var(--mb-color-error);
   }
 
-  .mb-field[data-leading="true"] .mb-field__control input {
-    padding-left: 42px;
+  .mb-field[data-variant="textarea"] md-outlined-text-field,
+  .schema-json-editor {
+    --md-outlined-text-field-input-text-font: var(--mb-font-mono);
+    --md-outlined-text-field-input-text-line-height: 1.45;
   }
 
-  .mb-field__leading {
-    position: absolute;
-    left: 12px;
-    top: 0;
-    height: 40px;
-    display: inline-flex;
-    align-items: center;
-    color: var(--mb-color-on-surface-variant);
-    font-size: 20px;
-    pointer-events: none;
-  }
-
-  .mb-field__label {
-    position: absolute;
-    left: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    max-width: calc(100% - 52px);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    color: var(--mb-color-on-surface-variant);
-    font-size: 0.9rem;
-    font-weight: 540;
-    line-height: 1;
-    pointer-events: none;
-    transition:
-      top var(--mb-duration-short) var(--mb-ease-emphasized),
-      left var(--mb-duration-short) var(--mb-ease-emphasized),
-      transform var(--mb-duration-short) var(--mb-ease-emphasized),
-      color var(--mb-duration-short) var(--mb-ease-standard);
-  }
-
-  .mb-field[data-leading="true"] .mb-field__label {
-    left: 42px;
-  }
-
-  .mb-field:focus-within .mb-field__label,
-  .mb-field[data-filled="true"] .mb-field__label,
-  .mb-field[data-variant="select"] .mb-field__label {
-    top: 0;
-    left: 10px;
-    transform: translateY(-50%) scale(0.82);
-    max-width: calc(100% - 26px);
-    padding: 0 5px;
-    background: var(--mb-color-surface-container);
-    font-weight: 620;
-  }
-
-  .mb-field:focus-within .mb-field__label {
-    color: var(--mb-color-primary);
-  }
-
-  .mb-field[data-invalid="true"] .mb-field__label {
-    color: var(--mb-color-error);
+  .mb-field[data-variant="textarea"] md-outlined-text-field {
+    min-height: 132px;
   }
 
   .mb-field__required {
@@ -630,23 +333,27 @@ export const formStyles = `  .form-grid {
     color: var(--mb-color-error);
   }
 
-  .mb-field[data-variant="textarea"] .mb-field__label {
-    top: 20px;
+  .mb-field md-outlined-select {
+    width: 100%;
+    min-width: 0;
+    --md-outlined-select-text-field-container-shape: var(--mb-shape-sm);
+    --md-outlined-select-text-field-input-text-color: var(--mb-color-on-surface);
+    --md-outlined-select-text-field-input-text-size: 0.88rem;
+    --md-outlined-select-text-field-input-text-weight: 640;
+    --md-outlined-select-text-field-label-text-color: var(--mb-color-on-surface-variant);
+    --md-outlined-select-text-field-focus-label-text-color: var(--mb-color-primary);
+    --md-outlined-select-text-field-outline-color: var(--mb-color-outline);
+    --md-outlined-select-text-field-hover-outline-color: var(--mb-color-on-surface);
+    --md-outlined-select-text-field-focus-outline-color: var(--mb-color-primary);
+    --md-outlined-select-text-field-trailing-icon-color: var(--mb-color-on-surface-variant);
+    --md-outlined-select-text-field-focus-trailing-icon-color: var(--mb-color-primary);
+    --md-menu-container-color: var(--mb-color-surface-container-high);
+    --md-menu-container-shape: var(--mb-shape-md);
+    --md-menu-container-elevation: 2;
   }
 
-  .mb-field[data-variant="textarea"]:focus-within .mb-field__label,
-  .mb-field[data-variant="textarea"][data-filled="true"] .mb-field__label {
-    top: 0;
-  }
-
-  .mb-field[data-variant="textarea"] textarea {
-    padding-top: 11px;
-    resize: none;
-    overflow-y: auto;
-  }
-
-  .mb-field[data-variant="select"] .select-menu__trigger {
-    min-height: 40px;
+  .form-field--create-track.mb-field {
+    display: grid;
   }
 
   .form-grid .mb-field--wide,
@@ -700,21 +407,6 @@ export const formStyles = `  .form-grid {
     background: color-mix(in srgb, var(--mb-color-primary-container) 42%, var(--mb-color-surface));
   }
 
-  .textarea-field {
-    display: grid;
-    gap: 8px;
-    color: var(--mb-color-on-surface-variant);
-    font-size: 0.82rem;
-    font-weight: 650;
-  }
-
-  .textarea-field textarea {
-    min-height: 360px;
-    resize: vertical;
-    font-family: var(--mb-font-mono);
-    line-height: 1.45;
-  }
-
   .field-hint {
     display: block;
     color: var(--mb-color-on-surface-variant);
@@ -740,12 +432,16 @@ export const formStyles = `  .form-grid {
     overflow-wrap: anywhere;
   }
 
-  .checkbox-inline {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--mb-color-on-surface-variant);
-    font-size: 0.9rem;
+  .field-error--sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    border: 0;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
   }
 
   .json-block {

@@ -195,99 +195,44 @@ export const baseStyles = `
     line-height: 1.5;
   }
 
-  .auth-field {
-    display: grid;
-    gap: 8px;
-    color: var(--mb-color-on-surface-variant);
-    font-size: 0.82rem;
-    font-weight: 650;
-  }
-
-  .auth-field input {
+  .auth-token-field {
     width: 100%;
     min-height: 48px;
-    border: 0;
-    border-bottom: 1px solid var(--mb-color-outline);
-    border-radius: var(--mb-shape-sm) var(--mb-shape-sm) 0 0;
-    padding: 12px 14px;
-    color: var(--mb-color-on-surface);
-    background: var(--mb-color-surface-container-highest);
-    font: inherit;
-    transition:
-      border-color var(--mb-duration-medium) var(--mb-ease-standard),
-      box-shadow var(--mb-duration-medium) var(--mb-ease-standard);
+    --md-filled-text-field-container-color: var(--mb-color-surface-container-highest);
+    --md-filled-text-field-focus-active-indicator-color: var(--mb-color-primary);
+    --md-filled-text-field-focus-label-text-color: var(--mb-color-primary);
+    --md-filled-text-field-input-text-color: var(--mb-color-on-surface);
+    --md-filled-text-field-label-text-color: var(--mb-color-on-surface-variant);
+    --md-filled-text-field-hover-label-text-color: var(--mb-color-on-surface-variant);
+    --md-filled-text-field-active-indicator-color: var(--mb-color-outline);
   }
 
-  .auth-field input:focus {
-    outline: 0;
-    border-bottom-color: var(--mb-color-primary);
-    box-shadow: inset 0 -2px 0 0 var(--mb-color-primary);
-  }
-
-  .auth-card__submit {
-    margin-top: 4px;
-    width: 100%;
-    min-height: 48px;
-  }
-
-  /* MD3 custom checkbox — accessible native input is visually hidden. */
-  .mb-checkbox-field {
+  .auth-remember {
     display: inline-flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
+    width: fit-content;
     color: var(--mb-color-on-surface);
     font-size: 0.9rem;
     cursor: pointer;
     user-select: none;
   }
 
-  .mb-checkbox-input {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    margin: -1px;
-    padding: 0;
-    border: 0;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    white-space: nowrap;
+  .auth-remember md-checkbox {
+    --md-checkbox-selected-container-color: var(--mb-color-primary);
+    --md-checkbox-selected-icon-color: var(--mb-color-on-primary);
+    --md-checkbox-selected-hover-container-color: var(--mb-color-primary);
+    --md-checkbox-selected-focus-container-color: var(--mb-color-primary);
+    --md-checkbox-selected-pressed-container-color: var(--mb-color-primary);
+    --md-checkbox-unselected-outline-color: var(--mb-color-outline);
+    --md-checkbox-unselected-hover-outline-color: var(--mb-color-on-surface-variant);
+    --md-checkbox-unselected-focus-outline-color: var(--mb-color-primary);
   }
 
-  .mb-checkbox-box {
-    flex: 0 0 20px;
-    width: 20px;
-    height: 20px;
-    display: grid;
-    place-items: center;
-    border: 2px solid var(--mb-color-outline);
-    border-radius: 7px;
-    color: transparent;
-    background: transparent;
-    --md-icon-size: 18px;
-    transition:
-      background-color var(--mb-duration-short) var(--mb-ease-standard),
-      border-color var(--mb-duration-short) var(--mb-ease-standard),
-      color var(--mb-duration-short) var(--mb-ease-standard);
-  }
-
-  .mb-checkbox-box md-icon {
-    transform: scale(0.5);
-    transition: transform var(--mb-duration-medium) var(--mb-ease-spring);
-  }
-
-  .mb-checkbox-input:checked + .mb-checkbox-box {
-    border-color: var(--mb-color-primary);
-    color: var(--mb-color-on-primary);
-    background: var(--mb-color-primary);
-  }
-
-  .mb-checkbox-input:checked + .mb-checkbox-box md-icon {
-    transform: scale(1);
-  }
-
-  .mb-checkbox-input:focus-visible + .mb-checkbox-box {
-    outline: 2px solid var(--mb-color-primary);
-    outline-offset: 2px;
+  .auth-submit {
+    margin-top: 4px;
+    width: 100%;
+    min-height: 48px;
   }
 
   .top-app-bar {
@@ -368,106 +313,40 @@ export const baseStyles = `
     font-weight: 700;
   }
 
-  .locale-option {
+  .locale-switch__button {
+    min-width: 36px;
     min-height: 30px;
-    border-radius: var(--mb-shape-full);
-    padding: 0 14px;
-    color: var(--mb-color-on-surface);
-    background: transparent;
-    font: inherit;
-    font-size: 0.82rem;
-    box-shadow: none;
-  }
-
-  .locale-option:hover,
-  .locale-option:focus-visible {
-    background: color-mix(in srgb, var(--mb-color-primary) 14%, transparent);
-  }
-
-  .locale-option--active {
-    color: var(--mb-color-on-primary);
-    background: var(--mb-color-primary);
-    box-shadow: var(--mb-elevation-1);
-  }
-
-  .top-action-button,
-  button {
-    position: relative;
-    isolation: isolate;
-    overflow: hidden;
-    min-height: 40px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    border: 0;
-    border-radius: var(--mb-shape-full); /* MD3 Pill */
-    padding: 0 22px;
-    color: var(--mb-color-on-primary);
-    background: var(--mb-color-primary);
-    font: inherit;
-    font-weight: 600;
-    letter-spacing: 0.1px;
-    white-space: nowrap;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-    transition:
-      background-color var(--mb-duration-medium) var(--mb-ease-standard),
-      box-shadow var(--mb-duration-medium) var(--mb-ease-standard),
-      color var(--mb-duration-medium) var(--mb-ease-standard),
-      transform var(--mb-duration-short) var(--mb-ease-spring);
-  }
-
-  /* MD3 state layer — tints with the button's own on-color. */
-  .top-action-button::before,
-  button::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    background: currentColor;
-    opacity: 0;
-    transition: opacity var(--mb-duration-short) var(--mb-ease-standard);
-  }
-
-  button:hover::before {
-    opacity: var(--mb-state-hover);
-  }
-
-  button:active::before {
-    opacity: var(--mb-state-press);
-  }
-
-  button:active {
-    transform: scale(0.96);
-  }
-
-  button:focus-visible {
-    outline: 2px solid var(--mb-color-primary);
-    outline-offset: 2px;
-  }
-
-  button:disabled {
-    cursor: not-allowed;
-    opacity: 0.5;
-    transform: none;
-  }
-
-  button:disabled::before {
-    opacity: 0;
-  }
-
-  .secondary-button,
-  .icon-text-button {
-    border-radius: 999px;
-    color: var(--mb-color-on-surface);
-    background: var(--mb-color-surface-container-high);
+    --md-filled-button-container-height: 30px;
+    --md-filled-button-container-shape: var(--mb-shape-full);
+    --md-filled-button-label-text-size: 0.75rem;
+    --md-filled-button-label-text-weight: 700;
+    --md-filled-button-leading-space: 10px;
+    --md-filled-button-trailing-space: 10px;
+    --md-outlined-button-container-height: 30px;
+    --md-outlined-button-container-shape: var(--mb-shape-full);
+    --md-outlined-button-label-text-size: 0.75rem;
+    --md-outlined-button-label-text-weight: 700;
+    --md-outlined-button-leading-space: 10px;
+    --md-outlined-button-trailing-space: 10px;
   }
 
   md-filled-button {
     --md-filled-button-container-color: var(--mb-color-primary);
     --md-filled-button-label-text-color: var(--mb-color-on-primary);
     --md-filled-button-container-shape: 999px;
+  }
+
+  md-outlined-button {
+    --md-outlined-button-container-shape: 999px;
+    --md-outlined-button-label-text-color: var(--mb-color-on-surface);
+    --md-outlined-button-outline-color: var(--mb-color-outline-variant);
+    --md-outlined-button-hover-label-text-color: var(--mb-color-primary);
+    --md-outlined-button-hover-outline-color: var(--mb-color-primary);
+  }
+
+  .secondary-button {
+    --md-outlined-button-label-text-color: var(--mb-color-on-surface);
+    --md-outlined-button-outline-color: var(--mb-color-outline-variant);
   }
 
   md-icon-button {

@@ -14,11 +14,15 @@ export const responsiveStyles = `  @media (max-width: 760px) {
 
     .workspace {
       grid-template-columns: 1fr;
+      align-content: start;
+      min-height: 0;
     }
 
     .navigation-rail {
       position: static;
+      top: auto;
       z-index: 1;
+      height: auto;
       flex-direction: row;
       align-items: stretch;
       justify-content: flex-start;
@@ -102,13 +106,6 @@ export const responsiveStyles = `  @media (max-width: 760px) {
       max-width: none;
     }
 
-    .change-drawer {
-      top: 12px;
-      right: 12px;
-      left: 12px;
-      width: auto;
-      max-height: calc(100vh - 24px);
-    }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -123,7 +120,8 @@ export const responsiveStyles = `  @media (max-width: 760px) {
 
     .resource-editor-card:hover,
     .usage-metric:hover,
-    button:active,
+    md-filled-button:active,
+    md-outlined-button:active,
     .nav-item:hover .nav-item__icon md-icon {
       transform: none !important;
     }

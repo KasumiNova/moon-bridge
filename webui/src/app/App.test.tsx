@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { fireEvent, screen } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import { renderWithConsoleProviders } from "../test/renderWithConsoleProviders";
@@ -44,11 +44,11 @@ describe("AppShell", () => {
     );
 
     expect(screen.getByLabelText(/language/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /switch to/i })).toBeInTheDocument();
+    expect(getMaterialIconButton(document, "Switch to light theme")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /apply/i })).not.toBeInTheDocument();
   });
 
-  test("uses app-styled locale actions instead of a native browser select", () => {
+  test("uses Material Web locale actions instead of a native browser select", () => {
     renderWithConsoleProviders(
       <MemoryRouter>
         <AppShell content={<div>Console content</div>} />
@@ -57,8 +57,39 @@ describe("AppShell", () => {
 
     expect(document.querySelector(".top-app-bar__meta select")).not.toBeInTheDocument();
     expect(screen.getByRole("group", { name: /language/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "English" })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("button", { name: "中文" })).toHaveAttribute("aria-pressed", "false");
+    expect(getMaterialButton(document, "English", "filled")).toHaveAttribute("aria-pressed", "true");
+    expect(getMaterialButton(document, "中文", "outlined")).toHaveAttribute("aria-pressed", "false");
+  });
+
+  test("changes locale through Material Web locale actions", () => {
+    renderWithConsoleProviders(
+      <MemoryRouter>
+        <AppShell content={<div>Console content</div>} />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(getMaterialButton(document, "中文", "outlined"));
+
+    expect(screen.getByRole("navigation", { name: "控制台分区" })).toBeInTheDocument();
+    expect(getMaterialButton(document, "English", "outlined")).toHaveAttribute("aria-pressed", "false");
+    expect(getMaterialButton(document, "中文", "filled")).toHaveAttribute("aria-pressed", "true");
+  });
+
+  test("changes theme through the Material Web icon button", () => {
+    renderWithConsoleProviders(
+      <MemoryRouter>
+        <AppShell content={<div>Console content</div>} />
+      </MemoryRouter>
+    );
+
+    const themeButton = getMaterialIconButton(document, "Switch to light theme");
+    expect(themeButton.tagName.toLowerCase()).toBe("md-icon-button");
+    expect(document.documentElement).toHaveAttribute("data-theme", "dark");
+
+    fireEvent.click(themeButton);
+
+    expect(document.documentElement).toHaveAttribute("data-theme", "light");
+    expect(getMaterialIconButton(document, "Switch to dark theme")).toBeInTheDocument();
   });
 
   test("keeps route content in a named main landmark with mobile-safe nav labels", () => {
@@ -76,3 +107,28 @@ describe("AppShell", () => {
     expect(screen.getByRole("navigation", { name: /console sections/i })).not.toHaveTextContent("Logs");
   });
 });
+
+function getMaterialButton(
+  container: ParentNode,
+  label: string,
+  variant: "filled" | "outlined"
+) {
+  const tagName = variant === "filled" ? "md-filled-button" : "md-outlined-button";
+  const element = Array.from(container.querySelectorAll(tagName)).find(
+    (button) => button.textContent?.trim() === label
+  );
+  if (!element) {
+    throw new Error(`Expected a Material Web ${variant} button labelled "${label}".`);
+  }
+  return element as HTMLElement;
+}
+
+function getMaterialIconButton(container: ParentNode, label: string) {
+  const element = Array.from(container.querySelectorAll("md-icon-button")).find(
+    (button) => button.getAttribute("aria-label") === label
+  );
+  if (!element) {
+    throw new Error(`Expected a Material Web icon button labelled "${label}".`);
+  }
+  return element as HTMLElement;
+}

@@ -1,11 +1,9 @@
-import "@material/web/button/text-button.js";
-import "@material/web/button/filled-button.js";
 import "@material/web/icon/icon.js";
-import "@material/web/iconbutton/icon-button.js";
 import "@material/web/ripple/ripple.js";
 import { createElement, type ReactNode } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { motion } from "motion/react";
+import { MaterialFilledButton, MaterialIconButton, MaterialOutlinedButton } from "../components/MaterialButton";
 import { type Locale, type MessageKey } from "../i18n/messages";
 import { useI18n } from "../i18n/I18nProvider";
 import { useConsoleTheme } from "../theme/ThemeProvider";
@@ -53,15 +51,12 @@ function AppShellContent({ content }: { content?: ReactNode }) {
           <div className="locale-switch" role="group" aria-label={t("app.language")}>
             <span>{t("app.language")}</span>
             {(["en-US", "zh-CN"] as const).map((nextLocale) => (
-              <button
+              <LocaleButton
                 key={nextLocale}
-                type="button"
-                className={locale === nextLocale ? "locale-option locale-option--active" : "locale-option"}
-                aria-pressed={locale === nextLocale}
-                onClick={() => setLocale(nextLocale as Locale)}
-              >
-                {t(nextLocale === "en-US" ? "app.language.en" : "app.language.zh")}
-              </button>
+                label={t(nextLocale === "en-US" ? "app.language.en" : "app.language.zh")}
+                onClick={() => setLocale(nextLocale)}
+                selected={locale === nextLocale}
+              />
             ))}
           </div>
           <motion.div
@@ -77,15 +72,11 @@ function AppShellContent({ content }: { content?: ReactNode }) {
               animate={{ rotate: 0, opacity: 1, scale: 1 }}
               transition={springs.spatial}
             >
-              {createElement(
-                "md-icon-button",
-                {
-                  "aria-label": t("app.switchTheme", { theme: nextThemeLabel }),
-                  role: "button",
-                  onClick: toggleTheme
-                },
-                createElement("md-icon", null, themeIcon)
-              )}
+              <MaterialIconButton
+                icon={themeIcon}
+                label={t("app.switchTheme", { theme: nextThemeLabel })}
+                onClick={toggleTheme}
+              />
             </motion.span>
           </motion.div>
         </div>
@@ -109,6 +100,29 @@ function AppShellContent({ content }: { content?: ReactNode }) {
         </motion.main>
       </div>
     </div>
+  );
+}
+
+function LocaleButton({
+  label,
+  onClick,
+  selected
+}: {
+  label: string;
+  onClick: () => void;
+  selected: boolean;
+}) {
+  if (selected) {
+    return (
+      <MaterialFilledButton ariaPressed={selected} className="locale-switch__button" onClick={onClick}>
+        {label}
+      </MaterialFilledButton>
+    );
+  }
+  return (
+    <MaterialOutlinedButton ariaPressed={selected} className="locale-switch__button" onClick={onClick}>
+      {label}
+    </MaterialOutlinedButton>
   );
 }
 

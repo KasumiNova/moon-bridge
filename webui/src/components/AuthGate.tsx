@@ -1,6 +1,9 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { createElement, type FormEvent, type ReactNode, useState } from "react";
 import { motion } from "motion/react";
+import { MaterialFilledButton } from "./MaterialButton";
+import { MaterialCheckbox } from "./MaterialCheckbox";
+import { MaterialFilledTextField } from "./MaterialTextField";
 import { type ApiError, isAuthError, saveToken } from "../rpc/http";
 import { useI18n } from "../i18n/I18nProvider";
 import { springs, surfaceMotion } from "../theme/motion";
@@ -55,32 +58,26 @@ export function AuthGate({ children, error, onTokenSaved }: AuthGateProps) {
         <p className="eyebrow">{t("auth.eyebrow")}</p>
         <h1 id="auth-title">{t("auth.title")}</h1>
         <p className="auth-card__message">{apiError.message}</p>
-        <label className="auth-field">
-          <span className="auth-field__label">Token</span>
-          <input
-            autoFocus
-            type="password"
-            value={token}
-            onChange={(event) => setToken(event.currentTarget.value)}
-          />
-        </label>
-        <label className="mb-checkbox-field">
-          <input
-            className="mb-checkbox-input"
-            type="checkbox"
+        <MaterialFilledTextField
+          autoFocus
+          className="auth-token-field"
+          label="Token"
+          type="password"
+          value={token}
+          onInput={setToken}
+        />
+        <label className="auth-remember">
+          <MaterialCheckbox
             checked={remember}
-            onChange={(event) => setRemember(event.currentTarget.checked)}
+            label={t("auth.remember")}
+            onChange={setRemember}
           />
-          <span className="mb-checkbox-box" aria-hidden="true">
-            {createElement("md-icon", null, "check")}
-          </span>
           <span>{t("auth.remember")}</span>
         </label>
-        <button type="submit" className="auth-card__submit">
+        <MaterialFilledButton className="auth-submit" type="submit">
           {t("action.saveToken")}
-        </button>
+        </MaterialFilledButton>
       </motion.form>
     </main>
   );
 }
-

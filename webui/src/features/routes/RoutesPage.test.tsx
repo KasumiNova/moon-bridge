@@ -1,4 +1,4 @@
-import { act, fireEvent, screen, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { renderWithConsoleProviders } from "../../test/renderWithConsoleProviders";
@@ -21,12 +21,12 @@ describe("RoutesPage", () => {
     expect(within(screen.getByLabelText("Route primary status")).getByText("Saved")).toBeInTheDocument();
     expect(screen.getByText("8 fields")).toBeInTheDocument();
     expect(screen.getByText("Hot reload")).toBeInTheDocument();
-    expect(screen.getByLabelText("Model")).toBeInTheDocument();
-    expect(screen.getByLabelText("Provider")).toBeInTheDocument();
-    expect(screen.getByLabelText("Display Name")).toBeInTheDocument();
-    expect(screen.getByLabelText("Context Window")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Web Search.*1 key/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Extensions.*0 keys/ })).toBeInTheDocument();
+    expect(getMaterialTextField(document, "Model")).toBeInTheDocument();
+    expect(getMaterialTextField(document, "Provider")).toBeInTheDocument();
+    expect(getMaterialTextField(document, "Display Name")).toBeInTheDocument();
+    expect(getMaterialTextField(document, "Context Window")).toBeInTheDocument();
+    expect(getMaterialOutlinedButton(document, /Web Search.*1 key/)).toBeInTheDocument();
+    expect(getMaterialOutlinedButton(document, /Extensions.*0 keys/)).toBeInTheDocument();
     expect(screen.queryByLabelText(/priority/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/fallback/i)).not.toBeInTheDocument();
   });
@@ -42,10 +42,9 @@ describe("RoutesPage", () => {
 
     const routePanel = await screen.findByLabelText("Route primary");
     vi.useFakeTimers();
-    fireEvent.change(within(routePanel).getByLabelText("Provider"), {
-      target: { value: "openai" }
-    });
-    fireEvent.blur(within(routePanel).getByLabelText("Provider"));
+    const providerField = getMaterialTextField(routePanel, "Provider");
+    setMaterialTextFieldValue(providerField, "openai");
+    fireEvent.blur(providerField);
 
     await advanceAutosave();
 
@@ -72,18 +71,46 @@ describe("RoutesPage", () => {
 
     renderWithConsoleProviders(<RoutesPage />);
 
-    await userEvent.click(await screen.findByRole("button", { name: "Add Route" }));
-    await userEvent.type(screen.getByLabelText("Route alias"), "fast");
-    await userEvent.click(screen.getByRole("button", { name: "Create Route" }));
+    await waitFor(() => expect(getMaterialButton(document, "Add Route")).toBeInTheDocument());
+    await userEvent.click(getMaterialButton(document, "Add Route"));
+    const form = screen.getByRole("form", { name: "Create Route" });
+    setMaterialTextFieldValue(getMaterialTextField(form, "Route alias"), "fast");
+    expect(getMaterialSelect(form, "Model").value).toBe("claude-sonnet");
+    expect(getMaterialSelect(form, "Provider").value).toBe("anthropic");
+    submitMaterialForm(form, "Create Route");
 
-    expect(create).toHaveBeenCalledWith("route", {
+    await waitFor(() => expect(create).toHaveBeenCalledWith("route", {
       baseRevision: "rev-1",
       id: "fast",
       value: {
         model: "claude-sonnet",
         provider: "anthropic"
       }
-    });
+    }));
+  });
+
+  test("renders create route controls with official Material field labels", async () => {
+    vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
+
+    renderWithConsoleProviders(<RoutesPage />);
+
+    await waitFor(() => expect(getMaterialButton(document, "Add Route")).toBeInTheDocument());
+    await userEvent.click(getMaterialButton(document, "Add Route"));
+    const form = screen.getByRole("form", { name: "Create Route" });
+    const aliasField = getMaterialTextField(form, "Route alias");
+    const modelSelect = getMaterialSelect(form, "Model");
+
+    expect(aliasField.label).toBe("Route alias");
+    expect(aliasField).not.toHaveAttribute("aria-labelledby");
+    expect(aliasField).toHaveAttribute("spellcheck", "false");
+    expect(aliasField.closest(".form-field--create-track")?.querySelector(".schema-field__label")).not.toBeInTheDocument();
+    expect(getMaterialTrailingIconButton(aliasField, "Help for Route alias")).toBeInTheDocument();
+    expect(modelSelect.label).toBe("Model");
+    expect(modelSelect).not.toHaveAttribute("aria-labelledby");
+    expect(modelSelect.closest(".form-field--create-track")?.querySelector(".schema-field__label")).not.toBeInTheDocument();
+    expect(modelSelect.closest(".form-field--create-track")?.querySelector(".schema-field__help-wrap")).not.toBeInTheDocument();
+    expect(modelSelect.closest(".form-field--create-track")?.querySelector("md-icon-button")).not.toBeInTheDocument();
+    expect(modelSelect.supportingText).toContain("Local model slug");
   });
 
   test("deletes a route after inline confirmation", async () => {
@@ -100,9 +127,9 @@ describe("RoutesPage", () => {
     renderWithConsoleProviders(<RoutesPage />);
 
     const routePanel = await screen.findByLabelText("Route primary");
-    await userEvent.click(within(routePanel).getByRole("button", { name: "Delete Route primary" }));
+    await userEvent.click(getMaterialButton(routePanel, "Delete Route primary"));
     expect(remove).not.toHaveBeenCalled();
-    await userEvent.click(within(routePanel).getByRole("button", { name: "Confirm delete primary" }));
+    await userEvent.click(getMaterialButton(routePanel, "Confirm delete primary"));
 
     expect(remove).toHaveBeenCalledWith("route", "primary", "rev-1");
     expect(screen.queryByLabelText("Route primary")).not.toBeInTheDocument();
@@ -114,4 +141,96 @@ async function advanceAutosave() {
     await vi.advanceTimersByTimeAsync(450);
     await Promise.resolve();
   });
+}
+
+type MaterialSelectElement = HTMLElement & {
+  label: string;
+  supportingText: string;
+  value: string;
+};
+
+type MaterialTextFieldElement = HTMLElement & {
+  label: string;
+  value: string;
+};
+
+function getMaterialTextField(container: ParentNode, label: string) {
+  const element = Array.from(container.querySelectorAll<MaterialTextFieldElement>("md-outlined-text-field")).find(
+    (candidate) => materialElementLabel(candidate) === label
+  );
+  if (!element) {
+    throw new Error(`Expected a Material Web outlined text field labelled "${label}".`);
+  }
+  return element;
+}
+
+function getMaterialSelect(container: ParentNode, label: string) {
+  const element = Array.from(container.querySelectorAll<MaterialSelectElement>("md-outlined-select")).find(
+    (candidate) => materialElementLabel(candidate) === label
+  );
+  if (!element) {
+    throw new Error(`Expected a Material Web select labelled "${label}".`);
+  }
+  return element;
+}
+
+function materialElementLabel(element: HTMLElement & { label?: string }) {
+  const labelledBy = element.getAttribute("aria-labelledby");
+  if (labelledBy) {
+    return labelledBy
+      .split(/\s+/)
+      .map((id) => document.getElementById(id)?.textContent?.trim() ?? "")
+      .filter(Boolean)
+      .join(" ");
+  }
+  return element.label || element.getAttribute("aria-label") || element.getAttribute("label") || "";
+}
+
+function getMaterialButton(container: ParentNode, label: string) {
+  const element = Array.from(container.querySelectorAll("md-filled-button")).find(
+    (candidate) => {
+      const accessibleLabel = candidate.getAttribute("aria-label") ?? candidate.textContent ?? "";
+      return accessibleLabel.includes(label);
+    }
+  );
+  if (!element) {
+    throw new Error(`Expected a Material Web filled button labelled "${label}".`);
+  }
+  return element as HTMLElement;
+}
+
+function getMaterialOutlinedButton(container: ParentNode, label: RegExp) {
+  const element = Array.from(container.querySelectorAll("md-outlined-button")).find(
+    (candidate) => label.test(candidate.getAttribute("aria-label") ?? candidate.textContent ?? "")
+  );
+  if (!element) {
+    throw new Error(`Expected a Material Web outlined button labelled "${label}".`);
+  }
+  return element as HTMLElement;
+}
+
+function getMaterialTrailingIconButton(container: ParentNode, label: string) {
+  const element = Array.from(container.querySelectorAll("md-icon-button")).find(
+    (candidate) => candidate.getAttribute("slot") === "trailing-icon" && candidate.getAttribute("aria-label") === label
+  );
+  if (!element) {
+    throw new Error(`Expected a Material Web trailing icon button labelled "${label}".`);
+  }
+  return element as HTMLElement;
+}
+
+function setMaterialTextFieldValue(element: MaterialTextFieldElement, value: string) {
+  act(() => {
+    element.value = value;
+    element.dispatchEvent(new InputEvent("input", { bubbles: true, composed: true }));
+  });
+}
+
+function submitMaterialForm(container: ParentNode, submitLabel: string) {
+  const button = getMaterialButton(container, submitLabel);
+  const form = button.closest("form");
+  if (!form) {
+    throw new Error("Expected Material Web submit button inside a form.");
+  }
+  fireEvent.submit(form);
 }
