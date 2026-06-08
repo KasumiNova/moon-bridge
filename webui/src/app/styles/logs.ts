@@ -1,4 +1,24 @@
-export const logStyles = `  .logs-toolbar {
+export const logStyles = `  .logs-panel__header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+
+  .logs-panel__header h2 {
+    margin: 0;
+  }
+
+  .logs-panel__actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .logs-toolbar {
     display: flex;
     align-items: center;
     justify-content: space-between;

@@ -27,6 +27,13 @@ describe("LogsPage", () => {
     expect(getMaterialButton(document.body, "Copy")).toBeInTheDocument();
     expect(getMaterialButton(document.body, "Download")).toBeInTheDocument();
     expect(getMaterialTextField(document.body, "Search logs")).toBeInTheDocument();
+    const topActions = document.querySelector(".logs-panel__actions");
+    const toolbarActions = document.querySelector(".logs-toolbar__actions");
+    expect(topActions).toBeInTheDocument();
+    expect(toolbarActions).toBeInTheDocument();
+    expect(getMaterialButton(topActions!, "Copy")).toBeInTheDocument();
+    expect(getMaterialButton(topActions!, "Download")).toBeInTheDocument();
+    expect(toolbarActions!.querySelectorAll("md-outlined-button")).toHaveLength(0);
 
     setMaterialTextFieldValue(getMaterialTextField(document.body, "Search logs"), "database");
 

@@ -77,18 +77,9 @@ export function LogPanel({ labelledBy, embedded }: { labelledBy?: string; embedd
       aria-labelledby={labelledBy}
       className={embedded ? "logs-panel" : "content-panel logs-panel"}
     >
-      {labelledBy ? null : <h2>{t("logs.panelTitle")}</h2>}
-
-      <div className="logs-toolbar">
-        <div className="logs-toolbar__actions">
-          <md-chip-set className="logs-chip-set logs-follow-mode" role="group" aria-label={t("logs.followMode")}>
-            <MaterialFilterChip value="follow" selected={follow} onSelect={() => setFollow(true)}>
-              {t("logs.follow")}
-            </MaterialFilterChip>
-            <MaterialFilterChip value="pause" selected={!follow} onSelect={() => setFollow(false)}>
-              {t("logs.pause")}
-            </MaterialFilterChip>
-          </md-chip-set>
+      <div className="logs-panel__header">
+        {labelledBy ? <span aria-hidden="true" /> : <h2>{t("logs.panelTitle")}</h2>}
+        <div className="logs-panel__actions">
           <MaterialOutlinedButton
             disabled={visibleEntries.length === 0}
             icon="content_copy"
@@ -103,6 +94,19 @@ export function LogPanel({ labelledBy, embedded }: { labelledBy?: string; embedd
           >
             {t("logs.download")}
           </MaterialOutlinedButton>
+        </div>
+      </div>
+
+      <div className="logs-toolbar">
+        <div className="logs-toolbar__actions">
+          <md-chip-set className="logs-chip-set logs-follow-mode" role="group" aria-label={t("logs.followMode")}>
+            <MaterialFilterChip value="follow" selected={follow} onSelect={() => setFollow(true)}>
+              {t("logs.follow")}
+            </MaterialFilterChip>
+            <MaterialFilterChip value="pause" selected={!follow} onSelect={() => setFollow(false)}>
+              {t("logs.pause")}
+            </MaterialFilterChip>
+          </md-chip-set>
         </div>
         <p className="logs-count">
           {t("logs.visibleCount", { visible: visibleEntries.length, total: entries.length })}
