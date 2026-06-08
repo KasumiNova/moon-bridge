@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { act, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { renderWithConsoleProviders } from "../../test/renderWithConsoleProviders";
@@ -85,10 +85,13 @@ describe("SearchToolsPage", () => {
 
     await userEvent.click(await screen.findByRole("button", { name: "Add Extension" }));
     const form = screen.getByRole("form", { name: "Create Extension" });
+    const enabledSwitch = getMaterialSwitch(form, "Enabled");
+    expect(form.querySelector(".schema-switch")).not.toBeInTheDocument();
+    expect(enabledSwitch.selected).toBe(true);
     await userEvent.click(within(form).getByRole("button", { name: "Help for Enabled" }));
     expect(within(form).getByRole("tooltip")).toHaveTextContent("Enables model-level or global extensions");
     await userEvent.click(within(form).getByRole("button", { name: "metrics" }));
-    await userEvent.click(within(form).getByRole("switch", { name: "Enabled" }));
+    setMaterialSwitchSelected(enabledSwitch, false);
     await userEvent.click(within(form).getByRole("button", { name: "Create Extension" }));
 
     expect(create).toHaveBeenCalledWith("extension", {
@@ -125,3 +128,20 @@ describe("SearchToolsPage", () => {
     expect(screen.queryByText("db_sqlite")).not.toBeInTheDocument();
   });
 });
+
+function getMaterialSwitch(container: ParentNode, label: string) {
+  const element = Array.from(container.querySelectorAll("md-switch")).find(
+    (switchElement) => switchElement.getAttribute("aria-label") === label
+  );
+  if (!element) {
+    throw new Error(`Expected a Material Web switch labelled "${label}".`);
+  }
+  return element as HTMLElement & { selected: boolean };
+}
+
+function setMaterialSwitchSelected(element: HTMLElement & { selected: boolean }, selected: boolean) {
+  act(() => {
+    element.selected = selected;
+    element.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+}

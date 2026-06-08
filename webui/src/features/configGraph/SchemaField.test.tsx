@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { act, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
 import type { FieldSchema } from "../../rpc/types";
@@ -149,7 +149,7 @@ describe("SchemaField", () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
-  test("toggles boolean fields with an app-styled switch instead of a native checkbox", async () => {
+  test("toggles boolean fields with the Material Web switch", async () => {
     const field: FieldSchema = {
       path: "enabled",
       type: "boolean",
@@ -161,12 +161,12 @@ describe("SchemaField", () => {
 
     renderWithConsoleProviders(<SchemaField field={field} value={false} onChange={onChange} />);
 
+    const materialSwitch = getMaterialSwitch(document, "Enabled");
+    expect(document.querySelector(".schema-switch")).not.toBeInTheDocument();
     expect(document.querySelector(".schema-field input[type='checkbox']")).not.toBeInTheDocument();
+    expect(materialSwitch.selected).toBe(false);
 
-    const toggle = screen.getByRole("switch", { name: "Enabled" });
-    expect(toggle).toHaveAttribute("aria-checked", "false");
-
-    await userEvent.click(toggle);
+    setMaterialSwitchSelected(materialSwitch, true);
 
     expect(onChange).toHaveBeenCalledWith(true);
   });
@@ -198,3 +198,20 @@ describe("SchemaField", () => {
     expect(screen.getByRole("button", { name: /Extensions.*0 keys/ }).closest(".schema-field")).toHaveClass("schema-field--wide");
   });
 });
+
+function getMaterialSwitch(container: ParentNode, label: string) {
+  const element = Array.from(container.querySelectorAll("md-switch")).find(
+    (switchElement) => switchElement.getAttribute("aria-label") === label
+  );
+  if (!element) {
+    throw new Error(`Expected a Material Web switch labelled "${label}".`);
+  }
+  return element as HTMLElement & { selected: boolean };
+}
+
+function setMaterialSwitchSelected(element: HTMLElement & { selected: boolean }, selected: boolean) {
+  act(() => {
+    element.selected = selected;
+    element.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+}

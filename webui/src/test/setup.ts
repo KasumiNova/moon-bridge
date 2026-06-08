@@ -1,5 +1,97 @@
 import "@testing-library/jest-dom/vitest";
 
+type TestElementInternals = {
+  checkValidity: () => boolean;
+  reportValidity: () => boolean;
+  setFormValue: (value: unknown, state?: unknown) => void;
+  setValidity: (flags?: ValidityStateFlags, message?: string, anchor?: HTMLElement) => void;
+  validationMessage: string;
+  validity: ValidityState;
+  willValidate: boolean;
+};
+
+const validValidityState = {
+  badInput: false,
+  customError: false,
+  patternMismatch: false,
+  rangeOverflow: false,
+  rangeUnderflow: false,
+  stepMismatch: false,
+  tooLong: false,
+  tooShort: false,
+  typeMismatch: false,
+  valid: true,
+  valueMissing: false
+} as ValidityState;
+
+if (typeof ElementInternals !== "undefined") {
+  if (typeof ElementInternals.prototype.setFormValue !== "function") {
+    Object.defineProperty(ElementInternals.prototype, "setFormValue", {
+      configurable: true,
+      value: () => undefined
+    });
+  }
+
+  if (typeof ElementInternals.prototype.setValidity !== "function") {
+    Object.defineProperty(ElementInternals.prototype, "setValidity", {
+      configurable: true,
+      value: () => undefined
+    });
+  }
+
+  if (typeof ElementInternals.prototype.checkValidity !== "function") {
+    Object.defineProperty(ElementInternals.prototype, "checkValidity", {
+      configurable: true,
+      value: () => true
+    });
+  }
+
+  if (typeof ElementInternals.prototype.reportValidity !== "function") {
+    Object.defineProperty(ElementInternals.prototype, "reportValidity", {
+      configurable: true,
+      value: () => true
+    });
+  }
+
+  if (!("validity" in ElementInternals.prototype)) {
+    Object.defineProperty(ElementInternals.prototype, "validity", {
+      configurable: true,
+      get: () => validValidityState
+    });
+  }
+
+  if (!("validationMessage" in ElementInternals.prototype)) {
+    Object.defineProperty(ElementInternals.prototype, "validationMessage", {
+      configurable: true,
+      get: () => ""
+    });
+  }
+
+  if (!("willValidate" in ElementInternals.prototype)) {
+    Object.defineProperty(ElementInternals.prototype, "willValidate", {
+      configurable: true,
+      get: () => true
+    });
+  }
+}
+
+if (!HTMLElement.prototype.attachInternals) {
+  Object.defineProperty(HTMLElement.prototype, "attachInternals", {
+    configurable: true,
+    value: function attachInternals(): TestElementInternals {
+      return {
+        checkValidity: () => true,
+        reportValidity: () => true,
+        setFormValue: () => undefined,
+        setValidity: () => undefined,
+        validationMessage: "",
+        validity: validValidityState,
+        willValidate: true
+      };
+    }
+  });
+}
+
 if (!globalThis.localStorage) {
   const store = new Map<string, string>();
 

@@ -12,6 +12,7 @@ import {
 import { configDescriptions, type ConfigPath } from "../../configDocs/configDescriptions";
 import type { FieldSchema } from "../../rpc/types";
 import { useI18n } from "../../i18n/I18nProvider";
+import { MaterialSwitch } from "../../components/MaterialSwitch";
 import { SelectMenu, type SelectMenuOption } from "./SelectMenu";
 
 export type SchemaFieldProps = {
@@ -128,18 +129,12 @@ export function SchemaField({
               setHelpOpen={setHelpOpen}
             />
           </span>
-          <button
-            type="button"
-            className={Boolean(value) ? "schema-switch schema-switch--selected" : "schema-switch"}
+          <MaterialSwitch
             disabled={disabled}
-            role="switch"
-            aria-checked={Boolean(value)}
-            aria-label={field.label}
-            aria-describedby={helpOpen ? helpId : undefined}
-            onClick={() => commit(!Boolean(value))}
-          >
-            <span aria-hidden="true" />
-          </button>
+            label={field.label}
+            selected={Boolean(value)}
+            onChange={(selected) => commit(selected)}
+          />
         </div>
         {fieldError ? (
           <p className="field-error" id={errorId} role="alert">

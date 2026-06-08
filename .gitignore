@@ -14,8 +14,13 @@ docs/superpowers/reports/
 helloagents/
 AGENTS.md
 CLAUDE.md
-.codex
 .codex/
+!.codex/
+.codex/*
+!.codex/skills/
+.codex/skills/*
+!.codex/skills/moonbridge-webui-design/
+!.codex/skills/moonbridge-webui-design/**
 .claude
 .claude/
 .agents

@@ -88,8 +88,7 @@ export const baseStyles = `
 
   /* Filled icon variant for active/selected expressive states. */
   .nav-item--active md-icon,
-  .icon--filled,
-  .schema-switch--selected md-icon {
+  .icon--filled {
     font-variation-settings: "FILL" 1, "wght" 500, "GRAD" 0, "opsz" 24;
   }
 
@@ -475,6 +474,30 @@ export const baseStyles = `
     --md-icon-button-icon-color: var(--mb-color-on-surface);
     --md-icon-button-hover-icon-color: var(--mb-color-primary);
     --md-icon-button-pressed-icon-color: var(--mb-color-primary);
+  }
+
+  md-switch {
+    --md-switch-selected-track-color: var(--mb-color-primary);
+    --md-switch-selected-hover-track-color: var(--mb-color-primary);
+    --md-switch-selected-focus-track-color: var(--mb-color-primary);
+    --md-switch-selected-pressed-track-color: var(--mb-color-primary);
+    --md-switch-selected-handle-color: var(--mb-color-on-primary);
+    --md-switch-track-color: var(--mb-color-surface-container-highest);
+    --md-switch-hover-track-color: var(--mb-color-surface-container-highest);
+    --md-switch-focus-track-color: var(--mb-color-surface-container-highest);
+    --md-switch-pressed-track-color: var(--mb-color-surface-container-highest);
+    --md-switch-track-outline-color: var(--mb-color-outline);
+    --md-switch-hover-track-outline-color: var(--mb-color-outline);
+    --md-switch-focus-track-outline-color: var(--mb-color-outline);
+    --md-switch-pressed-track-outline-color: var(--mb-color-outline);
+    --md-switch-handle-color: var(--mb-color-outline);
+    --md-switch-hover-handle-color: var(--mb-color-on-surface-variant);
+    --md-switch-focus-handle-color: var(--mb-color-on-surface-variant);
+    --md-switch-pressed-handle-color: var(--mb-color-on-surface-variant);
+    --md-switch-selected-hover-state-layer-color: var(--mb-color-primary);
+    --md-switch-selected-pressed-state-layer-color: var(--mb-color-primary);
+    --md-switch-hover-state-layer-color: var(--mb-color-on-surface);
+    --md-switch-pressed-state-layer-color: var(--mb-color-on-surface);
   }
 
 `;

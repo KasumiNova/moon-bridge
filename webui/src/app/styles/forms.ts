@@ -185,58 +185,6 @@ export const formStyles = `  .form-grid {
     background: color-mix(in srgb, var(--mb-color-surface-container-high) 60%, transparent);
   }
 
-  .schema-switch {
-    width: 52px;
-    flex: 0 0 52px;
-    height: 32px;
-    min-height: 32px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: flex-start;
-    border: 2px solid var(--mb-color-outline);
-    border-radius: var(--mb-shape-full);
-    padding: 0 6px;
-    background: var(--mb-color-surface-container-highest);
-    box-shadow: none;
-    overflow: visible;
-    transition:
-      background-color var(--mb-duration-medium) var(--mb-ease-standard),
-      border-color var(--mb-duration-medium) var(--mb-ease-standard);
-  }
-
-  .schema-switch span {
-    flex: 0 0 16px;
-    width: 16px;
-    height: 16px;
-    border-radius: var(--mb-shape-full);
-    background: var(--mb-color-outline);
-    transition:
-      transform var(--mb-duration-medium) var(--mb-ease-spring),
-      width var(--mb-duration-medium) var(--mb-ease-spring),
-      height var(--mb-duration-medium) var(--mb-ease-spring),
-      flex-basis var(--mb-duration-medium) var(--mb-ease-spring),
-      background-color var(--mb-duration-medium) var(--mb-ease-standard);
-  }
-
-  .schema-switch:active span {
-    flex-basis: 26px;
-    width: 26px;
-  }
-
-  .schema-switch--selected {
-    justify-content: flex-start;
-    border-color: var(--mb-color-primary);
-    background: var(--mb-color-primary);
-  }
-
-  .schema-switch--selected span {
-    flex: 0 0 24px;
-    width: 24px;
-    height: 24px;
-    transform: translateX(12px);
-    background: var(--mb-color-on-primary);
-  }
-
   .schema-option-group {
     display: flex;
     align-items: center;

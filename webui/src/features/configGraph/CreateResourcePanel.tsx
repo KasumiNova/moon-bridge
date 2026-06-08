@@ -3,6 +3,7 @@ import { configDescriptions, type ConfigPath } from "../../configDocs/configDesc
 import type { ConfigGraph } from "../../rpc/types";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { MessageKey } from "../../i18n/messages";
+import { MaterialSwitch } from "../../components/MaterialSwitch";
 import { useCreateConfigResource } from "./useConfigGraph";
 
 type CreatableKind = "provider" | "model" | "provider_offer" | "route" | "extension";
@@ -467,16 +468,7 @@ function SwitchInput({
   return (
     <div className="form-field form-field--create-track">
       <CreateFieldLabel helpText={helpText} label={label} />
-      <button
-        type="button"
-        className={value ? "schema-switch schema-switch--selected" : "schema-switch"}
-        role="switch"
-        aria-checked={value}
-        aria-label={label}
-        onClick={() => onChange(!value)}
-      >
-        <span aria-hidden="true" />
-      </button>
+      <MaterialSwitch label={label} selected={value} onChange={onChange} />
     </div>
   );
 }
