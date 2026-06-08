@@ -66,13 +66,13 @@ export const overviewStyles = `  .metric-grid {
     transition:
       transform var(--mb-duration-medium) var(--mb-ease-spring),
       border-color var(--mb-duration-medium) var(--mb-ease-standard),
-      box-shadow var(--mb-duration-medium) var(--mb-ease-standard);
+      background-color var(--mb-duration-medium) var(--mb-ease-standard);
   }
 
   .usage-metric:hover {
     transform: translateY(-2px);
     border-color: color-mix(in srgb, var(--mb-color-primary) 40%, transparent);
-    box-shadow: var(--mb-elevation-2);
+    background: var(--mb-color-surface-container-highest);
   }
 
   .usage-metric__icon {

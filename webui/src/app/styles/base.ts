@@ -43,7 +43,7 @@ export const baseStyles = `
     --mb-state-focus: 0.10;
     --mb-state-press: 0.12;
 
-    /* ---- Tonal elevation shadows ---- */
+    /* ---- Tonal elevation shadows for transient floating surfaces. App panels use tonal color instead. ---- */
     --mb-elevation-1:
       0 1px 2px color-mix(in srgb, var(--mb-color-shadow) 30%, transparent),
       0 1px 3px 1px color-mix(in srgb, var(--mb-color-shadow) 15%, transparent);
@@ -167,8 +167,8 @@ export const baseStyles = `
     border: 1px solid color-mix(in srgb, var(--mb-color-outline-variant) 60%, transparent);
     border-radius: var(--mb-shape-2xl);
     padding: 32px;
-    background: var(--mb-color-surface-container);
-    box-shadow: var(--mb-elevation-3);
+    background: var(--mb-color-surface-container-high);
+    box-shadow: none;
   }
 
   .auth-card__badge {

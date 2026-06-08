@@ -4,7 +4,7 @@ export const sharedResourceStyles = `  .metric-card,
     border: 1px solid color-mix(in srgb, var(--mb-color-outline-variant) 60%, transparent);
     border-radius: var(--mb-shape-xl);
     background: var(--mb-color-surface-container);
-    box-shadow: var(--mb-elevation-1);
+    box-shadow: none;
   }
 
   .metric-card {
@@ -283,7 +283,7 @@ export const sharedResourceStyles = `  .metric-card,
     border-radius: var(--mb-shape-xl);
     padding: 18px 20px;
     background: var(--mb-color-surface-container-high);
-    box-shadow: var(--mb-elevation-2);
+    box-shadow: none;
   }
 
   .create-resource__header {

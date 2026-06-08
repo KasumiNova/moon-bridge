@@ -6,24 +6,23 @@ export const resourceEditorStyles = `  .resource-editor-card {
     border-radius: var(--mb-shape-xl);
     padding: 16px 18px;
     background: var(--mb-color-surface-container);
-    box-shadow: var(--mb-elevation-1);
+    box-shadow: none;
     transition:
       border-color var(--mb-duration-medium) var(--mb-ease-standard),
-      box-shadow var(--mb-duration-medium) var(--mb-ease-standard),
+      background-color var(--mb-duration-medium) var(--mb-ease-standard),
       transform var(--mb-duration-medium) var(--mb-ease-spring);
   }
 
   .resource-editor-card:hover {
     border-color: color-mix(in srgb, var(--mb-color-primary) 40%, var(--mb-color-outline));
-    box-shadow: var(--mb-elevation-3);
+    background: var(--mb-color-surface-container-high);
     transform: translateY(-2px);
   }
 
   .resource-editor-card:focus-within {
     border-color: var(--mb-color-primary);
-    box-shadow:
-      0 0 0 2px color-mix(in srgb, var(--mb-color-primary) 28%, transparent),
-      0 8px 24px color-mix(in srgb, var(--mb-color-shadow) 18%, transparent);
+    outline: 2px solid color-mix(in srgb, var(--mb-color-primary) 36%, transparent);
+    outline-offset: 2px;
   }
 
   .resource-editor-card__header {

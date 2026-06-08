@@ -129,7 +129,7 @@ export const shellLayoutStyles = `  .workspace {
     border-radius: var(--mb-shape-xl);
     padding: 32px;
     background: var(--mb-color-surface-container);
-    box-shadow: var(--mb-elevation-1);
+    box-shadow: none;
   }
 
   .placeholder-panel > div {
