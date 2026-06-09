@@ -1,20 +1,22 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
 import { motion } from "motion/react";
 import type { ConfigResource, FieldError, FieldSchema, ResourceKind, ResourceStatus, RuntimeImpact } from "../../rpc/types";
-import { configDescriptions } from "../../configDocs/configDescriptions";
+import { configDescriptions, type ConfigPath } from "../../configDocs/configDescriptions";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { MessageKey } from "../../i18n/messages";
 import { springs } from "../../theme/motion";
-import { MaterialFilledButton, MaterialOutlinedButton } from "../../components/MaterialButton";
+import { MaterialFilledButton, MaterialIconButton, MaterialOutlinedButton } from "../../components/MaterialButton";
 import { MaterialInputChip } from "../../components/MaterialInputChip";
 import { MaterialSelect, type MaterialSelectOption } from "../../components/MaterialSelect";
 import { MaterialSwitch } from "../../components/MaterialSwitch";
 import { MaterialOutlinedTextField } from "../../components/MaterialTextField";
 import { EditorStatusProvider, useReportFieldStatus, type FieldStatusReporter } from "./editorStatus";
 import { GraphResourceField } from "./GraphResourceField";
+import { type TooltipPosition, useAnchoredTooltipPosition } from "./helpTooltipPosition";
 import { useAutosaveField, type AutosaveFieldStatus, type SaveFieldRequest } from "./useAutosaveField";
 import { useDeleteConfigResource, useGraphFieldSaver } from "./useConfigGraph";
 import { configDocPathForResource } from "./configDocPath";
+import type { MdIconButton } from "@material/web/iconbutton/icon-button.js";
 
 const statusLabelKeys: Record<ResourceStatus, MessageKey> = {
   saved: "resource.status.saved",
@@ -752,6 +754,15 @@ function ReasoningSupportSwitch({
   );
 }
 
+type WebSearchStructuredFieldKey = "max_uses" | "search_max_rounds" | "tavily_api_key" | "firecrawl_api_key";
+
+const webSearchConfigPaths: Record<WebSearchStructuredFieldKey, ConfigPath> = {
+  max_uses: "web_search.max_uses",
+  search_max_rounds: "web_search.search_max_rounds",
+  tavily_api_key: "web_search.tavily_api_key",
+  firecrawl_api_key: "web_search.firecrawl_api_key"
+};
+
 function WebSearchFeatureField({
   field,
   resource,
@@ -767,6 +778,7 @@ function WebSearchFeatureField({
   const docPath = configDocPathForResource(resource, field);
   const title = docPath ? configDescriptions[docPath].title[locale] : field.label;
   const supportLabel = t("field.webSearch.support", { label: title });
+  const helpScope = `${resource.kind}-${resource.id}-${field.path}`;
   const maxUsesLabel = t("field.webSearch.maxUses", { label: title });
   const tavilyAPIKeyLabel = t("field.webSearch.tavilyAPIKey", { label: title });
   const firecrawlAPIKeyLabel = t("field.webSearch.firecrawlAPIKey", { label: title });
@@ -794,21 +806,25 @@ function WebSearchFeatureField({
         <IntegerObjectField
           autosave={autosave}
           fieldKey="max_uses"
+          helpScope={helpScope}
           label={maxUsesLabel}
         />
         <IntegerObjectField
           autosave={autosave}
           fieldKey="search_max_rounds"
+          helpScope={helpScope}
           label={searchMaxRoundsLabel}
         />
         <SecretObjectField
           autosave={autosave}
           fieldKey="tavily_api_key"
+          helpScope={helpScope}
           label={tavilyAPIKeyLabel}
         />
         <SecretObjectField
           autosave={autosave}
           fieldKey="firecrawl_api_key"
+          helpScope={helpScope}
           label={firecrawlAPIKeyLabel}
         />
       </div>
@@ -821,15 +837,161 @@ function WebSearchFeatureField({
   );
 }
 
+type StructuredFeatureFieldHelp = {
+  button: ReactNode;
+  tooltip: ReactNode;
+};
+
+function useStructuredFeatureFieldHelp(
+  fieldKey: WebSearchStructuredFieldKey,
+  helpScope: string,
+  label: string
+): StructuredFeatureFieldHelp {
+  const i18n = useI18n();
+  const anchorRef = useRef<MdIconButton | null>(null);
+  const openedByHover = useRef(false);
+  const [open, setOpen] = useState(false);
+  const docPath = webSearchConfigPaths[fieldKey];
+  const helpId = `structured-help-${helpScope}-${docPath}`.replace(/[^a-zA-Z0-9_-]/g, "-");
+  const position = useAnchoredTooltipPosition(anchorRef, open);
+  const helpParts = structuredFeatureHelpParts(docPath, label, i18n);
+
+  return {
+    button: (
+      <MaterialIconButton
+        className="schema-field__help"
+        describedBy={open ? helpId : undefined}
+        icon="help"
+        label={i18n.t("field.helpFor", { label })}
+        onBlur={() => setOpen(false)}
+        onClick={() => {
+          if (openedByHover.current) {
+            openedByHover.current = false;
+            setOpen(true);
+            return;
+          }
+          setOpen((current) => !current);
+        }}
+        onFocus={() => setOpen(true)}
+        onKeyDown={(event: KeyboardEvent<HTMLElement>) => {
+          if (event.key === "Escape") {
+            setOpen(false);
+          }
+        }}
+        onMouseDown={(event) => event.preventDefault()}
+        onMouseEnter={() => {
+          openedByHover.current = true;
+          setOpen(true);
+        }}
+        onMouseLeave={() => {
+          openedByHover.current = false;
+          setOpen(false);
+        }}
+        ref={anchorRef}
+        slot="trailing-icon"
+      />
+    ),
+    tooltip: open ? (
+        <StructuredFeatureTooltip
+          helpId={helpId}
+          helpParts={helpParts}
+          position={position}
+        />
+      ) : null
+  };
+}
+
+function StructuredFeatureTooltip({
+  helpId,
+  helpParts,
+  position
+}: {
+  helpId: string;
+  helpParts: StructuredFeatureHelpParts;
+  position: TooltipPosition | undefined;
+}) {
+  return (
+    <span className="rich-tooltip" id={helpId} role="tooltip" style={tooltipPositionStyle(position)}>
+      <span className="rich-tooltip__subhead">{helpParts.subhead}</span>
+      <span className="rich-tooltip__body">{helpParts.body}</span>
+      <span className="rich-tooltip__metas">
+        {helpParts.metas.map((meta, index) => (
+          <span className="rich-tooltip__chip" key={index}>
+            {meta.label ? `${meta.label}: ${meta.value}` : meta.value}
+          </span>
+        ))}
+      </span>
+    </span>
+  );
+}
+
+type StructuredFeatureHelpParts = {
+  subhead: string;
+  body: string;
+  metas: { label?: string; value: string }[];
+};
+
+function structuredFeatureHelpParts(
+  docPath: ConfigPath,
+  label: string,
+  { locale, t }: ReturnType<typeof useI18n>
+): StructuredFeatureHelpParts {
+  const entry = configDescriptions[docPath];
+  const metas: { label?: string; value: string }[] = [
+    { label: t("configDoc.type"), value: localizedConfigMetaValue(entry.type, t) }
+  ];
+  if (entry.defaultValue) {
+    metas.push({ label: t("configDoc.default"), value: localizedConfigMetaValue(String(entry.defaultValue), t) });
+  }
+  if (entry.sensitive) {
+    metas.push({ value: t("configDoc.sensitive") });
+  }
+  return {
+    subhead: label,
+    body: entry.description[locale],
+    metas
+  };
+}
+
+function localizedConfigMetaValue(value: string, t: ReturnType<typeof useI18n>["t"]) {
+  const normalized = value.trim().toLowerCase();
+  const localized: Partial<Record<string, MessageKey>> = {
+    array: "configDoc.type.array",
+    boolean: "configDoc.type.boolean",
+    empty: "configDoc.default.empty",
+    "host:port": "configDoc.type.hostPort",
+    number: "configDoc.type.number",
+    object: "configDoc.type.object",
+    string: "configDoc.type.string",
+    url: "configDoc.type.url"
+  };
+  return localized[normalized] ? t(localized[normalized]) : value;
+}
+
+function tooltipPositionStyle(position: TooltipPosition | undefined): CSSProperties | undefined {
+  if (!position) {
+    return undefined;
+  }
+  return {
+    left: `${position.left}px`,
+    maxWidth: `${position.maxWidth}px`,
+    position: "fixed",
+    top: `${position.top}px`
+  };
+}
+
 function SecretObjectField({
   autosave,
   fieldKey,
+  helpScope,
   label
 }: {
   autosave: ObjectFieldState;
-  fieldKey: string;
+  fieldKey: WebSearchStructuredFieldKey;
+  helpScope: string;
   label: string;
 }) {
+  const help = useStructuredFeatureFieldHelp(fieldKey, helpScope, label);
   const [draft, setDraft] = useState(() => objectStringDraft(autosave.value[fieldKey], true));
   const committedDraft = objectStringDraft(autosave.value[fieldKey], true);
 
@@ -853,12 +1015,14 @@ function SecretObjectField({
           disabled={autosave.status === "saving"}
           label={label}
           spellCheck={false}
+          trailingIcon={help.button}
           type="password"
           value={draft}
           onBlur={commit}
           onInput={setDraft}
         />
       </div>
+      {help.tooltip}
     </div>
   );
 }
@@ -866,13 +1030,16 @@ function SecretObjectField({
 function IntegerObjectField({
   autosave,
   fieldKey,
+  helpScope,
   label
 }: {
   autosave: ObjectFieldState;
-  fieldKey: string;
+  fieldKey: WebSearchStructuredFieldKey;
+  helpScope: string;
   label: string;
 }) {
   const { t } = useI18n();
+  const help = useStructuredFeatureFieldHelp(fieldKey, helpScope, label);
   const [draft, setDraft] = useState(() => objectIntegerDraft(autosave.value[fieldKey]));
   const [localError, setLocalError] = useState("");
   const committedDraft = objectIntegerDraft(autosave.value[fieldKey]);
@@ -910,6 +1077,7 @@ function IntegerObjectField({
           inputMode="numeric"
           label={label}
           spellCheck={false}
+          trailingIcon={help.button}
           type="text"
           value={draft}
           onBlur={commit}
@@ -921,6 +1089,7 @@ function IntegerObjectField({
           }}
         />
       </div>
+      {help.tooltip}
       {localError ? (
         <p className="field-error field-error--sr" role="alert">
           {localError}

@@ -252,13 +252,10 @@ export const resourceEditorStyles = `  .resource-editor-card {
   .resource-field-group {
     display: grid;
     gap: 12px;
-    border-top: 1px solid color-mix(in srgb, var(--mb-color-outline) 22%, transparent);
-    padding-top: 14px;
-  }
-
-  .resource-field-group:first-child {
-    border-top: 0;
-    padding-top: 0;
+    border-radius: var(--mb-shape-md);
+    outline: 0;
+    padding: 16px;
+    background: color-mix(in srgb, var(--mb-color-surface) 68%, var(--mb-color-surface-container-high));
   }
 
   .resource-field-group__header {
@@ -298,10 +295,6 @@ export const resourceEditorStyles = `  .resource-editor-card {
   }
 
   .resource-field-group--advanced {
-    border-top: 0;
-    border-radius: var(--mb-shape-md);
-    outline: 0;
-    padding: 16px;
     background: color-mix(in srgb, var(--mb-color-surface) 68%, var(--mb-color-surface-container-high));
   }
 

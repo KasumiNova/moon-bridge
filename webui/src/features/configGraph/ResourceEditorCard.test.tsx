@@ -51,6 +51,8 @@ describe("ResourceEditorCard", () => {
       revision: "rev-2"
     });
     const model = resource("model", "claude-sonnet", "Claude Sonnet", {
+      display_name: "Claude Sonnet",
+      context_window: 200000,
       supports_reasoning: true,
       default_reasoning_level: "medium",
       default_reasoning_summary: "auto",
@@ -61,6 +63,8 @@ describe("ResourceEditorCard", () => {
       web_search: { support: "auto" },
       extensions: {}
     }, [
+      field("display_name", "Display Name"),
+      field("context_window", "Context Window", "number", "number"),
       field("supports_reasoning", "Supports Reasoning", "boolean", "switch"),
       field("default_reasoning_level", "Default Reasoning Level"),
       field("supported_reasoning_levels", "Supported Reasoning Levels", "array", "array"),
@@ -76,16 +80,23 @@ describe("ResourceEditorCard", () => {
     );
 
     const editorCard = container.querySelector(".resource-editor-card");
+    const fieldGroups = container.querySelectorAll(".resource-field-group");
     const advancedPanels = container.querySelectorAll(".resource-field-group--advanced");
+    const identityPanel = screen.getByRole("group", { name: "Identity" });
+    const basicPanel = screen.getByRole("group", { name: "Basic" });
     expect(editorCard).toBeInTheDocument();
+    expect(fieldGroups.length).toBeGreaterThan(0);
     expect(advancedPanels.length).toBeGreaterThan(0);
+    expect(identityPanel).toContainElement(getMaterialTextField(identityPanel, "Model display name"));
+    expect(basicPanel).toContainElement(getMaterialTextField(basicPanel, "Context window"));
     expectPanelElementToBeFlat(editorCard!);
-    for (const panel of advancedPanels) {
+    for (const panel of fieldGroups) {
       expectPanelElementToBeFlat(panel);
     }
     expectPanelRuleToAvoidEdges(".resource-editor-card");
     expectPanelStateRuleToStayFlat(".resource-editor-card:hover");
     expectPanelStateRuleToStayFlat(".resource-editor-card:focus-within");
+    expectPanelRuleToAvoidEdges(".resource-field-group");
     expectPanelRuleToAvoidEdges(".resource-field-group--advanced");
   });
 
@@ -484,6 +495,10 @@ describe("ResourceEditorCard", () => {
     expect(getMaterialTextField(advancedPanel, "Model web search max uses")).toHaveAttribute("spellcheck", "false");
     expect(getMaterialTextField(advancedPanel, "Model web search Tavily API key")).toHaveProperty("type", "password");
     expect(getMaterialTextField(advancedPanel, "Model web search Firecrawl API key")).toHaveProperty("type", "password");
+    expectWebSearchFieldHelp(advancedPanel, "Model web search max uses", "Limits how many web search calls one request may use.");
+    expectWebSearchFieldHelp(advancedPanel, "Model web search search max rounds", "Maximum orchestration rounds for injected search tools.");
+    expectWebSearchFieldHelp(advancedPanel, "Model web search Tavily API key", "Tavily secret used by injected web search.");
+    expectWebSearchFieldHelp(advancedPanel, "Model web search Firecrawl API key", "Firecrawl secret used by injected web search to fetch page content.");
     expect(queryMaterialTextField(advancedPanel, "Model web search JSON")).not.toBeInTheDocument();
 
     fireEvent.blur(getMaterialTextField(advancedPanel, "Model web search Tavily API key"));
@@ -659,6 +674,42 @@ describe("ResourceEditorCard", () => {
         ]
       })
     );
+  });
+
+  test("keeps structured web search help tooltip ids scoped per resource", () => {
+    vi.spyOn(configGraph, "patchConfigGraph").mockResolvedValue({
+      result: "committed",
+      revision: "rev-2"
+    });
+    const provider = resource("provider", "anthropic", "Anthropic", {
+      web_search: { support: "auto" }
+    }, [
+      field("web_search", "Web Search", "object", "object")
+    ]);
+    const model = resource("model", "claude-sonnet", "Claude Sonnet", {
+      web_search: { support: "auto" }
+    }, [
+      field("web_search", "Web Search", "object", "object")
+    ]);
+
+    renderWithConsoleProviders(
+      <>
+        <ResourceEditorCard resource={provider} revision="rev-1" title="Provider" />
+        <ResourceEditorCard resource={model} revision="rev-1" title="Model" />
+      </>
+    );
+
+    const providerHelp = getMaterialIconButton(document, "Help for Provider web search max uses");
+    const modelHelp = getMaterialIconButton(document, "Help for Model web search max uses");
+    fireEvent.focus(providerHelp);
+    fireEvent.focus(modelHelp);
+
+    const describedIds = [
+      providerHelp.getAttribute("aria-describedby"),
+      modelHelp.getAttribute("aria-describedby")
+    ];
+    expect(describedIds.every(Boolean)).toBe(true);
+    expect(new Set(describedIds).size).toBe(2);
   });
 
   test("hides model reasoning options when the model does not support reasoning", async () => {
@@ -953,6 +1004,18 @@ function getMaterialTextField(container: ParentNode, label: string) {
     throw new Error(`Missing md-outlined-text-field: ${label}`);
   }
   return element as HTMLElement & { label: string; type: string; value: string };
+}
+
+function expectWebSearchFieldHelp(container: ParentNode, fieldLabel: string, bodyText: string) {
+  const textField = getMaterialTextField(container, fieldLabel);
+  const helpButton = getMaterialIconButton(textField, `Help for ${fieldLabel}`);
+  expect(helpButton).toHaveAttribute("slot", "trailing-icon");
+
+  fireEvent.focus(helpButton);
+
+  const tooltip = screen.getByText(bodyText).closest("[role='tooltip']");
+  expect(tooltip).toBeInTheDocument();
+  expect(tooltip).toHaveTextContent(fieldLabel);
 }
 
 function queryMaterialTextField(container: ParentNode, label: string) {
