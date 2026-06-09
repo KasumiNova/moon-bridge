@@ -50,11 +50,13 @@ const deletableKinds = new Set<ResourceKind>([
 
 export function ResourceEditorCard({
   ariaLabel,
+  modelDisplayNames = {},
   resource,
   revision,
   title
 }: {
   ariaLabel?: string;
+  modelDisplayNames?: Record<string, string>;
   resource: ConfigResource;
   revision: string;
   title?: string;
@@ -205,6 +207,7 @@ export function ResourceEditorCard({
       <EditorStatusProvider report={reportFieldStatus}>
         <ResourceFieldGroups
           fieldGroups={fieldGroups}
+          modelDisplayNames={modelDisplayNames}
           resource={resource}
           revision={revision}
         />
@@ -221,10 +224,12 @@ type FieldGroup = {
 
 function ResourceFieldGroups({
   fieldGroups,
+  modelDisplayNames,
   resource,
   revision
 }: {
   fieldGroups: FieldGroup[];
+  modelDisplayNames: Record<string, string>;
   resource: ConfigResource;
   revision: string;
 }) {
@@ -241,6 +246,7 @@ function ResourceFieldGroups({
         <ResourceFieldGroup
           group={group}
           key={group.key}
+          modelDisplayNames={modelDisplayNames}
           modelReasoningLevels={modelReasoningLevels}
           resource={resource}
           revision={revision}
@@ -252,11 +258,13 @@ function ResourceFieldGroups({
 
 function ResourceFieldGroup({
   group,
+  modelDisplayNames,
   modelReasoningLevels,
   resource,
   revision
 }: {
   group: FieldGroup;
+  modelDisplayNames: Record<string, string>;
   modelReasoningLevels: ModelReasoningLevelsState | undefined;
   resource: ConfigResource;
   revision: string;
@@ -288,15 +296,10 @@ function ResourceFieldGroup({
           </span>
           {t(group.labelKey)}
         </h4>
-        <span>
-          {t(group.fields.length === 1 ? "resource.fieldCount.one" : "resource.fieldCount.many", {
-            count: group.fields.length
-          })}
-        </span>
       </div>
       {inputFields.length ? (
         <div className={fieldGridContainerClass(resource.kind, group)}>
-          {renderInputFields(resource, revision, group, inputFields, modelReasoningLevels)}
+          {renderInputFields(resource, revision, group, inputFields, modelDisplayNames, modelReasoningLevels)}
         </div>
       ) : null}
       {toggleFields.length ? (
@@ -304,6 +307,7 @@ function ResourceFieldGroup({
           {toggleFields.map((field) => (
             <GraphResourceField
               field={field}
+              modelDisplayNames={modelDisplayNames}
               objectDisplay={fieldObjectDisplay(resource.kind, field, group)}
               resource={resource}
               revision={revision}
@@ -360,7 +364,7 @@ function ReasoningFieldGroup({
       </div>
       {supportsReasoning && inputFields.length ? (
         <div className={fieldGridContainerClass(resource.kind, group)}>
-          {renderInputFields(resource, revision, group, inputFields, modelReasoningLevels)}
+          {renderInputFields(resource, revision, group, inputFields, {}, modelReasoningLevels)}
         </div>
       ) : null}
       {supportsReasoning && toggleFields.length ? (
@@ -577,6 +581,7 @@ function renderInputFields(
   revision: string,
   group: FieldGroup,
   fields: FieldSchema[],
+  modelDisplayNames: Record<string, string>,
   modelReasoningLevels: ModelReasoningLevelsState | undefined
 ) {
   const rendered: ReactNode[] = [];
@@ -589,13 +594,13 @@ function renderInputFields(
           className="form-grid__wide form-grid__reasoning-defaults"
           key={`${resource.kind}-${resource.id}-reasoning-defaults`}
         >
-          {pair.map((field) => renderInputField(resource, revision, group, field, modelReasoningLevels))}
+          {pair.map((field) => renderInputField(resource, revision, group, field, modelDisplayNames, modelReasoningLevels))}
         </div>
       );
       index += pair.length;
       continue;
     }
-    rendered.push(renderInputField(resource, revision, group, fields[index], modelReasoningLevels));
+    rendered.push(renderInputField(resource, revision, group, fields[index], modelDisplayNames, modelReasoningLevels));
     index += 1;
   }
   return rendered;
@@ -606,6 +611,7 @@ function renderInputField(
   revision: string,
   group: FieldGroup,
   field: FieldSchema,
+  modelDisplayNames: Record<string, string>,
   modelReasoningLevels: ModelReasoningLevelsState | undefined
 ) {
   if (isModelReasoningLevelsField(resource.kind, field)) {
@@ -687,6 +693,7 @@ function renderInputField(
     >
       <GraphResourceField
         field={field}
+        modelDisplayNames={modelDisplayNames}
         objectDisplay={fieldObjectDisplay(resource.kind, field, group)}
         resource={resource}
         revision={revision}

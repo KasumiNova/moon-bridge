@@ -76,6 +76,33 @@ describe("ModelsProvidersPage", () => {
     expect(screen.queryByLabelText(/^enabled$/i)).not.toBeInTheDocument();
   });
 
+  test("renders resource sections without outer tonal panels and keeps page header title-only", async () => {
+    vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
+
+    const { container } = renderWithConsoleProviders(
+      <MemoryRouter>
+        <AppShell content={<ModelsProvidersPage />} />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Models & Providers" })).toBeInTheDocument();
+    const pageHeader = container.querySelector(".page-header");
+    expect(pageHeader).toBeInTheDocument();
+    expect(within(pageHeader as HTMLElement).queryByText("Upstream")).not.toBeInTheDocument();
+    expect(within(pageHeader as HTMLElement).queryByText("Manage provider endpoints and model definitions in one realtime editor."))
+      .not.toBeInTheDocument();
+
+    const providerSection = screen.getByRole("heading", { level: 2, name: "Providers (1)" }).closest("section");
+    const modelSection = screen.getByRole("heading", { level: 2, name: "Models (1)" }).closest("section");
+    expect(providerSection).toHaveClass("resource-section");
+    expect(modelSection).toHaveClass("resource-section");
+    expect(providerSection).not.toHaveClass("content-panel");
+    expect(modelSection).not.toHaveClass("content-panel");
+    expect(getComputedStyle(providerSection!).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    expect(getComputedStyle(modelSection!).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    expect(providerSection?.querySelector(".resource-editor-card")).toBeInTheDocument();
+  });
+
   test("renders provider advanced feature structured controls without JSON editors or summary toggles", async () => {
     vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
     vi.spyOn(configGraph, "patchConfigGraph").mockResolvedValue({
@@ -149,8 +176,18 @@ describe("ModelsProvidersPage", () => {
     await waitForMaterialButton(document, "添加提供商");
     await userEvent.click(getMaterialButton(document, "添加提供商", "filled"));
     const providerForm = screen.getByRole("form", { name: "创建提供商" });
-    expect(getMaterialFilterChip(providerForm, "OpenAI Responses")).toBeInTheDocument();
-    expect(getMaterialFilterChip(providerForm, "Gemini")).toBeInTheDocument();
+    const protocolSelect = getMaterialSelect(providerForm, "协议");
+    expect(protocolSelect.value).toBe("openai-response");
+    expect(protocolSelect.querySelector("[slot='leading-icon'] svg")).toBeInTheDocument();
+    expect(getMaterialSelectOptions(protocolSelect).map((option) => option.displayText)).toEqual([
+      "OpenAI Responses",
+      "OpenAI Chat",
+      "Anthropic",
+      "Gemini"
+    ]);
+    for (const option of getMaterialSelectOptions(protocolSelect)) {
+      expect(option.querySelector("[slot='start'] svg")).toBeInTheDocument();
+    }
 
     await userEvent.click(getMaterialButton(providerForm, "取消", "outlined"));
     await waitForMaterialButton(document, "添加模型");
@@ -277,18 +314,26 @@ describe("ModelsProvidersPage", () => {
     await waitForMaterialButton(document, "Add Provider");
     await userEvent.click(getMaterialButton(document, "Add Provider", "filled"));
     const form = screen.getByRole("form", { name: "Create Provider" });
-    const helpButton = getMaterialIconButton(form, "Help for Protocol");
-    expect(helpButton.tagName.toLowerCase()).toBe("md-icon-button");
-    await userEvent.click(helpButton);
-    expect(within(form).getByRole("tooltip")).toHaveTextContent("Selects the upstream API format");
-
     setMaterialTextFieldValue(getMaterialTextField(form, "Provider ID"), "gemini");
     setMaterialTextFieldValue(getMaterialTextField(form, "Base URL"), "https://generativelanguage.googleapis.com");
     setMaterialTextFieldValue(getMaterialTextField(form, "API key"), "gemini-key");
-    const geminiChip = getMaterialFilterChip(form, "Gemini");
-    expect(geminiChip.selected).toBe(false);
-    await userEvent.click(geminiChip);
-    expect(geminiChip.selected).toBe(true);
+    const protocolSelect = getMaterialSelect(form, "Protocol");
+    expect(protocolSelect.querySelector("[slot='trailing-icon']")).not.toBeInTheDocument();
+    const protocolHelp = getMaterialIconButton(form, "Help for Protocol");
+    expect(protocolHelp).toHaveClass("mb-field__select-help");
+    expect(protocolHelp.closest(".mb-field__select-actions")).toBeInTheDocument();
+    expect(getComputedStyle(protocolHelp).position).not.toBe("absolute");
+    expect(protocolSelect).not.toContainElement(protocolHelp);
+    await userEvent.click(protocolHelp);
+    expect(within(form).getByRole("tooltip")).toHaveTextContent(
+      "Selects the upstream API format: Anthropic Messages, OpenAI Responses, Google GenAI, or OpenAI Chat."
+    );
+    expect(protocolSelect.open).toBe(false);
+    expect(protocolSelect.querySelector("[slot='leading-icon'] title")).toHaveTextContent("OpenAI");
+    setMaterialSelectValue(protocolSelect, "google-genai");
+    await waitFor(() => expect(protocolSelect.querySelector("[slot='leading-icon'] title")).toHaveTextContent("Gemini"));
+    expect(getMaterialSelectOptions(protocolSelect).find((option) => option.value === "google-genai")
+      ?.querySelector("[slot='start'] title")).toHaveTextContent("Gemini");
     await submitMaterialForm(form, "Create Provider");
 
     await waitFor(() => expect(create).toHaveBeenCalledWith("provider", {
@@ -318,7 +363,7 @@ describe("ModelsProvidersPage", () => {
 
     expect(getMaterialTextField(form, "Provider ID").closest(".form-field--create-track")).toBeInTheDocument();
     expect(getMaterialTextField(form, "Base URL").closest(".form-field--create-track")).toBeInTheDocument();
-    expect(getMaterialChipSet(form, "Protocol").closest(".form-field--create-track")).toBeInTheDocument();
+    expect(getMaterialSelect(form, "Protocol").closest(".form-field--create-track")).toBeInTheDocument();
   });
 
   test("keeps create background panels tonal without borders or glow", async () => {
@@ -357,6 +402,9 @@ describe("ModelsProvidersPage", () => {
     await waitForMaterialButton(document, "Add Model");
     await userEvent.click(getMaterialButton(document, "Add Model", "filled"));
     const modelForm = screen.getByRole("form", { name: "Create Model" });
+    const displayNameField = getMaterialTextField(modelForm, "Display name");
+    setMaterialTextFieldValue(displayNameField, "GPT-4o");
+    expectLobeLeadingIcon(displayNameField);
     const contextWindowField = getMaterialTextField(modelForm, "Context window");
     const contextWindowRow = contextWindowField.closest(".create-resource__context-window-row");
     expect(contextWindowField.label).toBe("Context window");
@@ -383,11 +431,12 @@ describe("ModelsProvidersPage", () => {
     const providerForm = screen.getByRole("form", { name: "Create Provider" });
     const baseUrlField = getMaterialTextField(providerForm, "Base URL");
     const apiKeyField = getMaterialTextField(providerForm, "API key");
-    const protocolGroup = getMaterialChipSet(providerForm, "Protocol");
+    const protocolSelect = getMaterialSelect(providerForm, "Protocol");
 
     expect(getMaterialLeadingIcon(baseUrlField, "link")).toBeInTheDocument();
     expect(getMaterialLeadingIcon(apiKeyField, "key")).toBeInTheDocument();
-    expect(protocolGroup.closest(".schema-field")).toBeInTheDocument();
+    expect(protocolSelect.closest(".form-field--create-track")).toBeInTheDocument();
+    expect(protocolSelect.querySelector("[slot='leading-icon'] svg")).toBeInTheDocument();
 
     await userEvent.click(getMaterialButton(providerForm, "Cancel", "outlined"));
     const providerPanel = await screen.findByLabelText("Provider anthropic");
@@ -657,6 +706,12 @@ type MaterialTextFieldElement = HTMLElement & {
 
 type MaterialSelectElement = HTMLElement & {
   label: string;
+  open: boolean;
+  value: string;
+};
+
+type MaterialSelectOptionElement = HTMLElement & {
+  displayText: string;
   value: string;
 };
 
@@ -684,6 +739,14 @@ function getMaterialSelect(container: ParentNode, label: string) {
     throw new Error(`Expected a Material Web select labelled "${label}".`);
   }
   return element;
+}
+
+function getMaterialSelectOptions(select: ParentNode) {
+  const options = Array.from(select.querySelectorAll<MaterialSelectOptionElement>("md-select-option"));
+  if (options.length === 0) {
+    throw new Error("Expected Material Web select options to be rendered.");
+  }
+  return options;
 }
 
 function materialElementLabel(element: HTMLElement & { label?: string }) {
@@ -772,6 +835,12 @@ function getMaterialLeadingIcon(container: ParentNode, icon: string) {
   return element as HTMLElement;
 }
 
+function expectLobeLeadingIcon(fieldElement: HTMLElement) {
+  const leadingIcon = fieldElement.querySelector("[slot='leading-icon']");
+  expect(leadingIcon).toBeInTheDocument();
+  expect(leadingIcon?.querySelector("svg")).toBeInTheDocument();
+}
+
 function getMaterialFilterChip(container: ParentNode, label: string) {
   const element = Array.from(container.querySelectorAll("md-filter-chip")).find(
     (candidate) => candidate.textContent?.trim() === label
@@ -806,6 +875,20 @@ function setMaterialTextFieldValue(element: MaterialTextFieldElement, value: str
   act(() => {
     element.value = value;
     element.dispatchEvent(new InputEvent("input", { bubbles: true, composed: true }));
+  });
+}
+
+function setMaterialSelectValue(element: MaterialSelectElement, value: string) {
+  act(() => {
+    let selectedValue = value;
+    Object.defineProperty(element, "value", {
+      configurable: true,
+      get: () => selectedValue,
+      set: (next: string) => {
+        selectedValue = next;
+      }
+    });
+    element.dispatchEvent(new Event("change", { bubbles: true, composed: true }));
   });
 }
 

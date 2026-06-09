@@ -45,7 +45,7 @@ export function SearchToolsPage() {
         />
       ) : null}
 
-      <section className="content-panel" aria-labelledby="extensions-heading">
+      <section className="resource-section" aria-labelledby="extensions-heading">
         <div className="section-heading">
           <h2 id="extensions-heading">{t("searchTools.extensions")}</h2>
           {registeredExtensions.isLoading ? (
@@ -99,7 +99,7 @@ function ResourceSection({
 }) {
   const { t } = useI18n();
   return (
-    <section className="content-panel" aria-label={title}>
+    <section className="resource-section" aria-label={title}>
       <h2>{title}</h2>
       <ResourceEditorCard
         ariaLabel={t("resource.cardLabel", { title, id: resource.id })}

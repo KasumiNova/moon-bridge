@@ -2,6 +2,7 @@ import { LoadingState } from "../../components/LoadingState";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { MessageKey } from "../../i18n/messages";
 import type { ConfigResource } from "../../rpc/types";
+import { modelDisplayNamesById } from "../configGraph/modelProviderIcons";
 import { ResourceEditorCard } from "../configGraph/ResourceEditorCard";
 import { useConfigGraph } from "../configGraph/useConfigGraph";
 import { PageHeader, QueryErrorState } from "../shared";
@@ -27,6 +28,7 @@ export function DefaultsPage() {
   const resources = defaultResourceOrder
     .map((kind) => graph.data.resources.find((resource) => resource.kind === kind))
     .filter((resource): resource is ConfigResource => Boolean(resource));
+  const modelDisplayNames = modelDisplayNamesById(graph.data.resources);
 
   return (
     <section className="page-stack" aria-labelledby="defaults-title">
@@ -35,7 +37,12 @@ export function DefaultsPage() {
       </PageHeader>
 
       {resources.map((resource) => (
-        <DefaultResourceSection key={resource.kind} resource={resource} revision={graph.data.revision} />
+        <DefaultResourceSection
+          key={resource.kind}
+          modelDisplayNames={modelDisplayNames}
+          resource={resource}
+          revision={graph.data.revision}
+        />
       ))}
     </section>
   );
@@ -43,8 +50,10 @@ export function DefaultsPage() {
 
 function DefaultResourceSection({
   resource,
-  revision
+  revision,
+  modelDisplayNames
 }: {
+  modelDisplayNames: Record<string, string>;
   resource: ConfigResource;
   revision: string;
 }) {
@@ -52,10 +61,11 @@ function DefaultResourceSection({
   const titleKey = defaultResourceTitleKeys[resource.kind as (typeof defaultResourceOrder)[number]];
   const title = titleKey ? t(titleKey) : resource.label;
   return (
-    <section className="content-panel" aria-label={title}>
+    <section className="resource-section" aria-label={title}>
       <h2>{title}</h2>
       <ResourceEditorCard
         ariaLabel={t("resource.cardLabel", { title, id: resource.id })}
+        modelDisplayNames={modelDisplayNames}
         resource={resource}
         revision={revision}
         title={title}

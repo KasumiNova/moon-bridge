@@ -23,8 +23,26 @@ describe("DefaultsPage", () => {
     expect(within(screen.getByLabelText("Trace main status")).getByText("Saved")).toBeInTheDocument();
     expect(within(screen.getByLabelText("Log main status")).getByText("Saved")).toBeInTheDocument();
     expect(screen.getAllByText("Hot reload").length).toBeGreaterThan(0);
-    expect(getMaterialTextField(document, "Default model").value).toBe("claude-sonnet");
+    const defaultModelField = getMaterialTextField(document, "Default model");
+    expect(defaultModelField.value).toBe("claude-sonnet");
+    expectLobeLeadingIcon(defaultModelField);
     expect(getMaterialSelect(document, "Log level").value).toBe("info");
+  });
+
+  test("resolves default model route aliases to their underlying model icon", async () => {
+    const graph = configGraphFixture();
+    const defaults = graph.resources.find((resource) => resource.kind === "defaults");
+    if (!defaults) {
+      throw new Error("Fixture is missing defaults resource.");
+    }
+    defaults.value = { ...defaults.value, model: "primary" };
+    vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(graph);
+
+    renderWithConsoleProviders(<DefaultsPage />);
+
+    const defaultModelField = await findMaterialTextField(document, "Default model");
+    expect(defaultModelField.value).toBe("primary");
+    expectLobeLeadingIcon(defaultModelField, "Claude");
   });
 
   test("autosaves defaults through graph patches", async () => {
@@ -94,6 +112,11 @@ type MaterialSelectElement = HTMLElement & {
   value: string;
 };
 
+async function findMaterialTextField(container: ParentNode, label: string) {
+  await screen.findByRole("heading", { level: 2, name: "Defaults" });
+  return getMaterialTextField(container, label);
+}
+
 function getMaterialTextField(container: ParentNode, label: string) {
   const element = Array.from(container.querySelectorAll<MaterialTextFieldElement>("md-outlined-text-field")).find(
     (candidate) => materialElementLabel(candidate) === label
@@ -102,6 +125,15 @@ function getMaterialTextField(container: ParentNode, label: string) {
     throw new Error(`Expected a Material Web outlined text field labelled "${label}".`);
   }
   return element;
+}
+
+function expectLobeLeadingIcon(fieldElement: HTMLElement, title?: string) {
+  const leadingIcon = fieldElement.querySelector("[slot='leading-icon']");
+  expect(leadingIcon).toBeInTheDocument();
+  expect(leadingIcon?.querySelector("svg")).toBeInTheDocument();
+  if (title) {
+    expect(leadingIcon?.querySelector("title")).toHaveTextContent(title);
+  }
 }
 
 function getMaterialSelect(container: ParentNode, label: string) {

@@ -1,8 +1,10 @@
 import { MaterialSelect } from "../../components/MaterialSelect";
+import type { ReactNode } from "react";
 
 export type SelectMenuOption = {
   value: string;
   label: string;
+  leadingIcon?: ReactNode;
 };
 
 export function SelectMenu({
@@ -14,6 +16,7 @@ export function SelectMenu({
   error,
   errorText,
   ariaLabel,
+  leadingIcon,
   placeholder,
   required,
   supportingText
@@ -27,6 +30,7 @@ export function SelectMenu({
   error?: boolean;
   errorText?: string;
   ariaLabel?: string;
+  leadingIcon?: ReactNode;
   placeholder?: string;
   required?: boolean;
   supportingText?: string;
@@ -39,9 +43,11 @@ export function SelectMenu({
       error={error}
       errorText={errorText}
       label={ariaLabel ?? placeholder ?? ""}
+      leadingIcon={leadingIcon}
       options={options.map((option) => ({
         value: option.value,
-        label: option.label
+        label: option.label,
+        leadingIcon: option.leadingIcon
       }))}
       required={required}
       supportingText={supportingText}

@@ -197,7 +197,7 @@ export const resourceEditorStyles = `  .resource-editor-card {
 
   .switch-bank {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(248px, 1fr));
     gap: 8px 14px;
     align-items: start;
   }
@@ -279,19 +279,6 @@ export const resourceEditorStyles = `  .resource-editor-card {
   .resource-field-group__header h4 .material-symbol {
     font-size: 1.1rem;
     color: var(--mb-color-primary);
-  }
-
-  .resource-field-group__header span {
-    min-height: 24px;
-    display: inline-flex;
-    align-items: center;
-    border-radius: var(--mb-shape-full);
-    padding: 2px 11px;
-    color: var(--mb-color-on-surface-variant);
-    background: color-mix(in srgb, var(--mb-color-surface-container) 72%, transparent);
-    font-size: 0.74rem;
-    font-weight: 650;
-    white-space: nowrap;
   }
 
   .resource-field-group--advanced {

@@ -17,6 +17,7 @@ type MaterialTextFieldProps = {
   id?: string;
   label: string;
   leadingIcon?: string;
+  leadingIconNode?: ReactNode;
   onBlur?: () => void;
   onInput: (value: string) => void;
   inputMode?: string;
@@ -52,6 +53,7 @@ export const MaterialOutlinedTextField = forwardRef<MaterialTextFieldElement, Ma
     id,
     label,
     leadingIcon,
+    leadingIconNode,
     onBlur,
     onInput,
     inputMode,
@@ -79,6 +81,7 @@ export const MaterialOutlinedTextField = forwardRef<MaterialTextFieldElement, Ma
         id={id}
         label={label}
         leadingIcon={leadingIcon}
+        leadingIconNode={leadingIconNode}
         onBlur={onBlur}
         onInput={onInput}
         inputMode={inputMode}
@@ -111,6 +114,7 @@ const MaterialTextField = forwardRef<MaterialTextFieldElement, MaterialTextField
     id,
     label,
     leadingIcon,
+    leadingIconNode,
     onBlur,
     onInput,
     inputMode,
@@ -216,11 +220,22 @@ const MaterialTextField = forwardRef<MaterialTextFieldElement, MaterialTextField
         id,
         onBlur
       },
-      leadingIcon ? createElement("md-icon", { slot: "leading-icon" }, leadingIcon) : null,
+      renderLeadingIcon(leadingIcon, leadingIconNode),
       trailingIcon
     );
   }
 );
+
+function renderLeadingIcon(leadingIcon: string | undefined, leadingIconNode: ReactNode | undefined) {
+  if (leadingIconNode) {
+    return createElement(
+      "span",
+      { "aria-hidden": "true", className: "material-field-leading-node", slot: "leading-icon" },
+      leadingIconNode
+    );
+  }
+  return leadingIcon ? createElement("md-icon", { slot: "leading-icon" }, leadingIcon) : null;
+}
 
 function mergeClassNames(...classNames: Array<string | undefined>) {
   return classNames.filter(Boolean).join(" ");

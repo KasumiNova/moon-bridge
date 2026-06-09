@@ -1,4 +1,4 @@
-import { useId, useRef, useState, type FormEvent } from "react";
+import { useId, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { configDescriptions, type ConfigPath } from "../../configDocs/configDescriptions";
 import type { ConfigGraph } from "../../rpc/types";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -10,6 +10,7 @@ import type { MessageKey } from "../../i18n/messages";
 import { MaterialSwitch } from "../../components/MaterialSwitch";
 import { useCreateConfigResource } from "./useConfigGraph";
 import { useAnchoredTooltipPosition } from "./helpTooltipPosition";
+import { modelIconForName, modelSelectOptions, protocolIconForValue } from "./modelProviderIcons";
 import type { MdIconButton } from "@material/web/iconbutton/icon-button.js";
 
 type CreatableKind = "provider" | "model" | "provider_offer" | "route" | "extension";
@@ -243,13 +244,12 @@ function CreateFields({
           onChange={(apiKey) => setValues({ ...values, apiKey })}
           secret
         />
-        <ChipOptionGroup
+        <SelectInput
           helpText={fieldHelp("providers.<key>.protocol", "create.help.providerProtocol")}
           label={t("create.provider.protocol")}
-          options={["openai-response", "openai-chat", "anthropic", "google-genai"]}
+          options={protocolSelectOptions(t)}
           value={values.protocol}
           onChange={(protocol) => setValues({ ...values, protocol })}
-          optionLabel={(option) => protocolOptionLabel(option, t)}
         />
       </>
     );
@@ -268,6 +268,7 @@ function CreateFields({
         <TextInput
           helpText={t("create.help.modelDisplayName")}
           label={t("create.model.displayName")}
+          leadingIconNode={modelIconForName(values.displayName || values.id)}
           path="display_name"
           value={values.displayName}
           onChange={(displayName) => setValues({ ...values, displayName })}
@@ -295,7 +296,7 @@ function CreateFields({
         <SelectInput
           helpText={fieldHelp("routes.<alias>.model", "create.help.routeModel")}
           label={t("create.route.model")}
-          options={toSelectOptions(models.map((model) => model.id))}
+          options={modelSelectOptions(models)}
           value={values.model}
           onChange={(model) => setValues({ ...values, model })}
         />
@@ -323,7 +324,7 @@ function CreateFields({
         <SelectInput
           helpText={fieldHelp("providers.<key>.offers[].model", "create.help.offerModel")}
           label={t("create.offer.model")}
-          options={toSelectOptions(models.map((model) => model.id))}
+          options={modelSelectOptions(models)}
           value={values.model}
           onChange={(model) => setValues({ ...values, model })}
         />
@@ -359,6 +360,7 @@ function CreateFields({
 function TextInput({
   helpText,
   label,
+  leadingIconNode,
   onChange,
   path,
   secret,
@@ -366,6 +368,7 @@ function TextInput({
 }: {
   helpText: string;
   label: string;
+  leadingIconNode?: ReactNode;
   onChange: (value: string) => void;
   path: string;
   secret?: boolean;
@@ -383,6 +386,7 @@ function TextInput({
           id={id}
           label={label}
           leadingIcon={fieldLeadingIcon(path, secret)}
+          leadingIconNode={leadingIconNode}
           trailingIcon={help.button("trailing-icon")}
           type={secret ? "password" : "text"}
           value={value}
@@ -395,6 +399,7 @@ function TextInput({
 }
 
 function SelectInput({
+  helpText,
   label,
   onChange,
   options,
@@ -406,17 +411,24 @@ function SelectInput({
   options: MaterialSelectOption[];
   value: string;
 }) {
+  const help = useCreateFieldHelp(label);
   return (
     <div className="mb-field form-field--create-track" data-variant="select">
+      <div className="mb-field__select-actions">
+        {help.button(undefined, "mb-field__select-help")}
+      </div>
       <div className="mb-field__control">
         <MaterialSelect
+          describedBy={help.open ? help.helpId : undefined}
           ariaLabel={label}
           label={label}
+          leadingIcon={options.find((option) => option.value === value)?.leadingIcon}
           onChange={onChange}
           options={options}
           value={value}
         />
       </div>
+      <CreateFieldHelpTooltip anchorRef={help.anchorRef} helpId={help.helpId} helpText={helpText} open={help.open} />
     </div>
   );
 }
@@ -574,14 +586,15 @@ function useCreateFieldHelp(label: string) {
 
   return {
     anchorRef,
-    button: (slot?: string) => (
+    button: (slot?: string, className = "schema-field__help") => (
       <MaterialIconButton
-        className="schema-field__help"
+        className={className}
         describedBy={open ? helpId : undefined}
         icon="help"
         label={t("field.helpFor", { label })}
         onBlur={() => setOpen(false)}
-        onClick={() => {
+        onClick={(event) => {
+          event.stopPropagation();
           if (openedByHover.current) {
             openedByHover.current = false;
             setOpen(true);
@@ -664,6 +677,14 @@ function useStableCreateId(label: string) {
 
 function toSelectOptions(options: string[]): MaterialSelectOption[] {
   return options.map((option) => ({ label: option, value: option }));
+}
+
+function protocolSelectOptions(t: (key: MessageKey) => string): MaterialSelectOption[] {
+  return ["openai-response", "openai-chat", "anthropic", "google-genai"].map((option) => ({
+    label: protocolOptionLabel(option, t),
+    leadingIcon: protocolIconForValue(option),
+    value: option
+  }));
 }
 
 function defaultValues(

@@ -21,9 +21,11 @@ describe("RoutesPage", () => {
     expect(within(screen.getByLabelText("Route primary status")).getByText("Saved")).toBeInTheDocument();
     expect(screen.getByText("8 fields")).toBeInTheDocument();
     expect(screen.getByText("Hot reload")).toBeInTheDocument();
-    expect(getMaterialTextField(document, "Route model")).toBeInTheDocument();
+    const routeModelField = getMaterialTextField(document, "Route model");
+    expect(routeModelField).toBeInTheDocument();
+    expectLobeLeadingIcon(routeModelField);
     expect(getMaterialTextField(document, "Route provider")).toBeInTheDocument();
-    expect(getMaterialTextField(document, "Route display name")).toBeInTheDocument();
+    expectLobeLeadingIcon(getMaterialTextField(document, "Route display name"));
     expect(getMaterialTextField(document, "Route context window")).toBeInTheDocument();
     const advancedFeatures = screen.getByRole("group", { name: "Advanced Features" });
     expect(getMaterialSelect(advancedFeatures, "Route web search mode")).toBeInTheDocument();
@@ -116,11 +118,21 @@ describe("RoutesPage", () => {
     expect(aliasField.closest(".form-field--create-track")?.querySelector(".schema-field__label")).not.toBeInTheDocument();
     expect(getMaterialTrailingIconButton(aliasField, "Help for Route alias")).toBeInTheDocument();
     expect(modelSelect.label).toBe("Model");
+    expect(modelSelect.querySelector("[slot='leading-icon'] svg")).toBeInTheDocument();
+    expect(getMaterialSelectOptions(modelSelect).find((option) => option.value === "claude-sonnet")
+      ?.querySelector("[slot='start'] svg")).toBeInTheDocument();
     expect(modelSelect).not.toHaveAttribute("aria-labelledby");
     expect(modelSelect.closest(".form-field--create-track")?.querySelector(".schema-field__label")).not.toBeInTheDocument();
     expect(modelSelect.supportingText).toBe("");
     expect(modelSelect.closest(".mb-field__select-shell")).not.toBeInTheDocument();
-    expect(queryMaterialIconButton(form, "Help for Model")).not.toBeInTheDocument();
+    expect(modelSelect.querySelector("[slot='trailing-icon']")).not.toBeInTheDocument();
+    const modelHelp = getMaterialIconButton(form, "Help for Model");
+    expect(modelHelp).toHaveClass("mb-field__select-help");
+    expect(modelHelp.closest(".mb-field__select-actions")).toBeInTheDocument();
+    expect(getComputedStyle(modelHelp).position).not.toBe("absolute");
+    expect(modelSelect).not.toContainElement(modelHelp);
+    await userEvent.click(modelHelp);
+    expect(within(form).getByRole("tooltip")).toHaveTextContent("Local model slug that the client-visible alias maps to.");
   });
 
   test("deletes a route after inline confirmation", async () => {
@@ -182,6 +194,26 @@ function getMaterialSelect(container: ParentNode, label: string) {
     throw new Error(`Expected a Material Web select labelled "${label}".`);
   }
   return element;
+}
+
+type MaterialSelectOptionElement = HTMLElement & {
+  displayText: string;
+  selected: boolean;
+  value: string;
+};
+
+function getMaterialSelectOptions(select: ParentNode) {
+  const options = Array.from(select.querySelectorAll<MaterialSelectOptionElement>("md-select-option"));
+  if (options.length === 0) {
+    throw new Error("Expected Material Web select options to be rendered.");
+  }
+  return options;
+}
+
+function expectLobeLeadingIcon(fieldElement: HTMLElement) {
+  const leadingIcon = fieldElement.querySelector("[slot='leading-icon']");
+  expect(leadingIcon).toBeInTheDocument();
+  expect(leadingIcon?.querySelector("svg")).toBeInTheDocument();
 }
 
 function materialElementLabel(element: HTMLElement & { label?: string }) {

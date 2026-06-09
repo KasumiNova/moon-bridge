@@ -16,7 +16,7 @@ type MaterialOutlinedButtonProps = {
   disabled?: boolean;
   id?: string;
   icon?: string;
-  onClick: () => void;
+  onClick: (event: MouseEvent<HTMLElement>) => void;
   type?: "button" | "reset" | "submit";
 };
 
@@ -40,7 +40,7 @@ type MaterialIconButtonProps = {
   icon: string;
   label: string;
   onBlur?: () => void;
-  onClick: () => void;
+  onClick: (event: MouseEvent<HTMLElement>) => void;
   onFocus?: () => void;
   onKeyDown?: (event: KeyboardEvent<HTMLElement>) => void;
   onMouseDown?: (event: MouseEvent<HTMLElement>) => void;
@@ -128,29 +128,30 @@ export const MaterialIconButton = forwardRef<MdIconButton, MaterialIconButtonPro
     onMouseLeave,
     slot
   }: MaterialIconButtonProps, ref) {
-  return (
-    <md-icon-button
-      aria-controls={controls}
-      aria-describedby={describedBy}
-      aria-expanded={ariaBoolean(ariaExpanded)}
-      aria-label={label}
-      className={className}
-      disabled={disabled}
-      onBlur={onBlur}
-      onClick={onClick}
-      onFocus={onFocus}
-      onKeyDown={onKeyDown}
-      onMouseDown={onMouseDown}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
-      ref={ref}
-      slot={slot}
-      type="button"
-    >
-      {createElement("md-icon", null, icon)}
-    </md-icon-button>
-  );
-});
+    return (
+      <md-icon-button
+        aria-controls={controls}
+        aria-describedby={describedBy}
+        aria-expanded={ariaBoolean(ariaExpanded)}
+        aria-label={label}
+        className={className}
+        disabled={disabled}
+        onBlur={onBlur}
+        onClick={onClick}
+        onFocus={onFocus}
+        onKeyDown={onKeyDown}
+        onMouseDown={onMouseDown}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
+        ref={ref}
+        slot={slot}
+        type="button"
+      >
+        {createElement("md-icon", null, icon)}
+      </md-icon-button>
+    );
+  }
+);
 
 function ariaBoolean(value: boolean | undefined): "true" | "false" | undefined {
   if (value === undefined) {

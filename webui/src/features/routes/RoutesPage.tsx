@@ -1,6 +1,7 @@
 import { LoadingState } from "../../components/LoadingState";
 import { useI18n } from "../../i18n/I18nProvider";
 import { CreateResourcePanel } from "../configGraph/CreateResourcePanel";
+import { modelDisplayNamesById } from "../configGraph/modelProviderIcons";
 import { ResourceEditorCard } from "../configGraph/ResourceEditorCard";
 import { useConfigGraph } from "../configGraph/useConfigGraph";
 import { PageHeader, QueryErrorState } from "../shared";
@@ -18,6 +19,7 @@ export function RoutesPage() {
 
   const routes = graph.data.resources.filter((resource) => resource.kind === "route");
   const routeTitle = t("routes.resourceTitle");
+  const modelDisplayNames = modelDisplayNamesById(graph.data.resources);
 
   return (
     <section className="page-stack" aria-labelledby="routes-title">
@@ -25,7 +27,7 @@ export function RoutesPage() {
         {t("routes.description")}
       </PageHeader>
 
-      <section className="content-panel" aria-labelledby="routes-list-heading">
+      <section className="resource-section" aria-labelledby="routes-list-heading">
         <div className="section-heading">
           <h2 id="routes-list-heading">{t("routes.listTitle", { count: routes.length })}</h2>
           <CreateResourcePanel graph={graph.data} kind="route" />
@@ -35,6 +37,7 @@ export function RoutesPage() {
             <ResourceEditorCard
               key={route.id}
               ariaLabel={t("resource.cardLabel", { title: routeTitle, id: route.id })}
+              modelDisplayNames={modelDisplayNames}
               resource={route}
               revision={graph.data.revision}
               title={routeTitle}

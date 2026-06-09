@@ -171,6 +171,18 @@ export const sharedResourceStyles = `  .metric-card,
     gap: 14px;
   }
 
+  .resource-section {
+    min-width: 0;
+    display: grid;
+    gap: 14px;
+  }
+
+  .resource-section h2 {
+    margin: 0;
+    font-size: 1rem;
+    line-height: 1.3;
+  }
+
   .resource-card-list--compact {
     gap: 10px;
   }
@@ -235,7 +247,6 @@ export const sharedResourceStyles = `  .metric-card,
     align-items: flex-start;
     justify-content: space-between;
     gap: 14px;
-    margin-bottom: 14px;
   }
 
   .section-heading h2 {

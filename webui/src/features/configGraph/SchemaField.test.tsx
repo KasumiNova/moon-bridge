@@ -44,6 +44,11 @@ describe("SchemaField", () => {
       "OpenAI Chat",
       "Gemini"
     ]);
+    for (const option of options) {
+      const optionIcon = option.querySelector("[slot='start']");
+      expect(optionIcon).toBeInTheDocument();
+      expect(optionIcon?.querySelector("svg")).toBeInTheDocument();
+    }
     expect(options[0].selected).toBe(true);
     expect(materialSelect.label).toBe("Upstream protocol");
     expect(materialSelect.supportingText).toBe("");
@@ -346,7 +351,15 @@ describe("SchemaField", () => {
     expect(materialSelect.label).toBe("Upstream protocol");
     expect(materialSelect.closest(".mb-field__select-shell")).not.toBeInTheDocument();
     expect(getOptionalMaterialIconButton(document, "Help for Upstream protocol")).not.toBeInTheDocument();
-    expect(Array.from(materialSelect.children).map((child) => child.tagName.toLowerCase())).toEqual([
+    expect(Array.from(materialSelect.children).map((child) => [
+      child.tagName.toLowerCase(),
+      child.getAttribute("slot")
+    ])).toEqual([
+      ["span", "leading-icon"],
+      ["md-select-option", null],
+      ["md-select-option", null]
+    ]);
+    expect(Array.from(materialSelect.querySelectorAll("md-select-option")).map((child) => child.tagName.toLowerCase())).toEqual([
       "md-select-option",
       "md-select-option"
     ]);

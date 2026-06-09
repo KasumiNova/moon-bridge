@@ -87,7 +87,10 @@ describe("ResourceEditorCard", () => {
     expect(editorCard).toBeInTheDocument();
     expect(fieldGroups.length).toBeGreaterThan(0);
     expect(advancedPanels.length).toBeGreaterThan(0);
-    expect(identityPanel).toContainElement(getMaterialTextField(identityPanel, "Model display name"));
+    const displayNameField = getMaterialTextField(identityPanel, "Model display name");
+    expect(identityPanel).toContainElement(displayNameField);
+    expectLobeLeadingIcon(displayNameField);
+    expect(within(identityPanel).queryByText(/fields?$/)).not.toBeInTheDocument();
     expect(basicPanel).toContainElement(getMaterialTextField(basicPanel, "Context window"));
     expectPanelElementToBeFlat(editorCard!);
     for (const panel of fieldGroups) {
@@ -98,6 +101,37 @@ describe("ResourceEditorCard", () => {
     expectPanelStateRuleToStayFlat(".resource-editor-card:focus-within");
     expectPanelRuleToAvoidEdges(".resource-field-group");
     expectPanelRuleToAvoidEdges(".resource-field-group--advanced");
+    expectFieldGroupHeadersToBeTitleOnly(fieldGroups);
+  });
+
+  test("lets single-line switch banks fill the available row", () => {
+    vi.spyOn(configGraph, "patchConfigGraph").mockResolvedValue({
+      result: "committed",
+      revision: "rev-2"
+    });
+    const cache = resource("cache", "main", "Cache", {
+      prompt_caching: true,
+      automatic_prompt_cache: true,
+      explicit_cache_breakpoints: true,
+      allow_retention_downgrade: false
+    }, [
+      field("prompt_caching", "Prompt Caching", "boolean", "switch"),
+      field("automatic_prompt_cache", "Automatic Prompt Cache", "boolean", "switch"),
+      field("explicit_cache_breakpoints", "Explicit Cache Breakpoints", "boolean", "switch"),
+      field("allow_retention_downgrade", "Allow Retention Downgrade", "boolean", "switch")
+    ]);
+
+    const { container } = renderWithConsoleProviders(
+      <MemoryRouter>
+        <AppShell content={<ResourceEditorCard resource={cache} revision="rev-1" title="Cache" />} />
+      </MemoryRouter>
+    );
+
+    const switchBank = container.querySelector(".switch-bank");
+    expect(switchBank).toBeInTheDocument();
+    expect(switchBank?.querySelectorAll("md-switch")).toHaveLength(4);
+    expect(getSwitchBankGridTemplateRule()).toContain("auto-fit");
+    expect(getSwitchBankGridTemplateRule()).not.toContain("auto-fill");
   });
 
   test("surfaces restart and critical runtime metadata", () => {
@@ -326,7 +360,7 @@ describe("ResourceEditorCard", () => {
     });
     const route = resource("route", "primary", "Primary Route", {
       to: "primary",
-      model: "claude-sonnet",
+      model: "moonbridge-default",
       provider: "anthropic",
       display_name: "Primary Route"
     }, [
@@ -337,24 +371,89 @@ describe("ResourceEditorCard", () => {
     ]);
 
     renderWithConsoleProviders(
-      <ResourceEditorCard resource={route} revision="rev-1" title="Route" />
+      <ResourceEditorCard
+        modelDisplayNames={{ "moonbridge-default": "GPT-4o" }}
+        resource={route}
+        revision="rev-1"
+        title="Route"
+      />
     );
 
     const identityGroup = screen.getByRole("group", { name: "Identity" });
     expect(identityGroup).toHaveClass("resource-field-group--route-identity");
     const identityGrid = identityGroup.querySelector(".form-grid");
     expect(identityGrid).toHaveClass("form-grid--route-identity");
+    const targetField = getMaterialTextField(identityGroup, "Route target");
+    const modelField = getMaterialTextField(identityGroup, "Route model");
+    const providerField = getMaterialTextField(identityGroup, "Route provider");
+    const displayNameField = getMaterialTextField(identityGroup, "Route display name");
     expect([
-      getMaterialTextField(identityGroup, "Route target"),
-      getMaterialTextField(identityGroup, "Route model"),
-      getMaterialTextField(identityGroup, "Route provider"),
-      getMaterialTextField(identityGroup, "Route display name")
+      targetField,
+      modelField,
+      providerField,
+      displayNameField
     ].map((fieldElement) => fieldElement.closest(".form-grid"))).toEqual([
       identityGrid,
       identityGrid,
       identityGrid,
       identityGrid
     ]);
+    expectLobeLeadingIcon(targetField);
+    expectLobeLeadingIcon(modelField);
+    expectLobeLeadingIcon(displayNameField);
+  });
+
+  test("infers route target and display-name icons from their own visible text first", () => {
+    vi.spyOn(configGraph, "patchConfigGraph").mockResolvedValue({
+      result: "committed",
+      revision: "rev-2"
+    });
+    const route = resource("route", "primary", "Primary Route", {
+      to: "claude-sonnet",
+      model: "moonbridge-default",
+      provider: "local",
+      display_name: "Gemini Flash"
+    }, [
+      field("to", "Route Target"),
+      field("model", "Model"),
+      field("provider", "Provider"),
+      field("display_name", "Display Name")
+    ]);
+
+    renderWithConsoleProviders(
+      <ResourceEditorCard
+        modelDisplayNames={{ "moonbridge-default": "GPT-4o" }}
+        resource={route}
+        revision="rev-1"
+        title="Route"
+      />
+    );
+
+    const identityGroup = screen.getByRole("group", { name: "Identity" });
+    expectLobeLeadingIcon(getMaterialTextField(identityGroup, "Route target"), "Claude");
+    expectLobeLeadingIcon(getMaterialTextField(identityGroup, "Route model"), "OpenAI");
+    expectLobeLeadingIcon(getMaterialTextField(identityGroup, "Route display name"), "Gemini");
+  });
+
+  test("updates model display-name icon from the draft field value", () => {
+    vi.spyOn(configGraph, "patchConfigGraph").mockResolvedValue({
+      result: "committed",
+      revision: "rev-2"
+    });
+    const model = resource("model", "claude-sonnet", "Claude Sonnet", {
+      display_name: "Claude Sonnet"
+    }, [
+      field("display_name", "Display Name")
+    ]);
+
+    renderWithConsoleProviders(
+      <ResourceEditorCard resource={model} revision="rev-1" title="Model" />
+    );
+
+    const displayNameField = getMaterialTextField(document, "Model display name");
+    expectLobeLeadingIcon(displayNameField, "Claude");
+    setMaterialTextFieldValue(displayNameField, "GPT-4o");
+    expectLobeLeadingIcon(displayNameField, "OpenAI");
   });
 
   test("groups model settings into basic, multimodal, advanced features, and reasoning panels", () => {
@@ -1004,6 +1103,39 @@ function getMaterialTextField(container: ParentNode, label: string) {
     throw new Error(`Missing md-outlined-text-field: ${label}`);
   }
   return element as HTMLElement & { label: string; type: string; value: string };
+}
+
+function expectLobeLeadingIcon(fieldElement: HTMLElement, title?: string) {
+  const leadingIcon = fieldElement.querySelector("[slot='leading-icon']");
+  expect(leadingIcon).toBeInTheDocument();
+  expect(leadingIcon?.querySelector("svg")).toBeInTheDocument();
+  if (title) {
+    expect(leadingIcon?.querySelector("title")).toHaveTextContent(title);
+  }
+}
+
+function expectFieldGroupHeadersToBeTitleOnly(fieldGroups: NodeListOf<Element>) {
+  for (const group of Array.from(fieldGroups)) {
+    const header = group.querySelector(".resource-field-group__header");
+    expect(header).toBeInTheDocument();
+    expect(header?.querySelector("h4")).toBeInTheDocument();
+    expect(header?.querySelector("h4")?.textContent?.trim()).not.toBe("");
+    const directSpanChildren = Array.from(header?.children ?? []).filter((child) =>
+      child.tagName.toLowerCase() === "span" && !child.classList.contains("resource-field-group__switch")
+    );
+    expect(directSpanChildren).toHaveLength(0);
+  }
+}
+
+function getSwitchBankGridTemplateRule() {
+  for (const styleElement of Array.from(document.querySelectorAll("style"))) {
+    const css = styleElement.textContent ?? "";
+    const match = css.match(/\.switch-bank\s*\{[^}]*grid-template-columns\s*:\s*([^;]+);/);
+    if (match) {
+      return match[1].trim();
+    }
+  }
+  throw new Error("Missing .switch-bank grid-template-columns rule.");
 }
 
 function expectWebSearchFieldHelp(container: ParentNode, fieldLabel: string, bodyText: string) {

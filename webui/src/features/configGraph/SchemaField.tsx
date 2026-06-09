@@ -18,6 +18,7 @@ import { MaterialSwitch } from "../../components/MaterialSwitch";
 import { SelectMenu, type SelectMenuOption } from "./SelectMenu";
 import type { MdIconButton } from "@material/web/iconbutton/icon-button.js";
 import { type TooltipPosition, useAnchoredTooltipPosition } from "./helpTooltipPosition";
+import { protocolIconForValue } from "./modelProviderIcons";
 
 export type SchemaFieldProps = {
   field: FieldSchema;
@@ -29,6 +30,7 @@ export type SchemaFieldProps = {
   idPrefix?: string;
   docPath?: ConfigPath;
   error?: string;
+  leadingIconNode?: ReactNode;
   objectDisplay?: "collapsible" | "expandedFixed";
 };
 
@@ -42,6 +44,7 @@ export function SchemaField({
   idPrefix,
   docPath,
   error,
+  leadingIconNode,
   objectDisplay = "collapsible"
 }: SchemaFieldProps) {
   const { locale, t } = useI18n();
@@ -90,9 +93,11 @@ export function SchemaField({
 
   if (field.control === "select" || (field.enum?.length ?? 0) > 0) {
     const selected = typeof value === "string" ? value : "";
+    const useProtocolIcons = isProviderProtocolField(field, docPath);
     const options: SelectMenuOption[] = (field.enum ?? []).map((option) => ({
       value: option,
-      label: optionLabel(option, t)
+      label: optionLabel(option, t),
+      leadingIcon: useProtocolIcons ? protocolIconForValue(option) : undefined
     }));
     return (
       <div className={wide ? "mb-field mb-field--wide" : "mb-field"} data-variant="select">
@@ -107,6 +112,7 @@ export function SchemaField({
             describedBy={fieldError ? errorId : undefined}
             error={Boolean(fieldError)}
             errorText={fieldError}
+            leadingIcon={useProtocolIcons ? protocolIconForValue(selected) : undefined}
             required={field.required}
           />
         </div>
@@ -316,6 +322,7 @@ export function SchemaField({
           id={id}
           label={displayLabel}
           leadingIcon={fieldLeadingIcon(field)}
+          leadingIconNode={leadingIconNode}
           required={field.required}
           supportingText={fieldSupportingText(field, t("field.secretReplacementHint"))}
           trailingIcon={(
@@ -391,6 +398,10 @@ function fieldLeadingIcon(field: FieldSchema): string | undefined {
     return "tag";
   }
   return undefined;
+}
+
+function isProviderProtocolField(field: FieldSchema, docPath: ConfigPath | undefined) {
+  return field.path === "protocol" && docPath === "providers.<key>.protocol";
 }
 
 function fieldLabel(field: FieldSchema, docPath: ConfigPath | undefined, locale: "en-US" | "zh-CN") {

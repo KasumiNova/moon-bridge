@@ -535,6 +535,25 @@ export const formStyles = `  .form-grid {
     --md-outlined-text-field-error-supporting-text-color: var(--mb-color-error);
   }
 
+  .material-field-leading-node,
+  .material-select-leading-node,
+  .material-select-option-icon {
+    display: inline-grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    color: currentColor;
+    line-height: 1;
+  }
+
+  .material-field-leading-node svg,
+  .material-select-leading-node svg,
+  .material-select-option-icon svg {
+    display: block;
+    width: 18px;
+    height: 18px;
+  }
+
   md-outlined-text-field.material-text-field--single-line {
     --md-outlined-text-field-top-space: 12px;
     --md-outlined-text-field-bottom-space: 12px;
@@ -581,11 +600,41 @@ export const formStyles = `  .form-grid {
     --md-outlined-select-text-field-outline-color: var(--mb-color-outline);
     --md-outlined-select-text-field-hover-outline-color: var(--mb-color-on-surface);
     --md-outlined-select-text-field-focus-outline-color: var(--mb-color-primary);
+    --md-outlined-select-text-field-leading-icon-color: var(--mb-color-on-surface-variant);
+    --md-outlined-select-text-field-focus-leading-icon-color: var(--mb-color-on-surface-variant);
     --md-outlined-select-text-field-trailing-icon-color: var(--mb-color-on-surface-variant);
     --md-outlined-select-text-field-focus-trailing-icon-color: var(--mb-color-primary);
     --md-menu-container-color: var(--mb-color-surface-container-high);
     --md-menu-container-shape: var(--mb-shape-md);
     --md-menu-container-elevation: 2;
+  }
+
+  .mb-field__select-actions {
+    min-height: 20px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-bottom: -2px;
+    pointer-events: none;
+  }
+
+  .mb-field__select-help {
+    min-height: 0;
+    flex: 0 0 auto;
+    pointer-events: auto;
+    --md-icon-button-state-layer-width: 20px;
+    --md-icon-button-state-layer-height: 20px;
+    --md-icon-button-state-layer-shape: 999px;
+    --md-icon-button-icon-size: 16px;
+    --md-icon-button-icon-color: var(--mb-color-on-surface-variant);
+    --md-icon-button-hover-icon-color: var(--mb-color-primary);
+    --md-icon-button-focus-icon-color: var(--mb-color-primary);
+    --md-icon-button-pressed-icon-color: var(--mb-color-primary);
+    --md-icon-button-hover-state-layer-color: var(--mb-color-primary);
+    --md-icon-button-focus-state-layer-color: var(--mb-color-primary);
+    --md-icon-button-pressed-state-layer-color: var(--mb-color-primary);
+    --md-icon-button-hover-state-layer-opacity: 0.14;
+    --md-icon-button-focus-state-layer-opacity: 0.14;
   }
 
   .form-field--create-track.mb-field {

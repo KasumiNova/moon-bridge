@@ -1,11 +1,12 @@
 import "@material/web/select/outlined-select.js";
 import "@material/web/select/select-option.js";
-import { useEffect, useRef } from "react";
+import { type ReactNode, useEffect, useRef } from "react";
 import type { MdOutlinedSelect } from "@material/web/select/outlined-select.js";
 import type { MdSelectOption } from "@material/web/select/select-option.js";
 
 export type MaterialSelectOption = {
   label: string;
+  leadingIcon?: ReactNode;
   value: string;
 };
 
@@ -17,6 +18,7 @@ type MaterialSelectProps = {
   error?: boolean;
   errorText?: string;
   label: string;
+  leadingIcon?: ReactNode;
   onChange: (value: string) => void;
   options: MaterialSelectOption[];
   required?: boolean;
@@ -32,6 +34,7 @@ export function MaterialSelect({
   error = false,
   errorText,
   label,
+  leadingIcon,
   onChange,
   options,
   required = false,
@@ -85,10 +88,16 @@ export function MaterialSelect({
 
   return (
     <md-outlined-select ref={selectRef} className={resolvedClassName}>
+      {leadingIcon ? (
+        <span aria-hidden="true" className="material-select-leading-node" slot="leading-icon">
+          {leadingIcon}
+        </span>
+      ) : null}
       {options.map((option) => (
         <MaterialSelectOptionElement
           key={option.value}
           label={option.label}
+          leadingIcon={option.leadingIcon}
           selected={option.value === value}
           value={option.value}
         />
@@ -112,11 +121,12 @@ function mergeClassNames(...classNames: Array<string | undefined>) {
 
 type MaterialSelectOptionElementProps = {
   label: string;
+  leadingIcon?: ReactNode;
   selected: boolean;
   value: string;
 };
 
-function MaterialSelectOptionElement({ label, selected, value }: MaterialSelectOptionElementProps) {
+function MaterialSelectOptionElement({ label, leadingIcon, selected, value }: MaterialSelectOptionElementProps) {
   const optionRef = useRef<MdSelectOption>(null);
 
   useEffect(() => {
@@ -137,6 +147,11 @@ function MaterialSelectOptionElement({ label, selected, value }: MaterialSelectO
       selected={selected}
       value={value}
     >
+      {leadingIcon ? (
+        <span aria-hidden="true" className="material-select-option-icon" slot="start">
+          {leadingIcon}
+        </span>
+      ) : null}
       <span slot="headline">{label}</span>
     </md-select-option>
   );
