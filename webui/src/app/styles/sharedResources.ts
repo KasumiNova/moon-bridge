@@ -1,10 +1,9 @@
 export const sharedResourceStyles = `  .metric-card,
   .content-panel,
   .state-panel {
-    border: 1px solid color-mix(in srgb, var(--mb-color-outline-variant) 60%, transparent);
     border-radius: var(--mb-shape-xl);
+    outline: 0;
     background: var(--mb-color-surface-container);
-    box-shadow: none;
   }
 
   .metric-card {
@@ -156,8 +155,10 @@ export const sharedResourceStyles = `  .metric-card,
 
   .status-pill--restartRequired,
   .status-pill--critical {
-    color: var(--mb-color-on-error-container);
-    background: var(--mb-color-error-container);
+    --mb-status-danger-container: color-mix(in srgb, var(--mb-color-error) 16%, var(--mb-color-surface-container-highest));
+    --mb-status-danger-label: color-mix(in srgb, var(--mb-color-error) 72%, var(--mb-color-on-surface));
+    color: var(--mb-status-danger-label);
+    background: var(--mb-status-danger-container);
   }
 
   .status-pill--needsAttention {
@@ -279,11 +280,10 @@ export const sharedResourceStyles = `  .metric-card,
     width: min(760px, 100%);
     display: grid;
     gap: 14px;
-    border: 1px solid color-mix(in srgb, var(--mb-color-outline-variant) 60%, transparent);
     border-radius: var(--mb-shape-xl);
+    outline: 0;
     padding: 18px 20px;
     background: var(--mb-color-surface-container-high);
-    box-shadow: none;
   }
 
   .create-resource__header {
@@ -306,6 +306,20 @@ export const sharedResourceStyles = `  .metric-card,
 
   .form-grid.create-resource__fields .form-field--create-track {
     grid-column: span 1;
+  }
+
+  .form-grid.create-resource__fields .create-resource__context-window-row {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) auto;
+    align-items: start;
+    gap: 12px 18px;
+  }
+
+  .create-resource__context-window-presets {
+    align-self: start;
+    min-height: 40px;
+    align-content: start;
   }
 
   .icon-button {

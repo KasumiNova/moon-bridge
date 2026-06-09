@@ -40,6 +40,24 @@ func TestApplyPatchToFileConfigUpdatesDefaultsMaxTokens(t *testing.T) {
 	}
 }
 
+func TestApplyPatchToFileConfigUpdatesModelReasoningSupport(t *testing.T) {
+	fc := testConfig().ToFileConfig()
+
+	patched, errs := ApplyPatchToFileConfig(fc, []PatchOp{
+		{Kind: ResourceModel, ID: "claude-sonnet", Field: "supports_reasoning", Value: false},
+	})
+
+	if len(errs) != 0 {
+		t.Fatalf("ApplyPatchToFileConfig returned errors: %+v", errs)
+	}
+	if patched.Models["claude-sonnet"].SupportsReasoning == nil {
+		t.Fatal("Models[claude-sonnet].SupportsReasoning = nil, want explicit false")
+	}
+	if *patched.Models["claude-sonnet"].SupportsReasoning {
+		t.Fatal("Models[claude-sonnet].SupportsReasoning = true, want false")
+	}
+}
+
 func TestApplyPatchToFileConfigKeepsExistingProviderSecretWhenMaskedOrEmpty(t *testing.T) {
 	for _, tc := range []struct {
 		name  string

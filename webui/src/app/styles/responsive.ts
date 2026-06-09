@@ -28,8 +28,6 @@ export const responsiveStyles = `  @media (max-width: 760px) {
       justify-content: flex-start;
       overflow-x: auto;
       padding: 10px 12px;
-      border-right: 0;
-      border-bottom: 1px solid color-mix(in srgb, var(--mb-color-outline) 34%, transparent);
       scroll-snap-type: x proximity;
     }
 
@@ -104,6 +102,14 @@ export const responsiveStyles = `  @media (max-width: 760px) {
     .form-grid.create-resource__fields .form-field--create-track {
       grid-column: 1 / -1;
       max-width: none;
+    }
+
+    .form-grid__reasoning-defaults {
+      grid-template-columns: 1fr;
+    }
+
+    .form-grid.create-resource__fields .create-resource__context-window-row {
+      grid-template-columns: 1fr;
     }
 
   }

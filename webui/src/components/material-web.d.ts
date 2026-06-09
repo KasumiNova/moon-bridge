@@ -2,6 +2,7 @@ import type { MdFilledButton } from "@material/web/button/filled-button.js";
 import type { MdOutlinedButton } from "@material/web/button/outlined-button.js";
 import type { MdChipSet } from "@material/web/chips/chip-set.js";
 import type { MdFilterChip } from "@material/web/chips/filter-chip.js";
+import type { MdInputChip } from "@material/web/chips/input-chip.js";
 import type { MdCheckbox } from "@material/web/checkbox/checkbox.js";
 import type { MdIcon } from "@material/web/icon/icon.js";
 import type { MdIconButton } from "@material/web/iconbutton/icon-button.js";
@@ -17,6 +18,11 @@ declare module "react/jsx-runtime" {
       "md-chip-set": React.DetailedHTMLProps<React.HTMLAttributes<MdChipSet>, MdChipSet>;
       "md-checkbox": React.DetailedHTMLProps<React.HTMLAttributes<MdCheckbox>, MdCheckbox>;
       "md-filter-chip": React.DetailedHTMLProps<React.HTMLAttributes<MdFilterChip>, MdFilterChip>;
+      "md-input-chip": React.DetailedHTMLProps<React.HTMLAttributes<MdInputChip>, MdInputChip> & {
+        disabled?: boolean;
+        "remove-only"?: boolean;
+        selected?: boolean;
+      };
       "md-filled-button": React.DetailedHTMLProps<React.HTMLAttributes<MdFilledButton>, MdFilledButton> & {
         disabled?: boolean;
         "has-icon"?: boolean;

@@ -6,8 +6,15 @@ import * as configGraph from "../../rpc/configGraph";
 import * as logs from "../../rpc/logs";
 import * as management from "../../rpc/management";
 import type { LogEntry, UsageStats } from "../../rpc/types";
+import { AppShell } from "../../app/App";
 import { configGraphFixture } from "../../test/configGraphFixtures";
+import {
+  expectPanelElementToBeFlat,
+  expectPanelRuleToAvoidEdges,
+  expectPanelStateRuleToStayFlat
+} from "../../test/panelStyleAssertions";
 import { OverviewPage } from "./OverviewPage";
+import { MemoryRouter } from "react-router-dom";
 
 function metricCard(label: string): HTMLElement {
   const labelEl = screen
@@ -68,7 +75,11 @@ describe("OverviewPage", () => {
     vi.spyOn(logs, "getRecentLogs").mockResolvedValue(logEntries());
     vi.spyOn(logs, "createLogStream").mockResolvedValue(new Response(new ReadableStream<Uint8Array>()));
 
-    renderWithConsoleProviders(<OverviewPage />);
+    renderWithConsoleProviders(
+      <MemoryRouter>
+        <AppShell content={<OverviewPage />} />
+      </MemoryRouter>
+    );
 
     expect(await screen.findByRole("heading", { name: "Usage Analytics" })).toBeInTheDocument();
     await screen.findAllByText("Requests");
@@ -101,6 +112,36 @@ describe("OverviewPage", () => {
     expect(screen.queryByText("runtimeRejected")).not.toBeInTheDocument();
     expect(screen.queryByText("upstream rejected reload")).not.toBeInTheDocument();
     expect(screen.queryByText("Validation")).not.toBeInTheDocument();
+  });
+
+  test("keeps usage background panels tonal without borders, glow, or hover lift", async () => {
+    vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
+    vi.spyOn(management, "getUsageStats").mockResolvedValue(usageStats());
+    vi.spyOn(logs, "getRecentLogs").mockResolvedValue(logEntries());
+    vi.spyOn(logs, "createLogStream").mockResolvedValue(new Response(new ReadableStream<Uint8Array>()));
+
+    renderWithConsoleProviders(
+      <MemoryRouter>
+        <AppShell content={<OverviewPage />} />
+      </MemoryRouter>
+    );
+
+    await screen.findAllByText("Requests");
+
+    const panels = [
+      document.querySelector(".usage-dashboard"),
+      document.querySelector(".overview-logs"),
+      ...Array.from(document.querySelectorAll(".usage-metric")),
+      ...Array.from(document.querySelectorAll(".usage-chart"))
+    ];
+    for (const panel of panels) {
+      expect(panel).toBeInTheDocument();
+      expectPanelElementToBeFlat(panel!);
+    }
+    expectPanelRuleToAvoidEdges(".usage-metric");
+    expectPanelStateRuleToStayFlat(".usage-metric:hover");
+    expectPanelRuleToAvoidEdges(".usage-chart");
+    expectPanelStateRuleToStayFlat(".usage-chart:focus-visible");
   });
 
   test("localizes usage units and chart accessibility text in Chinese locale", async () => {

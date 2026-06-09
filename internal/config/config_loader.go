@@ -88,8 +88,8 @@ type TraceFileConfig struct {
 }
 
 type ServerFileConfig struct {
-	Addr      string `yaml:"addr" json:"addr,omitempty"`
-	AuthToken string `yaml:"auth_token" json:"auth_token,omitempty"`
+	Addr        string `yaml:"addr" json:"addr,omitempty"`
+	AuthToken   string `yaml:"auth_token" json:"auth_token,omitempty"`
 	MaxSessions int    `yaml:"max_sessions"`
 	SessionTTL  string `yaml:"session_ttl"`
 }
@@ -111,6 +111,7 @@ type ModelDefFileConfig struct {
 	DisplayName                 string                           `yaml:"display_name,omitempty" json:"display_name,omitempty"`
 	Description                 string                           `yaml:"description,omitempty" json:"description,omitempty"`
 	BaseInstructions            string                           `yaml:"base_instructions,omitempty" json:"base_instructions,omitempty"`
+	SupportsReasoning           *bool                            `yaml:"supports_reasoning,omitempty" json:"supports_reasoning,omitempty"`
 	DefaultReasoningLevel       string                           `yaml:"default_reasoning_level,omitempty" json:"default_reasoning_level,omitempty"`
 	SupportedReasoningLevels    []ReasoningLevelPresetFileConfig `yaml:"supported_reasoning_levels,omitempty" json:"supported_reasoning_levels,omitempty"`
 	SupportsReasoningSummaries  *bool                            `yaml:"supports_reasoning_summaries,omitempty" json:"supports_reasoning_summaries,omitempty"`
@@ -122,33 +123,33 @@ type ModelDefFileConfig struct {
 }
 
 type OfferFileConfig struct {
-	Model        string                  `yaml:"model" json:"model"`
-	UpstreamName string                  `yaml:"upstream_name,omitempty" json:"upstream_name,omitempty"`
-	Priority     int                     `yaml:"priority,omitempty" json:"priority,omitempty"`
-	Pricing      ModelPricingFileConfig  `yaml:"pricing,omitempty" json:"pricing,omitempty"`
-	Overrides    *ModelDefFileConfig     `yaml:"overrides,omitempty" json:"overrides,omitempty"`
+	Model        string                 `yaml:"model" json:"model"`
+	UpstreamName string                 `yaml:"upstream_name,omitempty" json:"upstream_name,omitempty"`
+	Priority     int                    `yaml:"priority,omitempty" json:"priority,omitempty"`
+	Pricing      ModelPricingFileConfig `yaml:"pricing,omitempty" json:"pricing,omitempty"`
+	Overrides    *ModelDefFileConfig    `yaml:"overrides,omitempty" json:"overrides,omitempty"`
 }
 
 type ProviderDefFileConfig struct {
-	BaseURL    string                           `yaml:"base_url" json:"base_url"`
-	APIKey     string                           `yaml:"api_key" json:"api_key"`
-	Version    string                           `yaml:"version,omitempty" json:"version,omitempty"`
-	UserAgent  string                           `yaml:"user_agent,omitempty" json:"user_agent,omitempty"`
-	Protocol   string                           `yaml:"protocol,omitempty" json:"protocol,omitempty"`
-	WebSearch  WebSearchFileConfig              `yaml:"web_search,omitempty" json:"web_search,omitempty"`
-	Extensions map[string]ExtensionFileConfig   `yaml:"extensions,omitempty" json:"extensions,omitempty"`
-	Offers     []OfferFileConfig                `yaml:"offers,omitempty" json:"offers,omitempty"`
+	BaseURL    string                         `yaml:"base_url" json:"base_url"`
+	APIKey     string                         `yaml:"api_key" json:"api_key"`
+	Version    string                         `yaml:"version,omitempty" json:"version,omitempty"`
+	UserAgent  string                         `yaml:"user_agent,omitempty" json:"user_agent,omitempty"`
+	Protocol   string                         `yaml:"protocol,omitempty" json:"protocol,omitempty"`
+	WebSearch  WebSearchFileConfig            `yaml:"web_search,omitempty" json:"web_search,omitempty"`
+	Extensions map[string]ExtensionFileConfig `yaml:"extensions,omitempty" json:"extensions,omitempty"`
+	Offers     []OfferFileConfig              `yaml:"offers,omitempty" json:"offers,omitempty"`
 }
 
 type RouteFileConfig struct {
-	To            string                           `yaml:"to,omitempty" json:"to,omitempty"` // backward compat "provider/model"
-	Model         string                           `yaml:"model,omitempty" json:"model,omitempty"`
-	Provider      string                           `yaml:"provider,omitempty" json:"provider,omitempty"`
-	DisplayName   string                           `yaml:"display_name,omitempty" json:"display_name,omitempty"`
-	Description   string                           `yaml:"description,omitempty" json:"description,omitempty"`
-	ContextWindow int                              `yaml:"context_window,omitempty" json:"context_window,omitempty"`
-	WebSearch     WebSearchFileConfig              `yaml:"web_search,omitempty" json:"web_search,omitempty"`
-	Extensions    map[string]ExtensionFileConfig   `yaml:"extensions,omitempty" json:"extensions,omitempty"`
+	To            string                         `yaml:"to,omitempty" json:"to,omitempty"` // backward compat "provider/model"
+	Model         string                         `yaml:"model,omitempty" json:"model,omitempty"`
+	Provider      string                         `yaml:"provider,omitempty" json:"provider,omitempty"`
+	DisplayName   string                         `yaml:"display_name,omitempty" json:"display_name,omitempty"`
+	Description   string                         `yaml:"description,omitempty" json:"description,omitempty"`
+	ContextWindow int                            `yaml:"context_window,omitempty" json:"context_window,omitempty"`
+	WebSearch     WebSearchFileConfig            `yaml:"web_search,omitempty" json:"web_search,omitempty"`
+	Extensions    map[string]ExtensionFileConfig `yaml:"extensions,omitempty" json:"extensions,omitempty"`
 }
 
 func (cfg *RouteFileConfig) UnmarshalYAML(value *yaml.Node) error {
@@ -413,12 +414,20 @@ func fromModelDefFileConfig(fileConfig map[string]ModelDefFileConfig, specs exte
 				Description: strings.TrimSpace(p.Description),
 			})
 		}
+		supportsReasoning := boolOrDefault(
+			m.SupportsReasoning,
+			len(reasoningPresets) > 0 ||
+				strings.TrimSpace(m.DefaultReasoningLevel) != "" ||
+				boolOrDefault(m.SupportsReasoningSummaries, false) ||
+				strings.TrimSpace(m.DefaultReasoningSummary) != "",
+		)
 		models[trimmedSlug] = ModelDef{
 			ContextWindow:               m.ContextWindow,
 			MaxOutputTokens:             m.MaxOutputTokens,
 			DisplayName:                 strings.TrimSpace(m.DisplayName),
 			Description:                 strings.TrimSpace(m.Description),
 			BaseInstructions:            strings.TrimSpace(m.BaseInstructions),
+			SupportsReasoning:           supportsReasoning,
 			DefaultReasoningLevel:       strings.TrimSpace(m.DefaultReasoningLevel),
 			SupportedReasoningLevels:    reasoningPresets,
 			SupportsReasoningSummaries:  boolOrDefault(m.SupportsReasoningSummaries, false),
@@ -506,6 +515,7 @@ func fromProviderDefFileConfig(fileConfig map[string]ProviderDefFileConfig, spec
 				DisplayName:                 modelDef.DisplayName,
 				Description:                 modelDef.Description,
 				BaseInstructions:            modelDef.BaseInstructions,
+				SupportsReasoning:           modelDef.SupportsReasoning,
 				DefaultReasoningLevel:       modelDef.DefaultReasoningLevel,
 				SupportedReasoningLevels:    modelDef.SupportedReasoningLevels,
 				SupportsReasoningSummaries:  modelDef.SupportsReasoningSummaries,
@@ -559,6 +569,9 @@ func mergeModelDefOverrides(base ModelDef, override ModelDefFileConfig) ModelDef
 	}
 	if v := strings.TrimSpace(override.BaseInstructions); v != "" {
 		out.BaseInstructions = v
+	}
+	if override.SupportsReasoning != nil {
+		out.SupportsReasoning = *override.SupportsReasoning
 	}
 	if v := strings.TrimSpace(override.DefaultReasoningLevel); v != "" {
 		out.DefaultReasoningLevel = v
@@ -627,26 +640,21 @@ func applyModelOverrides(meta *ModelMeta, override ModelDef) {
 	if v := strings.TrimSpace(override.BaseInstructions); v != "" {
 		meta.BaseInstructions = v
 	}
+	meta.SupportsReasoning = override.SupportsReasoning
 	if v := strings.TrimSpace(override.DefaultReasoningLevel); v != "" {
 		meta.DefaultReasoningLevel = v
 	}
 	if len(override.SupportedReasoningLevels) > 0 {
 		meta.SupportedReasoningLevels = override.SupportedReasoningLevels
 	}
-	// Note: for bool fields we only override when true because ModelDef uses
-	// plain bool (not *bool), so we can't distinguish "unset" from "false".
-	if override.SupportsReasoningSummaries {
-		meta.SupportsReasoningSummaries = true
-	}
+	meta.SupportsReasoningSummaries = override.SupportsReasoningSummaries
 	if v := strings.TrimSpace(override.DefaultReasoningSummary); v != "" {
 		meta.DefaultReasoningSummary = v
 	}
 	if len(override.InputModalities) > 0 {
 		meta.InputModalities = override.InputModalities
 	}
-	if override.SupportsImageDetailOriginal {
-		meta.SupportsImageDetailOriginal = true
-	}
+	meta.SupportsImageDetailOriginal = override.SupportsImageDetailOriginal
 }
 
 // buildRoutes parses route specs and merges model metadata.
@@ -719,18 +727,20 @@ func buildRoutes(rawRoutes map[string]RouteFileConfig, providerDefs map[string]P
 
 		// Merge model def metadata into route entry.
 		if modelDef, ok := models[modelSlug]; ok {
-			entry.ContextWindow = modelDef.ContextWindow
-			entry.MaxOutputTokens = modelDef.MaxOutputTokens
-			_ = modelDef.DisplayName // route DisplayName comes from explicit config, not model def
-			entry.Description = modelDef.Description
-			entry.BaseInstructions = modelDef.BaseInstructions
-			entry.DefaultReasoningLevel = modelDef.DefaultReasoningLevel
-			entry.SupportedReasoningLevels = modelDef.SupportedReasoningLevels
-			entry.SupportsReasoningSummaries = modelDef.SupportsReasoningSummaries
-			entry.DefaultReasoningSummary = modelDef.DefaultReasoningSummary
-			entry.InputModalities = modelDef.InputModalities
-			entry.SupportsImageDetailOriginal = modelDef.SupportsImageDetailOriginal
-			entry.WebSearch = modelDef.WebSearch
+			applyRouteModelDef(&entry, modelDef)
+		}
+
+		// Provider offer overrides are merged with base model defs earlier; apply
+		// them after base metadata so named routes match direct provider/model refs.
+		if providerKey != "" {
+			if def, ok := providerDefs[providerKey]; ok {
+				for _, offer := range def.Offers {
+					if offer.Model == modelSlug && offer.Overrides != nil {
+						applyRouteModelDef(&entry, *offer.Overrides)
+						break
+					}
+				}
+			}
 		}
 
 		// Route-level overrides.
@@ -757,6 +767,22 @@ func buildRoutes(rawRoutes map[string]RouteFileConfig, providerDefs map[string]P
 		routes[trimmedAlias] = entry
 	}
 	return routes, nil
+}
+
+func applyRouteModelDef(entry *RouteEntry, modelDef ModelDef) {
+	entry.ContextWindow = modelDef.ContextWindow
+	entry.MaxOutputTokens = modelDef.MaxOutputTokens
+	_ = modelDef.DisplayName // route DisplayName comes from explicit config, not model def
+	entry.Description = modelDef.Description
+	entry.BaseInstructions = modelDef.BaseInstructions
+	entry.SupportsReasoning = modelDef.SupportsReasoning
+	entry.DefaultReasoningLevel = modelDef.DefaultReasoningLevel
+	entry.SupportedReasoningLevels = modelDef.SupportedReasoningLevels
+	entry.SupportsReasoningSummaries = modelDef.SupportsReasoningSummaries
+	entry.DefaultReasoningSummary = modelDef.DefaultReasoningSummary
+	entry.InputModalities = modelDef.InputModalities
+	entry.SupportsImageDetailOriginal = modelDef.SupportsImageDetailOriginal
+	entry.WebSearch = modelDef.WebSearch
 }
 
 // parseRouteSpec splits "provider/model" into (provider, model).

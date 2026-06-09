@@ -31,6 +31,7 @@ describe("configDescriptions", () => {
       "models.<slug>.display_name",
       "models.<slug>.description",
       "models.<slug>.base_instructions",
+      "models.<slug>.supports_reasoning",
       "models.<slug>.default_reasoning_level",
       "models.<slug>.supported_reasoning_levels",
       "models.<slug>.supports_reasoning_summaries",

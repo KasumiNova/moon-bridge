@@ -14,9 +14,8 @@ export const shellLayoutStyles = `  .workspace {
     align-items: center;
     gap: 4px;
     padding: 14px 8px;
-    border-right: 1px solid color-mix(in srgb, var(--mb-color-outline-variant) 70%, transparent);
+    outline: 0;
     background: var(--mb-color-surface-container-low);
-    box-shadow: none;
   }
 
   .nav-item {
@@ -127,11 +126,10 @@ export const shellLayoutStyles = `  .workspace {
     min-height: calc(100vh - 120px);
     display: flex;
     align-items: center;
-    border: 1px solid color-mix(in srgb, var(--mb-color-outline-variant) 60%, transparent);
     border-radius: var(--mb-shape-xl);
+    outline: 0;
     padding: 32px;
     background: var(--mb-color-surface-container);
-    box-shadow: none;
   }
 
   .placeholder-panel > div {

@@ -205,6 +205,12 @@ func applyModelPatch(fc *config.FileConfig, op PatchOp) *FieldError {
 		if err := setString(op, &model.BaseInstructions); err != nil {
 			return err
 		}
+	case "supports_reasoning":
+		value, err := boolPtrValue(op.Value)
+		if err != nil {
+			return invalidValue(op, err)
+		}
+		model.SupportsReasoning = value
 	case "default_reasoning_level":
 		if err := setString(op, &model.DefaultReasoningLevel); err != nil {
 			return err

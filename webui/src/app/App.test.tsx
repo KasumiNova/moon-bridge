@@ -2,6 +2,7 @@ import { fireEvent, screen } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import { renderWithConsoleProviders } from "../test/renderWithConsoleProviders";
+import { expectPanelElementToBeFlat, expectPanelRuleToAvoidEdges } from "../test/panelStyleAssertions";
 import { AppShell } from "./App";
 
 describe("AppShell", () => {
@@ -118,19 +119,35 @@ describe("AppShell", () => {
     expect(screen.getByRole("navigation", { name: /console sections/i })).not.toHaveTextContent("Logs");
   });
 
-  test("gives the navigation rail a tonal backing surface without a shadow", () => {
+  test("gives shell background panels tonal surfaces without borders or glow", () => {
     renderWithConsoleProviders(
       <MemoryRouter>
-        <AppShell content={<div>Console content</div>} />
+        <AppShell
+          content={(
+            <>
+              <section className="content-panel">Console content</section>
+              <section className="placeholder-panel">Placeholder content</section>
+            </>
+          )}
+        />
       </MemoryRouter>
     );
 
     const shellStyle = document.querySelector("style")?.textContent ?? "";
     const railRule = shellStyle.match(/\.navigation-rail \{[^}]+\}/)?.[0] ?? "";
+    const rail = document.querySelector(".navigation-rail")!;
+    const contentPanel = document.querySelector(".content-panel")!;
+    const placeholderPanel = document.querySelector(".placeholder-panel")!;
 
     expect(railRule).toContain("background: var(--mb-color-surface-container-low)");
-    expect(railRule).toContain("box-shadow: none");
+    expect(railRule).not.toContain("box-shadow");
     expect(railRule).not.toContain("background: transparent");
+    for (const panel of [rail, contentPanel, placeholderPanel]) {
+      expectPanelElementToBeFlat(panel);
+    }
+    expectPanelRuleToAvoidEdges(".navigation-rail");
+    expectPanelRuleToAvoidEdges(".content-panel");
+    expectPanelRuleToAvoidEdges(".placeholder-panel");
   });
 });
 

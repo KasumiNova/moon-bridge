@@ -467,6 +467,7 @@ func TestBuildModelInfosFromConfigIncludesProviderModelsBeforeRouteFallback(t *t
 
 func TestBuildModelInfoPreservesReasoningLevelsForDeepSeekV4(t *testing.T) {
 	info := codex.BuildModelInfoFromProviderModel("deepseek-v4-pro(deepseek)", "deepseek", config.ModelMeta{
+		SupportsReasoning:     true,
 		DefaultReasoningLevel: "high",
 		SupportedReasoningLevels: []config.ReasoningLevelPreset{
 			{Effort: "high", Description: "High reasoning effort"},

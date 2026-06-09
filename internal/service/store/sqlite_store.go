@@ -266,6 +266,7 @@ func toModelDefFileConfig(def config.ModelDef) config.ModelDefFileConfig {
 		DefaultReasoningSummary:  def.DefaultReasoningSummary,
 		InputModalities:          def.InputModalities,
 	}
+	m.SupportsReasoning = boolPtr(def.SupportsReasoning)
 	if def.SupportsReasoningSummaries {
 		m.SupportsReasoningSummaries = boolPtr(true)
 	}

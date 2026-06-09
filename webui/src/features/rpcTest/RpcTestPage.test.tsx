@@ -1,5 +1,7 @@
 import { act, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
+import { AppShell } from "../../app/App";
 import { renderWithConsoleProviders } from "../../test/renderWithConsoleProviders";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import * as responses from "../../rpc/responses";
@@ -47,6 +49,36 @@ describe("RpcTestPage", () => {
     expect(getMaterialTextField(container, "Temperature")).toHaveProperty("type", "number");
     expect(getMaterialTextField(container, "Temperature")).toHaveClass("material-text-field--single-line");
     expect(getMaterialButton(container, "Send")).toBeInTheDocument();
+  });
+
+  test("keeps Material selects aligned with single-line text field density", async () => {
+    vi.spyOn(responses, "listResponseModels").mockResolvedValue({
+      models: [{ slug: "moonbridge", name: "Moon Bridge", provider: "route" }]
+    });
+
+    renderWithConsoleProviders(
+      <MemoryRouter>
+        <AppShell content={<RpcTestPage />} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText("moonbridge");
+
+    const materialSelect = getMaterialSelect(document, "Model");
+    const materialTextField = getMaterialTextField(document, "Max Output Tokens");
+    const selectStyle = getComputedStyle(materialSelect);
+    const textFieldStyle = getComputedStyle(materialTextField);
+
+    expect(materialSelect).toHaveClass("material-select--single-line");
+    expect(selectStyle.getPropertyValue("--md-outlined-field-top-space").trim()).toBe(
+      textFieldStyle.getPropertyValue("--md-outlined-text-field-top-space").trim()
+    );
+    expect(selectStyle.getPropertyValue("--md-outlined-field-bottom-space").trim()).toBe(
+      textFieldStyle.getPropertyValue("--md-outlined-text-field-bottom-space").trim()
+    );
+    expect(selectStyle.getPropertyValue("--md-outlined-select-text-field-input-text-line-height").trim()).toBe(
+      textFieldStyle.getPropertyValue("--md-outlined-text-field-input-text-line-height").trim()
+    );
   });
 
   test("sends a responses smoke test from Material Web controls and shows latency/result", async () => {

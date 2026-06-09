@@ -81,8 +81,10 @@ export function MaterialSelect({
     }
   }, [ariaLabel, describedBy, disabled, error, errorText, label, required, supportingText, value, options]);
 
+  const resolvedClassName = mergeClassNames(className, "material-select--single-line");
+
   return (
-    <md-outlined-select ref={selectRef} className={className}>
+    <md-outlined-select ref={selectRef} className={resolvedClassName}>
       {options.map((option) => (
         <MaterialSelectOptionElement
           key={option.value}
@@ -93,6 +95,10 @@ export function MaterialSelect({
       ))}
     </md-outlined-select>
   );
+}
+
+function mergeClassNames(...classNames: Array<string | undefined>) {
+  return classNames.filter(Boolean).join(" ");
 }
 
 type MaterialSelectOptionElementProps = {

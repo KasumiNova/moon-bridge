@@ -26,13 +26,17 @@ export function configGraphFixture(overrides: Partial<ConfigGraph> = {}): Config
       api_key: "******",
       version: "2023-06-01",
       user_agent: "MoonBridge",
-      protocol: "anthropic"
+      protocol: "anthropic",
+      web_search: { support: "auto" },
+      extensions: {}
     }, [
       field("base_url", "Base URL"),
       field("api_key", "API Key", "string", "secret", undefined, true),
       field("version", "Version"),
       field("user_agent", "User Agent"),
-      field("protocol", "Protocol", "string", "select", ["anthropic", "openai-response"])
+      field("protocol", "Protocol", "string", "select", ["anthropic", "openai-response"]),
+      field("web_search", "Web Search", "object", "object"),
+      field("extensions", "Extensions", "object", "object")
     ]),
     resource("provider_offer", "anthropic/claude-sonnet", "anthropic/claude-sonnet", {
       model: "claude-sonnet",

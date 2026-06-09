@@ -59,19 +59,15 @@ export const overviewStyles = `  .metric-grid {
     min-width: 0;
     display: grid;
     gap: 8px;
-    border: 1px solid color-mix(in srgb, var(--mb-color-outline-variant) 50%, transparent);
     border-radius: var(--mb-shape-lg);
+    outline: 0;
     padding: 14px 16px;
     background: var(--mb-color-surface-container-high);
     transition:
-      transform var(--mb-duration-medium) var(--mb-ease-spring),
-      border-color var(--mb-duration-medium) var(--mb-ease-standard),
       background-color var(--mb-duration-medium) var(--mb-ease-standard);
   }
 
   .usage-metric:hover {
-    transform: translateY(-2px);
-    border-color: color-mix(in srgb, var(--mb-color-primary) 40%, transparent);
     background: var(--mb-color-surface-container-highest);
   }
 
@@ -130,15 +126,14 @@ export const overviewStyles = `  .metric-grid {
     min-width: 0;
     display: grid;
     gap: 12px;
-    border: 1px solid color-mix(in srgb, var(--mb-color-outline-variant) 50%, transparent);
     border-radius: var(--mb-shape-lg);
+    outline: 0;
     padding: 16px;
     background: color-mix(in srgb, var(--mb-color-surface-container-high) 76%, var(--mb-color-surface));
   }
 
   .usage-chart:focus-visible {
-    outline: 2px solid var(--mb-color-primary);
-    outline-offset: 2px;
+    background: var(--mb-color-surface-container-high);
   }
 
   .usage-chart__header {
@@ -264,8 +259,8 @@ export const overviewStyles = `  .metric-grid {
     min-height: 180px;
     display: grid;
     place-items: center;
-    border: 1px dashed color-mix(in srgb, var(--mb-color-outline) 42%, transparent);
     border-radius: var(--mb-shape-lg);
+    outline: 0;
     color: var(--mb-color-on-surface-variant);
     background: color-mix(in srgb, var(--mb-color-surface-container) 48%, transparent);
     font-weight: 650;

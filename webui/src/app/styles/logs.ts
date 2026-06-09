@@ -92,8 +92,8 @@ export const logStyles = `  .logs-panel__header {
     overflow: auto;
     display: grid;
     gap: 8px;
-    border: 1px solid color-mix(in srgb, var(--mb-color-outline-variant) 55%, transparent);
     border-radius: var(--mb-shape-md);
+    outline: 0;
     padding: 12px;
     background: var(--mb-color-surface-container-lowest);
   }
@@ -103,8 +103,8 @@ export const logStyles = `  .logs-panel__header {
     display: grid;
     place-items: center;
     margin: 0;
-    border: 1px dashed color-mix(in srgb, var(--mb-color-outline) 45%, transparent);
     border-radius: var(--mb-shape-lg);
+    outline: 0;
     padding: 18px;
     color: var(--mb-color-on-surface-variant);
     background: color-mix(in srgb, var(--mb-color-surface-container) 48%, transparent);

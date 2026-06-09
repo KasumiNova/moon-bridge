@@ -40,6 +40,7 @@ export const requiredConfigPaths = [
   "models.<slug>.display_name",
   "models.<slug>.description",
   "models.<slug>.base_instructions",
+  "models.<slug>.supports_reasoning",
   "models.<slug>.default_reasoning_level",
   "models.<slug>.supported_reasoning_levels",
   "models.<slug>.supports_reasoning_summaries",
@@ -328,6 +329,14 @@ export const configDescriptions: Record<ConfigPath, ConfigDocEntry> = {
     "追加到该模型请求中的默认行为指令。",
     "Default behavior instructions appended to requests for this model.",
     "string"
+  ),
+  "models.<slug>.supports_reasoning": entry(
+    "models.<slug>.supports_reasoning",
+    "支持思考",
+    "Supports reasoning",
+    "标记该模型是否支持思考深度配置。",
+    "Marks whether this model supports reasoning configuration.",
+    "boolean"
   ),
   "models.<slug>.default_reasoning_level": entry(
     "models.<slug>.default_reasoning_level",

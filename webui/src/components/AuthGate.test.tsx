@@ -7,6 +7,7 @@ import {
   TOKEN_STORAGE_KEY,
   ApiError
 } from "../rpc/http";
+import { expectPanelElementToBeFlat } from "../test/panelStyleAssertions";
 import { AuthGate } from "./AuthGate";
 
 describe("AuthGate", () => {
@@ -84,6 +85,18 @@ describe("AuthGate", () => {
     expect(getMaterialTextField(document, "Token")).toBeInTheDocument();
     expect(getMaterialCheckbox(document, "在此设备记住")).toBeInTheDocument();
     expect(getMaterialButton(document, "保存 Token")).toBeInTheDocument();
+  });
+
+  test("renders the auth background panel without borders or glow", () => {
+    renderWithConsoleProviders(
+      <AuthGate error={new ApiError(401, "invalid_auth", "missing token")}>
+        Console content
+      </AuthGate>
+    );
+
+    const authCard = document.querySelector(".auth-card");
+    expect(authCard).toBeInTheDocument();
+    expectPanelElementToBeFlat(authCard!);
   });
 });
 

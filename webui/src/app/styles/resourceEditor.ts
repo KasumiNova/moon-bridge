@@ -2,27 +2,20 @@ export const resourceEditorStyles = `  .resource-editor-card {
     position: relative;
     display: grid;
     gap: 14px;
-    border: 1px solid color-mix(in srgb, var(--mb-color-outline-variant) 55%, transparent);
     border-radius: var(--mb-shape-xl);
+    outline: 0;
     padding: 16px 18px;
     background: var(--mb-color-surface-container);
-    box-shadow: none;
     transition:
-      border-color var(--mb-duration-medium) var(--mb-ease-standard),
-      background-color var(--mb-duration-medium) var(--mb-ease-standard),
-      transform var(--mb-duration-medium) var(--mb-ease-spring);
+      background-color var(--mb-duration-medium) var(--mb-ease-standard);
   }
 
   .resource-editor-card:hover {
-    border-color: color-mix(in srgb, var(--mb-color-primary) 40%, var(--mb-color-outline));
     background: var(--mb-color-surface-container-high);
-    transform: translateY(-2px);
   }
 
   .resource-editor-card:focus-within {
-    border-color: var(--mb-color-primary);
-    outline: 2px solid color-mix(in srgb, var(--mb-color-primary) 36%, transparent);
-    outline-offset: 2px;
+    background: var(--mb-color-surface-container-high);
   }
 
   .resource-editor-card__header {
@@ -58,7 +51,7 @@ export const resourceEditorStyles = `  .resource-editor-card {
   .resource-editor-card__facts {
     display: flex;
     align-items: center;
-    gap: 8px 12px;
+    gap: 8px var(--mb-resource-meta-gap, 12px);
     flex-wrap: wrap;
   }
 
@@ -112,7 +105,7 @@ export const resourceEditorStyles = `  .resource-editor-card {
   .resource-editor-card__status-group {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--mb-resource-meta-gap, 12px);
     flex-wrap: wrap;
   }
 
@@ -305,10 +298,26 @@ export const resourceEditorStyles = `  .resource-editor-card {
   }
 
   .resource-field-group--advanced {
+    border-top: 0;
     border-radius: var(--mb-shape-md);
-    border: 1px solid color-mix(in srgb, var(--mb-color-outline-variant) 55%, transparent);
+    outline: 0;
     padding: 16px;
     background: color-mix(in srgb, var(--mb-color-surface) 68%, var(--mb-color-surface-container-high));
+  }
+
+  .resource-field-group__switch {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    min-width: 64px;
+  }
+
+  .resource-field-group__switch md-switch {
+    --md-switch-selected-track-color: var(--mb-color-primary);
+    --md-switch-selected-handle-color: var(--mb-color-on-primary);
+    --md-switch-selected-hover-track-color: var(--mb-color-primary);
+    --md-switch-selected-focus-track-color: var(--mb-color-primary);
+    --md-switch-selected-pressed-track-color: var(--mb-color-primary);
   }
 
 `;

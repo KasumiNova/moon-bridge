@@ -120,6 +120,7 @@ func toModelDefFileConfig(def ModelDef) ModelDefFileConfig {
 		WebSearch:                toWebSearchFileConfig(def.WebSearch),
 	}
 
+	m.SupportsReasoning = boolPtr(def.SupportsReasoning)
 	if def.SupportsReasoningSummaries {
 		m.SupportsReasoningSummaries = boolPtr(true)
 	}

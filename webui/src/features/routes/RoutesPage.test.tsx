@@ -26,8 +26,8 @@ describe("RoutesPage", () => {
     expect(getMaterialTextField(document, "Route display name")).toBeInTheDocument();
     expect(getMaterialTextField(document, "Route context window")).toBeInTheDocument();
     const advancedFeatures = screen.getByRole("group", { name: "Advanced Features" });
-    expect(getMaterialTextField(advancedFeatures, "Route web search JSON editor")).toHaveClass("schema-json-editor--fixed");
-    expect(getMaterialTextField(advancedFeatures, "Route extensions JSON editor")).toHaveClass("schema-json-editor--fixed");
+    expect(getMaterialTextField(advancedFeatures, "Route web search JSON")).toHaveClass("schema-json-editor--fixed");
+    expect(getMaterialTextField(advancedFeatures, "Route extensions JSON")).toHaveClass("schema-json-editor--fixed");
     expect(queryMaterialOutlinedButton(advancedFeatures, /Route web search.*1 key/)).not.toBeInTheDocument();
     expect(queryMaterialOutlinedButton(advancedFeatures, /Route extensions.*0 keys/)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/priority/i)).not.toBeInTheDocument();
@@ -111,9 +111,9 @@ describe("RoutesPage", () => {
     expect(modelSelect.label).toBe("Model");
     expect(modelSelect).not.toHaveAttribute("aria-labelledby");
     expect(modelSelect.closest(".form-field--create-track")?.querySelector(".schema-field__label")).not.toBeInTheDocument();
-    expect(modelSelect.closest(".form-field--create-track")?.querySelector(".schema-field__help-wrap")).not.toBeInTheDocument();
-    expect(modelSelect.closest(".form-field--create-track")?.querySelector("md-icon-button")).not.toBeInTheDocument();
-    expect(modelSelect.supportingText).toContain("Local model slug");
+    expect(modelSelect.supportingText).toBe("");
+    expect(modelSelect.closest(".mb-field__select-shell")).not.toBeInTheDocument();
+    expect(queryMaterialIconButton(form, "Help for Model")).not.toBeInTheDocument();
   });
 
   test("deletes a route after inline confirmation", async () => {
@@ -226,6 +226,20 @@ function getMaterialTrailingIconButton(container: ParentNode, label: string) {
     throw new Error(`Expected a Material Web trailing icon button labelled "${label}".`);
   }
   return element as HTMLElement;
+}
+
+function getMaterialIconButton(container: ParentNode, label: string) {
+  const element = queryMaterialIconButton(container, label);
+  if (!element) {
+    throw new Error(`Expected a Material Web icon button labelled "${label}".`);
+  }
+  return element as HTMLElement;
+}
+
+function queryMaterialIconButton(container: ParentNode, label: string) {
+  return Array.from(container.querySelectorAll("md-icon-button")).find(
+    (candidate) => candidate.getAttribute("aria-label") === label
+  ) ?? null;
 }
 
 function setMaterialTextFieldValue(element: MaterialTextFieldElement, value: string) {

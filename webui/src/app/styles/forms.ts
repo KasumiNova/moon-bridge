@@ -23,13 +23,6 @@ export const formStyles = `  .form-grid {
     font: inherit;
   }
 
-  .create-resource__compound-control {
-    display: grid;
-    grid-template-columns: minmax(0, auto) minmax(120px, 180px);
-    align-items: start;
-    gap: 10px;
-  }
-
   .schema-field__topline {
     display: flex;
     align-items: center;
@@ -144,8 +137,8 @@ export const formStyles = `  .form-grid {
     align-items: center;
     justify-content: space-between;
     gap: 10px;
-    border: 1px solid color-mix(in srgb, var(--mb-color-outline-variant) 70%, transparent);
     border-radius: var(--mb-shape-sm);
+    outline: 0;
     padding: 4px 6px 4px 14px;
     background: color-mix(in srgb, var(--mb-color-surface-container-high) 60%, transparent);
   }
@@ -206,6 +199,79 @@ export const formStyles = `  .form-grid {
 
   .schema-field--wide {
     grid-column: 1 / -1;
+  }
+
+  .editable-list-field {
+    display: grid;
+    gap: 10px;
+    min-width: 0;
+    border-radius: var(--mb-shape-sm);
+    outline: 0;
+    padding: 12px;
+    background: color-mix(in srgb, var(--mb-color-surface-container-high) 58%, transparent);
+  }
+
+  .editable-list-field__header {
+    min-height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .editable-list-field__title {
+    min-width: 0;
+    color: var(--mb-color-on-surface-variant);
+    font-size: 0.82rem;
+    font-weight: 650;
+    overflow-wrap: anywhere;
+  }
+
+  .editable-list-field__items {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    min-height: 32px;
+  }
+
+  .editable-list-field__chip {
+    --md-input-chip-container-height: 32px;
+    --md-input-chip-container-shape: var(--mb-shape-sm);
+    --md-input-chip-label-text-color: var(--mb-color-on-surface);
+    --md-input-chip-hover-label-text-color: var(--mb-color-on-surface);
+    --md-input-chip-focus-label-text-color: var(--mb-color-on-surface);
+    --md-input-chip-pressed-label-text-color: var(--mb-color-on-surface);
+    --md-input-chip-outline-color: var(--mb-color-outline-variant);
+    --md-input-chip-hover-state-layer-color: var(--mb-color-primary);
+    --md-input-chip-focus-state-layer-color: var(--mb-color-primary);
+    --md-input-chip-pressed-state-layer-color: var(--mb-color-primary);
+    --md-input-chip-hover-state-layer-opacity: 0.08;
+    --md-input-chip-focus-state-layer-opacity: 0.08;
+    --md-input-chip-icon-size: 18px;
+    --md-input-chip-trailing-icon-color: var(--mb-color-on-surface-variant);
+    --md-input-chip-hover-trailing-icon-color: var(--mb-color-primary);
+    --md-input-chip-focus-trailing-icon-color: var(--mb-color-primary);
+    --md-input-chip-pressed-trailing-icon-color: var(--mb-color-primary);
+  }
+
+  .editable-list-field__composer {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .editable-list-field__input {
+    width: 100%;
+  }
+
+  .editable-list-field__add {
+    align-self: stretch;
+    --md-filled-button-container-height: 44px;
+    --md-filled-button-container-shape: var(--mb-shape-sm);
+    --md-filled-button-leading-space: 12px;
+    --md-filled-button-trailing-space: 14px;
   }
 
   .field-status {
@@ -337,6 +403,12 @@ export const formStyles = `  .form-grid {
     color: var(--mb-color-error);
   }
 
+  md-outlined-select.material-select--single-line {
+    --md-outlined-select-text-field-input-text-line-height: 1.25rem;
+    --md-outlined-field-top-space: 12px;
+    --md-outlined-field-bottom-space: 12px;
+  }
+
   .mb-field md-outlined-select {
     width: 100%;
     min-width: 0;
@@ -378,6 +450,16 @@ export const formStyles = `  .form-grid {
     grid-column: span 1;
   }
 
+  .form-grid--route-identity {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .form-grid__reasoning-defaults {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 18px;
+  }
+
   @media (max-width: 1080px) {
     .form-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -386,6 +468,10 @@ export const formStyles = `  .form-grid {
 
   @media (max-width: 680px) {
     .form-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .editable-list-field__composer {
       grid-template-columns: 1fr;
     }
   }

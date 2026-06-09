@@ -100,7 +100,6 @@ export function SchemaField({
     helpOpen ? helpId : undefined,
     fieldError ? errorId : undefined
   ].filter(Boolean).join(" ") || undefined;
-  const selectDescribedBy = fieldError ? errorId : undefined;
   const commitOnBlur = onCommit ? () => onCommit() : undefined;
   const commit = onCommitValue ?? onChange;
 
@@ -120,11 +119,10 @@ export function SchemaField({
             onChange={(next) => commit(next)}
             disabled={disabled}
             ariaLabel={displayLabel}
-            describedBy={selectDescribedBy}
+            describedBy={fieldError ? errorId : undefined}
             error={Boolean(fieldError)}
             errorText={fieldError}
             required={field.required}
-            supportingText={fieldSelectSupportingText(helpParts)}
           />
         </div>
         <FieldA11yMessages errorId={errorId} error={fieldError} />
@@ -214,18 +212,20 @@ export function SchemaField({
   if (field.type === "object" || field.type === "array" || field.control === "object" || field.control === "array") {
     const summaryId = `${id}-summary`;
     const summary = jsonSummary(value, field, t);
-    const jsonEditorLabel = t("field.jsonEditorLabel", { label: displayLabel });
+    const jsonFieldLabel = t("field.jsonEditorLabel", { label: displayLabel });
     return (
       <div className={schemaFieldClass(wide)}>
-        <FieldTopline
-          field={field}
-          label={displayLabel}
-          helpId={helpId}
-          helpOpen={helpOpen}
-          helpParts={helpParts}
-          id={jsonExpanded ? id : summaryId}
-          setHelpOpen={setHelpOpen}
-        />
+        {jsonFixedExpanded ? null : (
+          <FieldTopline
+            field={field}
+            label={displayLabel}
+            helpId={helpId}
+            helpOpen={helpOpen}
+            helpParts={helpParts}
+            id={jsonExpanded ? id : summaryId}
+            setHelpOpen={setHelpOpen}
+          />
+        )}
         {jsonFixedExpanded ? null : (
           <MaterialOutlinedButton
             ariaExpanded={jsonExpanded}
@@ -251,25 +251,46 @@ export function SchemaField({
           </MaterialOutlinedButton>
         )}
         {jsonExpanded ? (
-          <MaterialOutlinedTextField
-            ariaDescribedBy={fieldDescribedBy}
-            ariaLabel={jsonEditorLabel}
-            ariaInvalid={Boolean(fieldError)}
-            className={jsonFixedExpanded ? "schema-json-editor schema-json-editor--fixed" : "schema-json-editor"}
-            disabled={disabled}
-            error={Boolean(fieldError)}
-            errorText={fieldError}
-            id={id}
-            label={jsonEditorLabel}
-            ref={jsonEditorRef}
-            required={field.required}
-            spellCheck={false}
-            supportingText={fieldSupportingText(field, t("field.secretReplacementHint"))}
-            type="textarea"
-            value={text}
-            onInput={updateJSON}
-            onBlur={commitOnBlur}
-          />
+          <>
+            <MaterialOutlinedTextField
+              ariaDescribedBy={fieldDescribedBy}
+              ariaLabel={jsonFieldLabel}
+              ariaInvalid={Boolean(fieldError)}
+              className={jsonFixedExpanded ? "schema-json-editor schema-json-editor--fixed" : "schema-json-editor"}
+              disabled={disabled}
+              error={Boolean(fieldError)}
+              errorText={fieldError}
+              id={id}
+              label={jsonFieldLabel}
+              ref={jsonEditorRef}
+              required={field.required}
+              spellCheck={false}
+              supportingText={fieldSupportingText(field, t("field.secretReplacementHint"))}
+              trailingIcon={jsonFixedExpanded ? (
+                <FieldHelpIconButton
+                  anchorRef={trailingHelpAnchorRef}
+                  field={field}
+                  label={displayLabel}
+                  helpId={helpId}
+                  helpOpen={helpOpen}
+                  setHelpOpen={setHelpOpen}
+                  slot="trailing-icon"
+                />
+              ) : undefined}
+              type="textarea"
+              value={text}
+              onInput={updateJSON}
+              onBlur={commitOnBlur}
+            />
+            {jsonFixedExpanded ? (
+              <FieldHelpTooltip
+                anchorRef={trailingHelpAnchorRef}
+                helpId={helpId}
+                helpOpen={helpOpen}
+                helpParts={helpParts}
+              />
+            ) : null}
+          </>
         ) : null}
         <FieldA11yMessages errorId={errorId} error={fieldError} />
       </div>
@@ -595,13 +616,6 @@ function fieldSupportingText(field: FieldSchema, secretReplacementHint: string) 
     return secretReplacementHint;
   }
   return "";
-}
-
-function fieldSelectSupportingText(helpParts: FieldHelpParts) {
-  return [
-    helpParts.body,
-    ...helpParts.metas.map((meta) => (meta.label ? `${meta.label}: ${meta.value}` : meta.value))
-  ].filter(Boolean).join(" ");
 }
 
 function schemaFieldClass(wide: boolean) {

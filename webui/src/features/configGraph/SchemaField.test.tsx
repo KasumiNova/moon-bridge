@@ -46,9 +46,10 @@ describe("SchemaField", () => {
     ]);
     expect(options[0].selected).toBe(true);
     expect(materialSelect.label).toBe("Upstream protocol");
-    expect(materialSelect.supportingText).toContain("Selects the upstream API format");
-    expect(materialSelect.closest(".mb-field")?.querySelector(".schema-field__help-wrap")).not.toBeInTheDocument();
-    expect(materialSelect.closest(".mb-field")?.querySelector("md-icon-button")).not.toBeInTheDocument();
+    expect(materialSelect.supportingText).toBe("");
+    expect(materialSelect.closest(".mb-field__select-shell")).not.toBeInTheDocument();
+    expect(getOptionalMaterialIconButton(document, "Help for Upstream protocol")).not.toBeInTheDocument();
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
 
     setMaterialSelectValue(materialSelect, "openai-response");
 
@@ -260,6 +261,97 @@ describe("SchemaField", () => {
     expect(trailing).toHaveAttribute("aria-label", "Help for Upstream base URL");
   });
 
+  test("keeps Material selects aligned with single-line text field density", async () => {
+    const selectField: FieldSchema = {
+      path: "protocol",
+      type: "string",
+      label: "Protocol",
+      control: "select",
+      enum: ["anthropic", "openai-response"],
+      hotReloadable: true
+    };
+    const textField: FieldSchema = {
+      path: "base_url",
+      type: "string",
+      label: "Base URL",
+      hotReloadable: true
+    };
+
+    renderWithConsoleProviders(
+      <MemoryRouter>
+        <AppShell
+          content={(
+            <div>
+              <SchemaField
+                field={selectField}
+                value="anthropic"
+                onChange={() => undefined}
+                docPath="providers.<key>.protocol"
+              />
+              <SchemaField
+                field={textField}
+                value="https://api.example.invalid"
+                onChange={() => undefined}
+                docPath="providers.<key>.base_url"
+              />
+            </div>
+          )}
+        />
+      </MemoryRouter>
+    );
+
+    const materialSelect = await findMaterialSelect(document, "Upstream protocol");
+    const materialTextField = getMaterialTextField(document, "Upstream base URL");
+    const selectStyle = getComputedStyle(materialSelect);
+    const textFieldStyle = getComputedStyle(materialTextField);
+
+    expect(selectStyle.getPropertyValue("--md-outlined-field-top-space").trim()).toBe(
+      textFieldStyle.getPropertyValue("--md-outlined-text-field-top-space").trim()
+    );
+    expect(selectStyle.getPropertyValue("--md-outlined-field-bottom-space").trim()).toBe(
+      textFieldStyle.getPropertyValue("--md-outlined-text-field-bottom-space").trim()
+    );
+    expect(selectStyle.getPropertyValue("--md-outlined-select-text-field-input-text-line-height").trim()).toBe(
+      textFieldStyle.getPropertyValue("--md-outlined-text-field-input-text-line-height").trim()
+    );
+  });
+
+  test("keeps select fields on the official Material select surface", async () => {
+    const field: FieldSchema = {
+      path: "protocol",
+      type: "string",
+      label: "Protocol",
+      control: "select",
+      enum: ["anthropic", "openai-response"],
+      hotReloadable: true
+    };
+
+    renderWithConsoleProviders(
+      <MemoryRouter>
+        <AppShell
+          content={(
+            <SchemaField
+              field={field}
+              value="anthropic"
+              onChange={() => undefined}
+              docPath="providers.<key>.protocol"
+            />
+          )}
+        />
+      </MemoryRouter>
+    );
+
+    const materialSelect = await findMaterialSelect(document, "Upstream protocol");
+
+    expect(materialSelect.label).toBe("Upstream protocol");
+    expect(materialSelect.closest(".mb-field__select-shell")).not.toBeInTheDocument();
+    expect(getOptionalMaterialIconButton(document, "Help for Upstream protocol")).not.toBeInTheDocument();
+    expect(Array.from(materialSelect.children).map((child) => child.tagName.toLowerCase())).toEqual([
+      "md-select-option",
+      "md-select-option"
+    ]);
+  });
+
   test("guides secret replacement without exposing the committed value", () => {
     const field: FieldSchema = {
       path: "api_key",
@@ -324,11 +416,11 @@ describe("SchemaField", () => {
     const onChange = vi.fn();
     renderWithConsoleProviders(<SchemaField field={field} value={{ input_price: 3 }} onChange={onChange} />);
 
-    expect(screen.queryByLabelText("Pricing JSON editor")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Pricing JSON")).not.toBeInTheDocument();
     expect(getMaterialButton(document, /Pricing.*1 key/)).toBeInTheDocument();
 
     await userEvent.click(getMaterialButton(document, /Pricing.*1 key/));
-    const jsonEditor = getMaterialTextField(document, "Pricing JSON editor");
+    const jsonEditor = getMaterialTextField(document, "Pricing JSON");
     expect(jsonEditor).toHaveFocus();
     setMaterialTextFieldValue(jsonEditor, "{{");
 
@@ -337,7 +429,7 @@ describe("SchemaField", () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
-  test("renders fixed expanded JSON editors without a summary toggle", () => {
+  test("renders fixed expanded JSON fields with only the Material text field title", () => {
     const field: FieldSchema = {
       path: "web_search",
       type: "object",
@@ -356,18 +448,23 @@ describe("SchemaField", () => {
     );
 
     expect(screen.queryByRole("button", { name: /Web Search.*1 key/ })).not.toBeInTheDocument();
-    const jsonEditor = getMaterialTextField(document, "Web Search JSON editor");
+    expect(document.querySelector(".schema-field__topline")).not.toBeInTheDocument();
+    expect(queryMaterialTextField(document, "Web Search JSON editor")).not.toBeInTheDocument();
+    const jsonEditor = getMaterialTextField(document, "Web Search JSON");
     expect(jsonEditor).toBeInTheDocument();
+    expect(jsonEditor.label).toBe("Web Search JSON");
     expect(jsonEditor).not.toHaveFocus();
     expect(jsonEditor).toHaveClass("schema-json-editor--fixed");
     expect(jsonEditor).not.toHaveClass("material-text-field--single-line");
     expect(jsonEditor).toHaveAttribute("spellcheck", "false");
+    const helpButton = getMaterialIconButton(jsonEditor, "Help for Web Search");
+    expect(helpButton).toHaveAttribute("slot", "trailing-icon");
     setMaterialTextFieldValue(jsonEditor, "{\n  \"support\": \"enabled\"\n}");
 
     expect(onChange).toHaveBeenCalledWith({ support: "enabled" });
   });
 
-  test("localizes JSON summaries and editor labels in Chinese locale", async () => {
+  test("localizes JSON summaries and field labels in Chinese locale", async () => {
     const field: FieldSchema = {
       path: "pricing",
       type: "object",
@@ -386,8 +483,8 @@ describe("SchemaField", () => {
 
     await userEvent.click(summary);
 
-    const jsonEditor = getMaterialTextField(document, "Pricing JSON 编辑器");
-    expect(jsonEditor.label).toBe("Pricing JSON 编辑器");
+    const jsonEditor = getMaterialTextField(document, "Pricing JSON");
+    expect(jsonEditor.label).toBe("Pricing JSON");
   });
 
   test("toggles boolean fields with the Material Web switch", async () => {
@@ -485,6 +582,12 @@ function getMaterialTextField(container: ParentNode, label: string) {
   return element as HTMLElement & { label: string; supportingText: string; type: string; value: string };
 }
 
+function queryMaterialTextField(container: ParentNode, label: string) {
+  return Array.from(container.querySelectorAll("md-outlined-text-field")).find(
+    (textField) => materialElementLabel(textField as HTMLElement & { label?: string }) === label
+  ) ?? null;
+}
+
 function materialElementLabel(element: HTMLElement & { label?: string }) {
   const labelledBy = element.getAttribute("aria-labelledby");
   if (labelledBy) {
@@ -498,13 +601,17 @@ function materialElementLabel(element: HTMLElement & { label?: string }) {
 }
 
 function getMaterialIconButton(container: ParentNode, label: string) {
-  const element = Array.from(container.querySelectorAll("md-icon-button")).find(
-    (button) => button.getAttribute("aria-label") === label
-  );
+  const element = getOptionalMaterialIconButton(container, label);
   if (!element) {
     throw new Error(`Expected a Material Web icon button labelled "${label}".`);
   }
   return element as HTMLElement;
+}
+
+function getOptionalMaterialIconButton(container: ParentNode, label: string) {
+  return Array.from(container.querySelectorAll("md-icon-button")).find(
+    (button) => button.getAttribute("aria-label") === label
+  ) ?? null;
 }
 
 function getMaterialButton(container: ParentNode, label: RegExp) {

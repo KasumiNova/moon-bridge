@@ -164,11 +164,10 @@ export const baseStyles = `
     width: min(420px, 100%);
     display: grid;
     gap: 14px;
-    border: 1px solid color-mix(in srgb, var(--mb-color-outline-variant) 60%, transparent);
     border-radius: var(--mb-shape-2xl);
+    outline: 0;
     padding: 32px;
     background: var(--mb-color-surface-container-high);
-    box-shadow: none;
   }
 
   .auth-card__badge {

@@ -4,6 +4,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import { AppShell } from "../../app/App";
 import { renderWithConsoleProviders } from "../../test/renderWithConsoleProviders";
+import { expectPanelElementToBeFlat, expectPanelRuleToAvoidEdges } from "../../test/panelStyleAssertions";
 import * as configGraph from "../../rpc/configGraph";
 import { configGraphFixture } from "../../test/configGraphFixtures";
 import { ModelsProvidersPage } from "./ModelsProvidersPage";
@@ -73,6 +74,26 @@ describe("ModelsProvidersPage", () => {
     await expandOffers(providerPanel);
     expect(within(providerPanel).getByText("anthropic/claude-sonnet")).toBeInTheDocument();
     expect(screen.queryByLabelText(/^enabled$/i)).not.toBeInTheDocument();
+  });
+
+  test("renders provider advanced feature JSON fields without summary toggles", async () => {
+    vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
+    vi.spyOn(configGraph, "patchConfigGraph").mockResolvedValue({
+      result: "committed",
+      revision: "rev-2"
+    });
+
+    renderWithConsoleProviders(<ModelsProvidersPage />);
+
+    const providerPanel = await screen.findByLabelText("Provider anthropic");
+    const advancedFeatures = within(providerPanel).getByRole("group", { name: "Advanced Features" });
+
+    expect(getMaterialTextField(advancedFeatures, "Provider web search JSON")).toHaveClass("schema-json-editor--fixed");
+    expect(getMaterialTextField(advancedFeatures, "Provider extensions JSON")).toHaveClass("schema-json-editor--fixed");
+    expect(queryMaterialOutlinedButton(advancedFeatures, /Provider web search.*1 key/)).not.toBeInTheDocument();
+    expect(queryMaterialOutlinedButton(advancedFeatures, /Provider extensions.*0 keys/)).not.toBeInTheDocument();
+    expect(queryMaterialTextField(advancedFeatures, "Provider web search JSON editor")).not.toBeInTheDocument();
+    expect(queryMaterialTextField(advancedFeatures, "Provider extensions JSON editor")).not.toBeInTheDocument();
   });
 
   test("localizes section headings and resource metadata in Chinese locale", async () => {
@@ -297,6 +318,23 @@ describe("ModelsProvidersPage", () => {
     expect(getMaterialChipSet(form, "Protocol").closest(".form-field--create-track")).toBeInTheDocument();
   });
 
+  test("keeps create background panels tonal without borders or glow", async () => {
+    vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
+
+    renderWithConsoleProviders(
+      <MemoryRouter>
+        <AppShell content={<ModelsProvidersPage />} />
+      </MemoryRouter>
+    );
+
+    await waitForMaterialButton(document, "Add Provider");
+    await userEvent.click(getMaterialButton(document, "Add Provider", "filled"));
+    const form = screen.getByRole("form", { name: "Create Provider" });
+
+    expectPanelElementToBeFlat(form);
+    expectPanelRuleToAvoidEdges(".create-resource__panel");
+  });
+
   test("renders create text fields with official Material labels and trailing help slots", async () => {
     vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
 
@@ -317,10 +355,19 @@ describe("ModelsProvidersPage", () => {
     await userEvent.click(getMaterialButton(document, "Add Model", "filled"));
     const modelForm = screen.getByRole("form", { name: "Create Model" });
     const contextWindowField = getMaterialTextField(modelForm, "Context window");
+    const contextWindowRow = contextWindowField.closest(".create-resource__context-window-row");
     expect(contextWindowField.label).toBe("Context window");
     expect(contextWindowField).toHaveAttribute("spellcheck", "false");
     expect(contextWindowField.closest(".form-field--create-track")?.querySelector(".schema-field__label")).not.toBeInTheDocument();
     expect(getMaterialTrailingIconButton(contextWindowField, "Help for Context window")).toBeInTheDocument();
+    expect(contextWindowRow).toHaveClass("form-field--create-track");
+    expect(contextWindowRow).toHaveClass("form-grid__wide");
+    expect(Array.from(contextWindowRow!.children).map((child) => child.className)).toEqual([
+      "mb-field__control",
+      "material-chip-group create-resource__context-window-presets"
+    ]);
+    expect(contextWindowRow!.children[0]).toContainElement(contextWindowField);
+    expect(contextWindowRow!.children[1]).toContainElement(getMaterialFilterChip(modelForm, "128k"));
   });
 
   test("keeps create subpanel controls aligned with resource editor field styling", async () => {
@@ -620,6 +667,12 @@ function getMaterialTextField(container: ParentNode, label: string) {
   return element;
 }
 
+function queryMaterialTextField(container: ParentNode, label: string) {
+  return Array.from(container.querySelectorAll<MaterialTextFieldElement>("md-outlined-text-field")).find(
+    (candidate) => materialElementLabel(candidate) === label
+  ) ?? null;
+}
+
 function getMaterialSelect(container: ParentNode, label: string) {
   const element = Array.from(container.querySelectorAll<MaterialSelectElement>("md-outlined-select")).find(
     (candidate) => materialElementLabel(candidate) === label
@@ -654,6 +707,12 @@ function getMaterialButton(container: ParentNode, label: string, variant: "fille
     throw new Error(`Expected a Material Web ${variant} button labelled "${label}".`);
   }
   return element as HTMLElement & { type: string };
+}
+
+function queryMaterialOutlinedButton(container: ParentNode, label: RegExp) {
+  return Array.from(container.querySelectorAll("md-outlined-button")).find(
+    (candidate) => label.test(candidate.getAttribute("aria-label") ?? candidate.textContent ?? "")
+  ) ?? null;
 }
 
 function expectMaterialFilledButtonContentColors(button: HTMLElement, colorToken: string) {

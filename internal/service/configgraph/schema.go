@@ -72,6 +72,7 @@ func ResourceDefinitions() []ResourceDefinition {
 				stringField("display_name", "Display Name", true, false, "normal"),
 				textField("description", "Description", true, "normal"),
 				textField("base_instructions", "Base Instructions", true, "normal"),
+				boolField("supports_reasoning", "Supports Reasoning", true, "normal"),
 				stringField("default_reasoning_level", "Default Reasoning Level", true, false, "normal"),
 				arrayField("supported_reasoning_levels", "Supported Reasoning Levels", true, "normal"),
 				boolField("supports_reasoning_summaries", "Supports Reasoning Summaries", true, "normal"),

@@ -395,7 +395,6 @@ function TextInput({
 }
 
 function SelectInput({
-  helpText,
   label,
   onChange,
   options,
@@ -415,7 +414,6 @@ function SelectInput({
           label={label}
           onChange={onChange}
           options={options}
-          supportingText={helpText}
           value={value}
         />
       </div>
@@ -478,36 +476,41 @@ function ContextWindowInput({
   ] as const;
 
   return (
-    <div className="mb-field form-field--compound form-field--create-track" data-variant="input">
-      <div className="create-resource__compound-control">
-        <md-chip-set className="material-chip-group" role="group" aria-label={t("create.contextWindowPresets", { label })}>
-          {presets.map(([presetLabel, presetValue]) => (
-            <MaterialFilterChip
-              key={presetValue}
-              selected={value === presetValue}
-              value={presetValue}
-              onSelect={onChange}
-            >
+    <div
+      className="mb-field form-field--create-track form-grid__wide create-resource__context-window-row"
+      data-variant="input"
+    >
+      <div className="mb-field__control">
+        <MaterialOutlinedTextField
+          ariaDescribedBy={help.open ? help.helpId : undefined}
+          ariaLabel={label}
+          id={id}
+          inputMode="numeric"
+          label={label}
+          leadingIcon="tag"
+          trailingIcon={help.button("trailing-icon")}
+          type="text"
+          value={value}
+          onInput={onChange}
+        />
+        <CreateFieldHelpTooltip anchorRef={help.anchorRef} helpId={help.helpId} helpText={helpText} open={help.open} />
+      </div>
+      <md-chip-set
+        className="material-chip-group create-resource__context-window-presets"
+        role="group"
+        aria-label={t("create.contextWindowPresets", { label })}
+      >
+        {presets.map(([presetLabel, presetValue]) => (
+          <MaterialFilterChip
+            key={presetValue}
+            selected={value === presetValue}
+            value={presetValue}
+            onSelect={onChange}
+          >
             {presetLabel}
           </MaterialFilterChip>
         ))}
       </md-chip-set>
-        <div className="mb-field__control">
-          <MaterialOutlinedTextField
-            ariaDescribedBy={help.open ? help.helpId : undefined}
-            ariaLabel={label}
-            id={id}
-            inputMode="numeric"
-            label={label}
-            leadingIcon="tag"
-            trailingIcon={help.button("trailing-icon")}
-            type="text"
-            value={value}
-            onInput={onChange}
-          />
-          <CreateFieldHelpTooltip anchorRef={help.anchorRef} helpId={help.helpId} helpText={helpText} open={help.open} />
-        </div>
-      </div>
     </div>
   );
 }
