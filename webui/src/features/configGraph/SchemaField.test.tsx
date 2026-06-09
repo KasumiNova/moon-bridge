@@ -1,4 +1,4 @@
-import { act, screen } from "@testing-library/react";
+import { act, fireEvent, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
@@ -405,7 +405,7 @@ describe("SchemaField", () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
-  test("shows an inline JSON error without emitting invalid object values", async () => {
+  test("edits object scalar fields through structured Material controls without raw JSON editing", async () => {
     const field: FieldSchema = {
       path: "pricing",
       type: "object",
@@ -414,22 +414,43 @@ describe("SchemaField", () => {
       hotReloadable: true
     };
     const onChange = vi.fn();
-    renderWithConsoleProviders(<SchemaField field={field} value={{ input_price: 3 }} onChange={onChange} />);
+    const onCommitValue = vi.fn();
+    renderWithConsoleProviders(
+      <SchemaField
+        field={field}
+        value={{
+          input_price: 3,
+          cache_enabled: true,
+          note: "default",
+          nested: { keep: true }
+        }}
+        onChange={onChange}
+        onCommitValue={onCommitValue}
+      />
+    );
 
     expect(screen.queryByLabelText("Pricing JSON")).not.toBeInTheDocument();
-    expect(getMaterialButton(document, /Pricing.*1 key/)).toBeInTheDocument();
+    expect(document.querySelector(".schema-json-editor")).not.toBeInTheDocument();
+    expect(document.querySelector(".schema-structured-summary")).toHaveTextContent("nested");
+    expect(document.querySelector(".schema-structured-summary")).toHaveTextContent("1 key");
+    expect(document.querySelector(".schema-structured-object")).toHaveAttribute("aria-label", "Pricing, structured editor");
+    expect(getMaterialTextField(document, "input_price")).toHaveAttribute("spellcheck", "false");
+    expect(getMaterialTextField(document, "note")).toHaveAttribute("spellcheck", "false");
+    expect(getMaterialSwitch(document, "cache_enabled").selected).toBe(true);
 
-    await userEvent.click(getMaterialButton(document, /Pricing.*1 key/));
-    const jsonEditor = getMaterialTextField(document, "Pricing JSON");
-    expect(jsonEditor).toHaveFocus();
-    setMaterialTextFieldValue(jsonEditor, "{{");
+    setMaterialTextFieldValue(getMaterialTextField(document, "input_price"), "4.5");
+    fireEvent.blur(getMaterialTextField(document, "input_price"));
 
-    expect(jsonEditor.getAttribute("aria-invalid")).toBe("true");
-    expect(screen.getByRole("alert")).toHaveTextContent("Invalid JSON");
+    expect(onCommitValue).toHaveBeenCalledWith({
+      input_price: 4.5,
+      cache_enabled: true,
+      note: "default",
+      nested: { keep: true }
+    });
     expect(onChange).not.toHaveBeenCalled();
   });
 
-  test("renders fixed expanded JSON fields with only the Material text field title", () => {
+  test("renders fixed object fields as structured editors without raw JSON text areas", () => {
     const field: FieldSchema = {
       path: "web_search",
       type: "object",
@@ -449,22 +470,15 @@ describe("SchemaField", () => {
 
     expect(screen.queryByRole("button", { name: /Web Search.*1 key/ })).not.toBeInTheDocument();
     expect(document.querySelector(".schema-field__topline")).not.toBeInTheDocument();
-    expect(queryMaterialTextField(document, "Web Search JSON editor")).not.toBeInTheDocument();
-    const jsonEditor = getMaterialTextField(document, "Web Search JSON");
-    expect(jsonEditor).toBeInTheDocument();
-    expect(jsonEditor.label).toBe("Web Search JSON");
-    expect(jsonEditor).not.toHaveFocus();
-    expect(jsonEditor).toHaveClass("schema-json-editor--fixed");
-    expect(jsonEditor).not.toHaveClass("material-text-field--single-line");
-    expect(jsonEditor).toHaveAttribute("spellcheck", "false");
-    const helpButton = getMaterialIconButton(jsonEditor, "Help for Web Search");
-    expect(helpButton).toHaveAttribute("slot", "trailing-icon");
-    setMaterialTextFieldValue(jsonEditor, "{\n  \"support\": \"enabled\"\n}");
-
-    expect(onChange).toHaveBeenCalledWith({ support: "enabled" });
+    expect(queryMaterialTextField(document, "Web Search JSON")).not.toBeInTheDocument();
+    expect(document.querySelector(".schema-json-editor")).not.toBeInTheDocument();
+    expect(getMaterialTextField(document, "support")).toBeInTheDocument();
+    expect(document.querySelector(".schema-structured-object")).toHaveTextContent("Web Search");
+    expect(document.querySelector(".schema-structured-object")).not.toHaveTextContent("Structured editor");
+    expect(onChange).not.toHaveBeenCalled();
   });
 
-  test("localizes JSON summaries and field labels in Chinese locale", async () => {
+  test("localizes structured object editors in Chinese locale", () => {
     const field: FieldSchema = {
       path: "pricing",
       type: "object",
@@ -478,13 +492,11 @@ describe("SchemaField", () => {
       { locale: "zh-CN" }
     );
 
-    const summary = getMaterialButton(document, /Pricing.*1 个键/);
-    expect(summary).toHaveAttribute("aria-label", "Pricing，1 个键");
-
-    await userEvent.click(summary);
-
-    const jsonEditor = getMaterialTextField(document, "Pricing JSON");
-    expect(jsonEditor.label).toBe("Pricing JSON");
+    const editor = document.querySelector(".schema-structured-object");
+    expect(editor).toHaveAttribute("aria-label", "Pricing，结构化编辑器");
+    expect(editor).not.toHaveTextContent("结构化编辑器");
+    expect(getMaterialTextField(document, "input_price")).toBeInTheDocument();
+    expect(queryMaterialTextField(document, "Pricing JSON")).not.toBeInTheDocument();
   });
 
   test("toggles boolean fields with the Material Web switch", async () => {
@@ -534,7 +546,7 @@ describe("SchemaField", () => {
       />
     );
 
-    expect(getMaterialButton(document, /Extensions.*0 keys/).closest(".schema-field")).toHaveClass("schema-field--wide");
+    expect(document.querySelector(".schema-structured-object")?.closest(".schema-field")).toHaveClass("schema-field--wide");
   });
 });
 

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { motion } from "motion/react";
 import type { ConfigResource, FieldError, FieldSchema, ResourceKind, ResourceStatus, RuntimeImpact } from "../../rpc/types";
 import { configDescriptions } from "../../configDocs/configDescriptions";
@@ -212,7 +212,7 @@ export function ResourceEditorCard({
 }
 
 type FieldGroup = {
-  key: "identity" | "settings" | "reasoning" | "advancedFeatures";
+  key: "identity" | "basic" | "multimodal" | "reasoning" | "advancedFeatures";
   labelKey: MessageKey;
   fields: FieldSchema[];
 };
@@ -379,6 +379,10 @@ function ReasoningFieldGroup({
 }
 
 const advancedFeaturePaths = new Set(["web_search", "extensions"]);
+const modelMultimodalPaths = new Set([
+  "input_modalities",
+  "supports_image_detail_original"
+]);
 const modelReasoningPaths = new Set([
   "supports_reasoning",
   "default_reasoning_level",
@@ -391,7 +395,7 @@ const modelReasoningDefaultsPaths = [
   "default_reasoning_summary"
 ] as const;
 const modelEditableListPaths = new Set(["input_modalities"]);
-const modelFixedExpandedPaths = new Set(["web_search", "extensions"]);
+const structuredFeatureKinds = new Set<ResourceKind>(["model", "provider", "route"]);
 
 const kindIcons: Record<string, string> = {
   provider: "dns",
@@ -461,21 +465,25 @@ function groupFields(kind: ResourceKind, fields: FieldSchema[]): FieldGroup[] {
     fields.some((field) => field.path === "supports_reasoning");
   const groups: Record<FieldGroup["key"], FieldGroup> = {
     identity: { key: "identity", labelKey: "resource.group.identity", fields: [] },
-    settings: { key: "settings", labelKey: "resource.group.settings", fields: [] },
+    basic: { key: "basic", labelKey: "resource.group.basic", fields: [] },
+    multimodal: { key: "multimodal", labelKey: "resource.group.multimodal", fields: [] },
     reasoning: { key: "reasoning", labelKey: "resource.group.reasoning", fields: [] },
     advancedFeatures: { key: "advancedFeatures", labelKey: "resource.group.advancedFeatures", fields: [] }
   };
 
   const order: FieldGroup["key"][] = [
     "identity",
-    "settings",
+    "basic",
+    "multimodal",
+    "advancedFeatures",
     "reasoning",
-    "advancedFeatures"
   ];
 
   for (const field of fields) {
     if (isIdentityField(field)) {
       groups.identity.fields.push(field);
+    } else if (isModelMultimodalField(kind, field)) {
+      groups.multimodal.fields.push(field);
     } else if (isModelReasoningField(kind, field) && canRenderModelReasoning) {
       groups.reasoning.fields.push(field);
     } else if (isAdvancedFeatureField(kind, field)) {
@@ -483,12 +491,12 @@ function groupFields(kind: ResourceKind, fields: FieldSchema[]): FieldGroup[] {
     } else if (isModelReasoningField(kind, field)) {
       continue;
     } else {
-      groups.settings.fields.push(field);
+      groups.basic.fields.push(field);
     }
   }
 
   if (kind === "model") {
-    groups.settings.fields = orderModelSettingsFields(groups.settings.fields);
+    groups.basic.fields = orderModelBasicFields(groups.basic.fields);
     groups.reasoning.fields = orderModelReasoningFields(groups.reasoning.fields);
   }
 
@@ -510,18 +518,25 @@ function isIdentityField(field: FieldSchema) {
 }
 
 function isAdvancedFeatureField(kind: ResourceKind, field: FieldSchema) {
-  return (kind === "provider" || kind === "route") && advancedFeaturePaths.has(field.path);
+  return structuredFeatureKinds.has(kind) && advancedFeaturePaths.has(field.path);
 }
 
 function isModelReasoningField(kind: ResourceKind, field: FieldSchema) {
   return kind === "model" && modelReasoningPaths.has(field.path);
 }
 
+function isModelMultimodalField(kind: ResourceKind, field: FieldSchema) {
+  return kind === "model" && modelMultimodalPaths.has(field.path);
+}
+
 function fieldGroupClass(kind: ResourceKind, group: FieldGroup) {
   const base = `resource-field-group resource-field-group--${group.key}`;
   const classes = [base];
-  if (group.key === "advancedFeatures" || group.key === "reasoning") {
+  if (group.key === "advancedFeatures" || group.key === "multimodal" || group.key === "reasoning") {
     classes.push("resource-field-group--advanced");
+  }
+  if (group.key === "multimodal") {
+    classes.push("resource-field-group--multimodal");
   }
   if (group.key === "reasoning") {
     classes.push("resource-field-group--reasoning");
@@ -545,6 +560,9 @@ function fieldGroupIcon(group: FieldGroup) {
   }
   if (group.key === "advancedFeatures") {
     return "extension";
+  }
+  if (group.key === "multimodal") {
+    return "image";
   }
   if (group.key === "reasoning") {
     return "psychology";
@@ -632,6 +650,34 @@ function renderInputField(
       </div>
     );
   }
+  if (isStructuredWebSearchField(resource.kind, field)) {
+    return (
+      <div
+        className="form-grid__wide"
+        key={`${resource.kind}-${resource.id}-${field.path}`}
+      >
+        <WebSearchFeatureField
+          field={field}
+          resource={resource}
+          revision={revision}
+        />
+      </div>
+    );
+  }
+  if (isStructuredExtensionsField(resource.kind, field)) {
+    return (
+      <div
+        className="form-grid__wide"
+        key={`${resource.kind}-${resource.id}-${field.path}`}
+      >
+        <ExtensionsFeatureField
+          field={field}
+          resource={resource}
+          revision={revision}
+        />
+      </div>
+    );
+  }
   return (
     <div
       className={fieldGridClass(field)}
@@ -659,6 +705,14 @@ function isDefaultReasoningLevelField(kind: ResourceKind, field: FieldSchema) {
   return kind === "model" && field.path === "default_reasoning_level";
 }
 
+function isStructuredWebSearchField(kind: ResourceKind, field: FieldSchema) {
+  return structuredFeatureKinds.has(kind) && field.path === "web_search";
+}
+
+function isStructuredExtensionsField(kind: ResourceKind, field: FieldSchema) {
+  return structuredFeatureKinds.has(kind) && field.path === "extensions";
+}
+
 function isModelReasoningDefaultsGroup(kind: ResourceKind, fields: FieldSchema[], index: number) {
   return (
     kind === "model" &&
@@ -667,7 +721,7 @@ function isModelReasoningDefaultsGroup(kind: ResourceKind, fields: FieldSchema[]
 }
 
 function fieldObjectDisplay(kind: ResourceKind, field: FieldSchema, group: FieldGroup) {
-  if (group.key === "advancedFeatures" || (kind === "model" && modelFixedExpandedPaths.has(field.path))) {
+  if (group.key === "advancedFeatures") {
     return "expandedFixed";
   }
   return undefined;
@@ -695,6 +749,485 @@ function ReasoningSupportSwitch({
         onChange={autosave.commitValue}
       />
     </span>
+  );
+}
+
+function WebSearchFeatureField({
+  field,
+  resource,
+  revision
+}: {
+  field: FieldSchema;
+  resource: ConfigResource;
+  revision: string;
+}) {
+  const { locale, t } = useI18n();
+  const autosave = useObjectFieldState(resource, revision, field);
+  const config = autosave.value;
+  const docPath = configDocPathForResource(resource, field);
+  const title = docPath ? configDescriptions[docPath].title[locale] : field.label;
+  const supportLabel = t("field.webSearch.support", { label: title });
+  const maxUsesLabel = t("field.webSearch.maxUses", { label: title });
+  const tavilyAPIKeyLabel = t("field.webSearch.tavilyAPIKey", { label: title });
+  const firecrawlAPIKeyLabel = t("field.webSearch.firecrawlAPIKey", { label: title });
+  const searchMaxRoundsLabel = t("field.webSearch.searchMaxRounds", { label: title });
+
+  function commitKey(key: string, value: unknown) {
+    autosave.commitValue(value === undefined ? omitObjectKey(config, key) : { ...config, [key]: value });
+  }
+
+  return (
+    <div className="structured-feature-field structured-feature-field--web-search" aria-label={title}>
+      <div className="structured-feature-field__grid">
+        <div className="mb-field" data-variant="select">
+          <div className="mb-field__control">
+            <MaterialSelect
+              ariaLabel={supportLabel}
+              disabled={autosave.status === "saving"}
+              label={supportLabel}
+              options={webSearchSupportOptions}
+              value={webSearchSupportValue(config.support)}
+              onChange={(value) => commitKey("support", value)}
+            />
+          </div>
+        </div>
+        <IntegerObjectField
+          autosave={autosave}
+          fieldKey="max_uses"
+          label={maxUsesLabel}
+        />
+        <IntegerObjectField
+          autosave={autosave}
+          fieldKey="search_max_rounds"
+          label={searchMaxRoundsLabel}
+        />
+        <SecretObjectField
+          autosave={autosave}
+          fieldKey="tavily_api_key"
+          label={tavilyAPIKeyLabel}
+        />
+        <SecretObjectField
+          autosave={autosave}
+          fieldKey="firecrawl_api_key"
+          label={firecrawlAPIKeyLabel}
+        />
+      </div>
+      {autosave.error ? (
+        <p className="field-error" role="alert">
+          {autosave.error.message}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function SecretObjectField({
+  autosave,
+  fieldKey,
+  label
+}: {
+  autosave: ObjectFieldState;
+  fieldKey: string;
+  label: string;
+}) {
+  const [draft, setDraft] = useState(() => objectStringDraft(autosave.value[fieldKey], true));
+  const committedDraft = objectStringDraft(autosave.value[fieldKey], true);
+
+  useEffect(() => {
+    setDraft(committedDraft);
+  }, [committedDraft]);
+
+  const commit = useCallback(() => {
+    if (draft === committedDraft) {
+      return;
+    }
+    autosave.commitValue({ ...autosave.value, [fieldKey]: draft });
+  }, [autosave, committedDraft, draft, fieldKey]);
+
+  return (
+    <div className="mb-field" data-variant="input">
+      <div className="mb-field__control">
+        <MaterialOutlinedTextField
+          autoComplete="new-password"
+          className="structured-feature-field__secret"
+          disabled={autosave.status === "saving"}
+          label={label}
+          spellCheck={false}
+          type="password"
+          value={draft}
+          onBlur={commit}
+          onInput={setDraft}
+        />
+      </div>
+    </div>
+  );
+}
+
+function IntegerObjectField({
+  autosave,
+  fieldKey,
+  label
+}: {
+  autosave: ObjectFieldState;
+  fieldKey: string;
+  label: string;
+}) {
+  const { t } = useI18n();
+  const [draft, setDraft] = useState(() => objectIntegerDraft(autosave.value[fieldKey]));
+  const [localError, setLocalError] = useState("");
+  const committedDraft = objectIntegerDraft(autosave.value[fieldKey]);
+
+  useEffect(() => {
+    setDraft(committedDraft);
+    setLocalError("");
+  }, [committedDraft]);
+
+  const commit = useCallback(() => {
+    const trimmed = draft.trim();
+    if (trimmed === "") {
+      setLocalError("");
+      autosave.commitValue(omitObjectKey(autosave.value, fieldKey));
+      return;
+    }
+    if (!/^\d+$/.test(trimmed)) {
+      setLocalError(t("field.invalidNumber"));
+      return;
+    }
+    const parsed = Number.parseInt(trimmed, 10);
+    setLocalError("");
+    autosave.commitValue({ ...autosave.value, [fieldKey]: parsed });
+  }, [autosave, draft, fieldKey, t]);
+
+  return (
+    <div className="mb-field" data-variant="input">
+      <div className="mb-field__control">
+        <MaterialOutlinedTextField
+          ariaInvalid={Boolean(localError)}
+          className="structured-feature-field__number"
+          disabled={autosave.status === "saving"}
+          error={Boolean(localError)}
+          errorText={localError}
+          inputMode="numeric"
+          label={label}
+          spellCheck={false}
+          type="text"
+          value={draft}
+          onBlur={commit}
+          onInput={(value) => {
+            setDraft(value);
+            if (localError && value.trim() === committedDraft) {
+              setLocalError("");
+            }
+          }}
+        />
+      </div>
+      {localError ? (
+        <p className="field-error field-error--sr" role="alert">
+          {localError}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function ExtensionsFeatureField({
+  field,
+  resource,
+  revision
+}: {
+  field: FieldSchema;
+  resource: ConfigResource;
+  revision: string;
+}) {
+  const { locale, t } = useI18n();
+  const [draft, setDraft] = useState("");
+  const autosave = useObjectFieldState(resource, revision, field);
+  const docPath = configDocPathForResource(resource, field);
+  const title = docPath ? configDescriptions[docPath].title[locale] : field.label;
+  const extensions = extensionEntries(autosave.value);
+  const extensionNames = extensions.map((entry) => entry.name);
+  const trimmedDraft = draft.trim();
+  const duplicateDraft = extensionNames.includes(trimmedDraft);
+  const addDisabled = !trimmedDraft || duplicateDraft || autosave.status === "saving";
+
+  function addExtension() {
+    if (addDisabled) {
+      return;
+    }
+    setDraft("");
+    autosave.commitValue({
+      ...autosave.value,
+      [trimmedDraft]: { enabled: true }
+    });
+  }
+
+  function removeExtension(name: string) {
+    autosave.commitValue(omitObjectKey(autosave.value, name));
+  }
+
+  function setExtensionEnabled(name: string, enabled: boolean) {
+    autosave.commitValue({
+      ...autosave.value,
+      [name]: {
+        ...extensionObjectValue(autosave.value[name]),
+        enabled
+      }
+    });
+  }
+
+  function setExtensionConfigValue(name: string, key: string, value: unknown) {
+    const extension = extensionObjectValue(autosave.value[name]);
+    const config = objectRecordOrEmpty(extension.config);
+    autosave.commitValue({
+      ...autosave.value,
+      [name]: {
+        ...extension,
+        config: value === undefined
+          ? omitObjectKey(config, key)
+          : { ...config, [key]: value }
+      }
+    });
+  }
+
+  return (
+    <div className="structured-feature-field structured-feature-field--extensions" aria-label={title}>
+      <div className="extension-feature-list" role="list" aria-label={title}>
+        {extensions.map((entry) => (
+          <div
+            className="extension-feature-row"
+            data-extension-name={entry.name}
+            key={entry.name}
+            role="listitem"
+          >
+            <MaterialInputChip
+              className="extension-feature-row__chip"
+              disabled={autosave.status === "saving"}
+              label={t("field.extensions.remove", { name: entry.name })}
+              onRemove={() => removeExtension(entry.name)}
+            >
+              {entry.name}
+            </MaterialInputChip>
+            <span className="extension-feature-row__switch" aria-label={t("field.extensions.enable", { name: entry.name })}>
+              <MaterialSwitch
+                disabled={autosave.status === "saving"}
+                label={t("field.extensions.enable", { name: entry.name })}
+                selected={entry.enabled}
+                onChange={(enabled) => setExtensionEnabled(entry.name, enabled)}
+              />
+            </span>
+            <ExtensionConfigFields
+              disabled={autosave.status === "saving"}
+              entry={entry}
+              onCommit={(key, value) => setExtensionConfigValue(entry.name, key, value)}
+            />
+          </div>
+        ))}
+      </div>
+      <div className="editable-list-field__composer">
+        <MaterialOutlinedTextField
+          ariaLabel={t("field.extensions.addInput", { label: title })}
+          className="editable-list-field__input"
+          label={t("field.extensions.addInput", { label: title })}
+          spellCheck={false}
+          value={draft}
+          onInput={setDraft}
+          onBlur={() => undefined}
+        />
+        <MaterialFilledButton
+          ariaLabel={t("field.extensions.addAction", { label: title })}
+          className="editable-list-field__add"
+          disabled={addDisabled}
+          icon="add"
+          onClick={addExtension}
+        >
+          {t("field.editableList.add")}
+        </MaterialFilledButton>
+      </div>
+      {autosave.error ? (
+        <p className="field-error" role="alert">
+          {autosave.error.message}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function ExtensionConfigFields({
+  disabled,
+  entry,
+  onCommit
+}: {
+  disabled: boolean;
+  entry: ExtensionEntry;
+  onCommit: (key: string, value: unknown) => void;
+}) {
+  const fields = extensionConfigFields(entry);
+  if (fields.length === 0) {
+    return null;
+  }
+  return (
+    <div className="extension-config-grid">
+      {fields.map((field) => (
+        <ExtensionConfigField
+          disabled={disabled}
+          field={field}
+          key={field.key}
+          value={entry.config[field.key]}
+          onCommit={(value) => onCommit(field.key, value)}
+        />
+      ))}
+    </div>
+  );
+}
+
+function ExtensionConfigField({
+  disabled,
+  field,
+  onCommit,
+  value
+}: {
+  disabled: boolean;
+  field: ExtensionConfigFieldDef;
+  onCommit: (value: unknown) => void;
+  value: unknown;
+}) {
+  if (field.type === "boolean") {
+    return (
+      <div className="schema-field schema-field--inline">
+        <div className="schema-field__switch-line">
+          <span className="schema-field__label-row">
+            <span className="schema-field__label">{field.label}</span>
+          </span>
+          <MaterialSwitch
+            disabled={disabled}
+            label={field.label}
+            selected={value === true}
+            onChange={onCommit}
+          />
+        </div>
+      </div>
+    );
+  }
+  if (field.type === "number") {
+    return (
+      <ExtensionConfigNumberField
+        disabled={disabled}
+        field={field}
+        value={value}
+        onCommit={onCommit}
+      />
+    );
+  }
+  return (
+    <ExtensionConfigTextField
+      disabled={disabled}
+      field={field}
+      value={value}
+      onCommit={onCommit}
+    />
+  );
+}
+
+function ExtensionConfigTextField({
+  disabled,
+  field,
+  onCommit,
+  value
+}: {
+  disabled: boolean;
+  field: ExtensionConfigFieldDef;
+  onCommit: (value: unknown) => void;
+  value: unknown;
+}) {
+  const [draft, setDraft] = useState(() => objectStringDraft(value, false));
+  const committedDraft = objectStringDraft(value, false);
+
+  useEffect(() => {
+    setDraft(committedDraft);
+  }, [committedDraft]);
+
+  return (
+    <div className="mb-field" data-variant="input">
+      <div className="mb-field__control">
+        <MaterialOutlinedTextField
+          disabled={disabled}
+          label={field.label}
+          spellCheck={false}
+          type="text"
+          value={draft}
+          onBlur={() => onCommit(draft.trim() === "" ? undefined : draft)}
+          onInput={setDraft}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ExtensionConfigNumberField({
+  disabled,
+  field,
+  onCommit,
+  value
+}: {
+  disabled: boolean;
+  field: ExtensionConfigFieldDef;
+  onCommit: (value: unknown) => void;
+  value: unknown;
+}) {
+  const { t } = useI18n();
+  const [draft, setDraft] = useState(() => objectNumberDraft(value));
+  const [localError, setLocalError] = useState("");
+  const committedDraft = objectNumberDraft(value);
+
+  useEffect(() => {
+    setDraft(committedDraft);
+    setLocalError("");
+  }, [committedDraft]);
+
+  function commit() {
+    const trimmed = draft.trim();
+    if (trimmed === "") {
+      setLocalError("");
+      onCommit(undefined);
+      return;
+    }
+    const parsed = Number(trimmed);
+    if (!Number.isFinite(parsed)) {
+      setLocalError(t("field.invalidNumber"));
+      return;
+    }
+    setLocalError("");
+    onCommit(parsed);
+  }
+
+  return (
+    <div className="mb-field" data-variant="input">
+      <div className="mb-field__control">
+        <MaterialOutlinedTextField
+          ariaInvalid={Boolean(localError)}
+          disabled={disabled}
+          error={Boolean(localError)}
+          errorText={localError}
+          inputMode="numeric"
+          label={field.label}
+          spellCheck={false}
+          type="text"
+          value={draft}
+          onBlur={commit}
+          onInput={(next) => {
+            setDraft(next);
+            if (localError && next.trim() === committedDraft) {
+              setLocalError("");
+            }
+          }}
+        />
+      </div>
+      {localError ? (
+        <p className="field-error field-error--sr" role="alert">
+          {localError}
+        </p>
+      ) : null}
+    </div>
   );
 }
 
@@ -821,6 +1354,13 @@ type BooleanFieldState = {
   value: boolean;
 };
 
+type ObjectFieldState = {
+  commitValue: (value: Record<string, unknown>) => void;
+  error?: FieldError;
+  status: AutosaveFieldStatus;
+  value: Record<string, unknown>;
+};
+
 type EditableListState<T> = {
   commitValue: (value: T[]) => void;
   error?: FieldError;
@@ -830,6 +1370,49 @@ type EditableListState<T> = {
 };
 
 type ModelReasoningLevelsState = EditableListState<ReasoningLevelPreset>;
+
+const webSearchSupportOptions: MaterialSelectOption[] = [
+  { value: "auto", label: "auto" },
+  { value: "enabled", label: "enabled" },
+  { value: "disabled", label: "disabled" },
+  { value: "injected", label: "injected" }
+];
+
+function useObjectFieldState(
+  resource: ConfigResource,
+  revision: string,
+  field: FieldSchema
+): ObjectFieldState {
+  const { t } = useI18n();
+  const value = resource.value[field.path];
+  const committedObjectKey = JSON.stringify(objectRecord(value));
+  const committedObject = useMemo(
+    () => JSON.parse(committedObjectKey) as Record<string, unknown>,
+    [committedObjectKey]
+  );
+  const saveGraphField = useGraphFieldSaver<Record<string, unknown>>();
+  const save = useCallback(
+    (request: SaveFieldRequest<Record<string, unknown>>) => saveGraphField(request),
+    [saveGraphField]
+  );
+  const autosave = useAutosaveField({
+    resourceKind: resource.kind,
+    resourceId: resource.id,
+    field: field.path,
+    committedValue: committedObject,
+    revision,
+    save,
+    configUpdateFailedMessage: (result) => t("field.configUpdateFailed", { result }),
+    requestFailedMessage: t("error.requestFailed")
+  });
+  useReportFieldStatus(`${resource.kind}:${resource.id}:${field.path}`, autosave.status);
+  return {
+    commitValue: autosave.commitValue,
+    error: autosave.error,
+    status: autosave.status,
+    value: autosave.value
+  };
+}
 
 function useModelReasoningSupport(
   resource: ConfigResource,
@@ -1069,6 +1652,177 @@ function newReasoningLevel(effort: string): ReasoningLevelPreset {
   return { effort };
 }
 
+function objectRecord(value: unknown): Record<string, unknown> {
+  if (value === undefined || value === null) {
+    return {};
+  }
+  if (typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("Structured feature field requires an object value.");
+  }
+  return value as Record<string, unknown>;
+}
+
+function omitObjectKey(source: Record<string, unknown>, key: string): Record<string, unknown> {
+  const next = { ...source };
+  delete next[key];
+  return next;
+}
+
+function webSearchSupportValue(value: unknown) {
+  if (typeof value !== "string" || value.trim() === "") {
+    return "auto";
+  }
+  if (!webSearchSupportOptions.some((option) => option.value === value)) {
+    throw new Error(`Unknown web search support mode: ${value}`);
+  }
+  return value;
+}
+
+function objectIntegerDraft(value: unknown) {
+  if (value === undefined || value === null || value === "") {
+    return "";
+  }
+  if (typeof value !== "number" || !Number.isInteger(value)) {
+    throw new Error("Structured integer field requires an integer value.");
+  }
+  return String(value);
+}
+
+type ExtensionEntry = {
+  config: Record<string, unknown>;
+  enabled: boolean;
+  name: string;
+};
+
+type ExtensionConfigFieldDef = {
+  key: string;
+  label: string;
+  type: "string" | "number" | "boolean";
+};
+
+const knownExtensionConfigFields: Record<string, ExtensionConfigFieldDef[]> = {
+  deepseek_v4: [
+    { key: "reinforce_instructions", label: "deepseek_v4 reinforce instructions", type: "boolean" },
+    { key: "reinforce_prompt", label: "deepseek_v4 reinforce prompt", type: "string" }
+  ],
+  db_d1: [
+    { key: "binding", label: "db_d1 binding", type: "string" }
+  ],
+  db_sqlite: [
+    { key: "path", label: "db_sqlite path", type: "string" },
+    { key: "wal", label: "db_sqlite WAL", type: "boolean" },
+    { key: "busy_timeout_ms", label: "db_sqlite busy timeout ms", type: "number" },
+    { key: "max_open_conns", label: "db_sqlite max open conns", type: "number" }
+  ],
+  kimi_workaround: [
+    { key: "max_tool_rounds", label: "kimi_workaround max tool rounds", type: "number" },
+    { key: "convergence_margin", label: "kimi_workaround convergence margin", type: "number" }
+  ],
+  metrics: [
+    { key: "default_limit", label: "metrics default limit", type: "number" },
+    { key: "max_limit", label: "metrics max limit", type: "number" }
+  ],
+  visual: [
+    { key: "provider", label: "visual provider", type: "string" },
+    { key: "model", label: "visual model", type: "string" },
+    { key: "max_rounds", label: "visual max rounds", type: "number" },
+    { key: "max_tokens", label: "visual max tokens", type: "number" }
+  ]
+};
+
+function extensionEntries(value: Record<string, unknown>): ExtensionEntry[] {
+  return Object.keys(value)
+    .sort((left, right) => left.localeCompare(right))
+    .map((name) => {
+      const objectValue = extensionObjectValue(value[name]);
+      return {
+        name,
+        config: objectRecordOrEmpty(objectValue.config),
+        enabled: extensionEnabledValue(value[name])
+      };
+    });
+}
+
+function extensionConfigFields(entry: ExtensionEntry) {
+  const knownFields = knownExtensionConfigFields[entry.name] ?? [];
+  const knownKeys = new Set(knownFields.map((field) => field.key));
+  const extraFields = Object.keys(entry.config)
+    .filter((key) => !knownKeys.has(key))
+    .sort((left, right) => left.localeCompare(right))
+    .flatMap((key) => {
+      const fieldType = extensionConfigFieldType(entry.config[key]);
+      return fieldType ? [{ key, label: `${entry.name} ${key}`, type: fieldType }] : [];
+    });
+  return knownFields.concat(extraFields);
+}
+
+function extensionConfigFieldType(value: unknown): ExtensionConfigFieldDef["type"] | undefined {
+  if (value === undefined || value === null) {
+    return "string";
+  }
+  if (typeof value === "boolean") {
+    return "boolean";
+  }
+  if (typeof value === "number") {
+    return "number";
+  }
+  if (typeof value === "string") {
+    return "string";
+  }
+  return undefined;
+}
+
+function extensionEnabledValue(value: unknown) {
+  const objectValue = extensionObjectValue(value);
+  if (!("enabled" in objectValue)) {
+    return true;
+  }
+  if (typeof objectValue.enabled !== "boolean") {
+    throw new Error("Extension enabled value must be boolean when present.");
+  }
+  return objectValue.enabled;
+}
+
+function extensionObjectValue(value: unknown): Record<string, unknown> {
+  if (value === undefined || value === null) {
+    return {};
+  }
+  if (typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("Extension entry must be an object.");
+  }
+  return value as Record<string, unknown>;
+}
+
+function objectRecordOrEmpty(value: unknown): Record<string, unknown> {
+  if (value === undefined || value === null) {
+    return {};
+  }
+  return objectRecord(value);
+}
+
+function objectStringDraft(value: unknown, secret: boolean) {
+  if (secret && value === "******") {
+    return "";
+  }
+  if (value === undefined || value === null) {
+    return "";
+  }
+  if (typeof value !== "string") {
+    throw new Error("Structured string field requires a string value.");
+  }
+  return value;
+}
+
+function objectNumberDraft(value: unknown) {
+  if (value === undefined || value === null || value === "") {
+    return "";
+  }
+  if (typeof value !== "number") {
+    throw new Error("Structured number field requires a number value.");
+  }
+  return String(value);
+}
+
 function stringListItemLabel(item: unknown) {
   if (typeof item !== "string") {
     throw new Error("Editable string list item must be a string.");
@@ -1083,9 +1837,22 @@ function localizedFallback(label: string): LocalizedLabel {
   };
 }
 
-function orderModelSettingsFields(fields: FieldSchema[]) {
-  return moveFieldAfter(fields, "default_reasoning_summary", "default_reasoning_level");
+function orderModelBasicFields(fields: FieldSchema[]) {
+  return [
+    "context_window",
+    "max_output_tokens",
+    "description",
+    "base_instructions"
+  ].flatMap((path) => fields.filter((field) => field.path === path))
+    .concat(fields.filter((field) => !modelBasicPreferredOrder.has(field.path)));
 }
+
+const modelBasicPreferredOrder = new Set([
+  "context_window",
+  "max_output_tokens",
+  "description",
+  "base_instructions"
+]);
 
 function orderModelReasoningFields(fields: FieldSchema[]) {
   return [
@@ -1096,18 +1863,6 @@ function orderModelReasoningFields(fields: FieldSchema[]) {
     "supports_reasoning_summaries"
   ].flatMap((path) => fields.filter((field) => field.path === path))
     .concat(fields.filter((field) => !modelReasoningPaths.has(field.path)));
-}
-
-function moveFieldAfter(fields: FieldSchema[], movedPath: string, targetPath: string) {
-  const movedIndex = fields.findIndex((field) => field.path === movedPath);
-  const targetIndex = fields.findIndex((field) => field.path === targetPath);
-  if (movedIndex < 0 || targetIndex < 0 || movedIndex === targetIndex + 1) {
-    return fields;
-  }
-  const ordered = fields.filter((field) => field.path !== movedPath);
-  const insertAfterIndex = ordered.findIndex((field) => field.path === targetPath);
-  ordered.splice(insertAfterIndex + 1, 0, fields[movedIndex]);
-  return ordered;
 }
 
 function isWideField(field: FieldSchema) {

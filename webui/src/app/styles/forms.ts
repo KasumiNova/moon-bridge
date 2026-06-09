@@ -151,41 +151,33 @@ export const formStyles = `  .form-grid {
     min-height: 38px;
   }
 
-  .schema-json-summary {
+  .schema-structured-summary {
     width: 100%;
-    min-height: 44px;
+    display: grid;
+    gap: 10px;
+    border-radius: var(--mb-shape-sm);
+    padding: 12px;
+    color: var(--mb-color-on-surface-variant);
+    background: color-mix(in srgb, var(--mb-color-surface-container-high) 58%, transparent);
+  }
+
+  .schema-structured-summary__header {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto auto;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     text-align: left;
-    --md-outlined-button-container-height: 44px;
-    --md-outlined-button-container-shape: var(--mb-shape-sm);
-    --md-outlined-button-leading-space: 12px;
-    --md-outlined-button-trailing-space: 12px;
-    --md-outlined-button-outline-color: color-mix(in srgb, var(--mb-color-outline-variant) 70%, transparent);
-    --md-outlined-button-hover-outline-color: var(--mb-color-primary);
-    --md-outlined-button-focus-outline-color: var(--mb-color-primary);
-    --md-outlined-button-pressed-outline-color: var(--mb-color-primary);
-    --md-outlined-button-label-text-color: var(--mb-color-on-surface);
-    --md-outlined-button-hover-label-text-color: var(--mb-color-on-surface);
-    --md-outlined-button-focus-label-text-color: var(--mb-color-on-surface);
-    --md-outlined-button-pressed-label-text-color: var(--mb-color-on-surface);
-    --md-outlined-button-hover-state-layer-color: var(--mb-color-primary);
-    --md-outlined-button-focus-state-layer-color: var(--mb-color-primary);
-    --md-outlined-button-pressed-state-layer-color: var(--mb-color-primary);
-    --md-outlined-button-hover-state-layer-opacity: 0.08;
-    --md-outlined-button-focus-state-layer-opacity: 0.08;
   }
 
-  .schema-json-summary span:first-child {
+  .schema-structured-summary__header span:first-child {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    color: var(--mb-color-on-surface);
   }
 
-  .schema-json-summary strong {
+  .schema-structured-summary__header strong {
     min-height: 24px;
     display: inline-flex;
     align-items: center;
@@ -195,6 +187,93 @@ export const formStyles = `  .form-grid {
     background: var(--mb-color-secondary-container);
     font-size: 0.76rem;
     white-space: nowrap;
+  }
+
+  .schema-structured-summary__rows {
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 8px;
+  }
+
+  .schema-structured-summary__row {
+    min-width: 0;
+    display: grid;
+    gap: 3px;
+    border-radius: var(--mb-shape-sm);
+    padding: 8px 10px;
+    background: color-mix(in srgb, var(--mb-color-surface-container-highest) 54%, transparent);
+  }
+
+  .schema-structured-summary__row dt,
+  .schema-structured-summary__row dd {
+    margin: 0;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .schema-structured-summary__row dt {
+    color: var(--mb-color-on-surface);
+    font-size: 0.76rem;
+    font-weight: 700;
+  }
+
+  .schema-structured-summary__row dd,
+  .schema-structured-summary__empty {
+    color: var(--mb-color-on-surface-variant);
+    font-size: 0.78rem;
+    font-weight: 520;
+  }
+
+  .schema-structured-summary__empty {
+    margin: 0;
+  }
+
+  .schema-structured-object {
+    width: 100%;
+    display: grid;
+    gap: 10px;
+    border-radius: var(--mb-shape-sm);
+    padding: 12px;
+    color: var(--mb-color-on-surface-variant);
+    background: color-mix(in srgb, var(--mb-color-surface-container-high) 58%, transparent);
+  }
+
+  .schema-structured-object__header {
+    min-height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    color: var(--mb-color-on-surface-variant);
+    font-size: 0.82rem;
+    font-weight: 650;
+  }
+
+  .schema-structured-object__header span:first-child {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .schema-structured-object__grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px 18px;
+    align-items: start;
+  }
+
+  .schema-structured-object__boolean {
+    min-height: 44px;
+    align-self: center;
+  }
+
+  .schema-structured-summary--nested {
+    padding: 10px;
+    background: color-mix(in srgb, var(--mb-color-surface-container-highest) 42%, transparent);
   }
 
   .schema-field--wide {
@@ -260,6 +339,92 @@ export const formStyles = `  .form-grid {
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: stretch;
     gap: 10px;
+  }
+
+  .structured-feature-field {
+    display: grid;
+    gap: 12px;
+    min-width: 0;
+    border-radius: var(--mb-shape-sm);
+    outline: 0;
+    padding: 12px;
+    background: color-mix(in srgb, var(--mb-color-surface-container-high) 58%, transparent);
+  }
+
+  .structured-feature-field__grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px 18px;
+    align-items: start;
+  }
+
+  .structured-feature-field__number {
+    width: 100%;
+  }
+
+  .structured-feature-field__secret {
+    width: 100%;
+  }
+
+  .extension-feature-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    min-height: 32px;
+  }
+
+  .extension-feature-row {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    border-radius: var(--mb-shape-sm);
+    padding: 8px;
+    background: color-mix(in srgb, var(--mb-color-surface-container-highest) 48%, transparent);
+  }
+
+  .extension-config-grid {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .extension-feature-row__chip {
+    min-width: 0;
+    --md-input-chip-container-height: 32px;
+    --md-input-chip-container-shape: var(--mb-shape-sm);
+    --md-input-chip-label-text-color: var(--mb-color-on-surface);
+    --md-input-chip-hover-label-text-color: var(--mb-color-on-surface);
+    --md-input-chip-focus-label-text-color: var(--mb-color-on-surface);
+    --md-input-chip-pressed-label-text-color: var(--mb-color-on-surface);
+    --md-input-chip-outline-color: var(--mb-color-outline-variant);
+    --md-input-chip-hover-state-layer-color: var(--mb-color-primary);
+    --md-input-chip-focus-state-layer-color: var(--mb-color-primary);
+    --md-input-chip-pressed-state-layer-color: var(--mb-color-primary);
+    --md-input-chip-hover-state-layer-opacity: 0.08;
+    --md-input-chip-focus-state-layer-opacity: 0.08;
+    --md-input-chip-icon-size: 18px;
+    --md-input-chip-trailing-icon-color: var(--mb-color-on-surface-variant);
+    --md-input-chip-hover-trailing-icon-color: var(--mb-color-primary);
+    --md-input-chip-focus-trailing-icon-color: var(--mb-color-primary);
+    --md-input-chip-pressed-trailing-icon-color: var(--mb-color-primary);
+  }
+
+  .extension-feature-row__switch {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+  }
+
+  .extension-feature-row__switch md-switch {
+    --md-switch-selected-track-color: var(--mb-color-primary);
+    --md-switch-selected-handle-color: var(--mb-color-on-primary);
+    --md-switch-selected-hover-track-color: var(--mb-color-primary);
+    --md-switch-selected-focus-track-color: var(--mb-color-primary);
+    --md-switch-selected-pressed-track-color: var(--mb-color-primary);
   }
 
   .editable-list-field__input {
@@ -384,14 +549,9 @@ export const formStyles = `  .form-grid {
     --md-filled-text-field-input-text-line-height: 1.25rem;
   }
 
-  .mb-field[data-variant="textarea"] md-outlined-text-field,
-  .schema-json-editor {
+  .mb-field[data-variant="textarea"] md-outlined-text-field {
     --md-outlined-text-field-input-text-font: var(--mb-font-mono);
     --md-outlined-text-field-input-text-line-height: 1.45;
-  }
-
-  .schema-json-editor--fixed {
-    resize: none;
   }
 
   .mb-field[data-variant="textarea"] md-outlined-text-field {
@@ -468,6 +628,14 @@ export const formStyles = `  .form-grid {
 
   @media (max-width: 680px) {
     .form-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .structured-feature-field__grid {
+      grid-template-columns: 1fr;
+    }
+
+    .schema-structured-object__grid {
       grid-template-columns: 1fr;
     }
 

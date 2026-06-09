@@ -639,8 +639,8 @@ export const configDescriptions: Record<ConfigPath, ConfigDocEntry> = {
     "extensions.<name>.config",
     "扩展配置",
     "Extension config",
-    "扩展私有配置对象。不同扩展的字段不同，控制台以 JSON 方式安全编辑。",
-    "Extension-specific config object. Fields differ by extension; the console edits it safely as JSON.",
+    "扩展私有配置对象。控制台以结构化字段编辑标量配置，并保留更复杂的嵌套配置。",
+    "Extension-specific config object. The console edits scalar config through structured fields and preserves more complex nested config.",
     "object"
   ),
   "proxy.response": entry(

@@ -45,7 +45,7 @@ export function MaterialSelect({
     if (!selectElement) {
       throw new Error("MaterialSelect rendered before md-outlined-select was registered.");
     }
-    const handleChange = () => onChange(selectElement.value);
+    const handleChange = () => onChange(selectedMaterialSelectValue(selectElement));
     selectElement.addEventListener("change", handleChange);
     return () => selectElement.removeEventListener("change", handleChange);
   }, [onChange]);
@@ -97,6 +97,15 @@ export function MaterialSelect({
   );
 }
 
+function selectedMaterialSelectValue(selectElement: MdOutlinedSelect) {
+  if (selectElement.value) {
+    return selectElement.value;
+  }
+  const selectedOption = Array.from(selectElement.querySelectorAll<MdSelectOption>("md-select-option"))
+    .find((option) => option.selected);
+  return selectedOption?.value || selectedOption?.getAttribute("value") || selectedOption?.getAttribute("data-value") || "";
+}
+
 function mergeClassNames(...classNames: Array<string | undefined>) {
   return classNames.filter(Boolean).join(" ");
 }
@@ -123,6 +132,7 @@ function MaterialSelectOptionElement({ label, selected, value }: MaterialSelectO
   return (
     <md-select-option
       ref={optionRef}
+      data-value={value}
       display-text={label}
       selected={selected}
       value={value}

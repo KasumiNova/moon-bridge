@@ -48,6 +48,7 @@ type WebSearchConfig struct {
 	TavilyAPIKey    string
 	FirecrawlAPIKey string
 	SearchMaxRounds int
+	Extra           map[string]any
 }
 
 type Config struct {
@@ -64,6 +65,7 @@ type Config struct {
 	TavilyAPIKey     string
 	FirecrawlAPIKey  string
 	SearchMaxRounds  int
+	WebSearchExtra   map[string]any
 	DefaultMaxTokens int
 	MaxSessions      int    `yaml:"max_sessions"` // 0 = unlimited
 	SessionTTL       string `yaml:"session_ttl"`  // default "24h"
@@ -136,6 +138,7 @@ type ProviderDef struct {
 	TavilyAPIKey     string
 	FirecrawlAPIKey  string
 	SearchMaxRounds  int
+	WebSearchExtra   map[string]any
 	Extensions       map[string]ExtensionSettings
 	// Models is the provider's model catalog: upstream model name -> metadata.
 	Models map[string]ModelMeta

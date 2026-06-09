@@ -83,6 +83,73 @@ func TestApplyPatchToFileConfigKeepsExistingProviderSecretWhenMaskedOrEmpty(t *t
 	}
 }
 
+func TestApplyPatchToFileConfigPreservesWebSearchExtraFields(t *testing.T) {
+	fc := testConfig().ToFileConfig()
+	fc.Models["claude-sonnet"] = config.ModelDefFileConfig{
+		DisplayName: "Claude Sonnet",
+		WebSearch: config.WebSearchFileConfig{
+			Support: "auto",
+			MaxUses: 8,
+			Extra: map[string]any{
+				"provider_tool": "preview",
+			},
+		},
+	}
+
+	patched, errs := ApplyPatchToFileConfig(fc, []PatchOp{
+		{Kind: ResourceModel, ID: "claude-sonnet", Field: "web_search", Value: map[string]any{
+			"support":       "disabled",
+			"provider_tool": "preview",
+		}},
+	})
+
+	if len(errs) != 0 {
+		t.Fatalf("ApplyPatchToFileConfig returned errors: %+v", errs)
+	}
+	if patched.Models["claude-sonnet"].WebSearch.Support != "disabled" {
+		t.Fatalf("WebSearch.Support = %q, want disabled", patched.Models["claude-sonnet"].WebSearch.Support)
+	}
+	if patched.Models["claude-sonnet"].WebSearch.Extra["provider_tool"] != "preview" {
+		t.Fatalf("WebSearch.Extra[provider_tool] = %#v, want preview", patched.Models["claude-sonnet"].WebSearch.Extra["provider_tool"])
+	}
+}
+
+func TestApplyPatchToFileConfigPreservesExtensionExtraFields(t *testing.T) {
+	enabled := true
+	fc := testConfig().ToFileConfig()
+	fc.Models["claude-sonnet"] = config.ModelDefFileConfig{
+		DisplayName: "Claude Sonnet",
+		Extensions: map[string]config.ExtensionFileConfig{
+			"visual": {
+				Enabled: &enabled,
+				Config:  map[string]any{"model": "gpt-4.1"},
+				Extra:   map[string]any{"scope_note": "keep"},
+			},
+		},
+	}
+
+	patched, errs := ApplyPatchToFileConfig(fc, []PatchOp{
+		{Kind: ResourceModel, ID: "claude-sonnet", Field: "extensions", Value: map[string]any{
+			"visual": map[string]any{
+				"enabled":    false,
+				"config":     map[string]any{"model": "gpt-4.1"},
+				"scope_note": "keep",
+			},
+		}},
+	})
+
+	if len(errs) != 0 {
+		t.Fatalf("ApplyPatchToFileConfig returned errors: %+v", errs)
+	}
+	visual := patched.Models["claude-sonnet"].Extensions["visual"]
+	if visual.Enabled == nil || *visual.Enabled {
+		t.Fatalf("visual.Enabled = %v, want explicit false", visual.Enabled)
+	}
+	if visual.Extra["scope_note"] != "keep" {
+		t.Fatalf("visual.Extra[scope_note] = %#v, want keep", visual.Extra["scope_note"])
+	}
+}
+
 func TestApplyPatchToFileConfigLeavesRouteReferenceValidationToConfigLoader(t *testing.T) {
 	fc := testConfig().ToFileConfig()
 

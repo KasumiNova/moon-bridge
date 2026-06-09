@@ -29,7 +29,13 @@ describe("SearchToolsPage", () => {
 
     expect(getMaterialSelect(document, "Web search mode").value).toBe("auto");
     expect(screen.getByText("db_sqlite")).toBeInTheDocument();
-    expect(getMaterialOutlinedButton(document, /OpenAI capture proxy.*2 keys/)).toBeInTheDocument();
+    expect(getStructuredObject(document, "Extension config")).not.toHaveTextContent("Structured editor");
+    expect(getMaterialTextField(document, "path")).toHaveAttribute("spellcheck", "false");
+    expect(getStructuredObject(document, "OpenAI capture proxy")).not.toHaveTextContent("Structured editor");
+    expect(getMaterialTextField(document, "base_url")).toHaveAttribute("spellcheck", "false");
+    expect(getMaterialTextField(document, "api_key")).toHaveAttribute("spellcheck", "false");
+    expect(queryMaterialOutlinedButton(document, /OpenAI capture proxy.*2 keys/)).not.toBeInTheDocument();
+    expect(document.querySelector(".schema-json-editor")).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/yaml/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/yaml/i)).not.toBeInTheDocument();
   });
@@ -149,14 +155,20 @@ type MaterialSelectElement = HTMLElement & {
   value: string;
 };
 
-function getMaterialOutlinedButton(container: ParentNode, label: RegExp) {
-  const element = Array.from(container.querySelectorAll("md-outlined-button")).find(
+function queryMaterialOutlinedButton(container: ParentNode, label: RegExp) {
+  return Array.from(container.querySelectorAll("md-outlined-button")).find(
     (candidate) => label.test(candidate.getAttribute("aria-label") ?? candidate.textContent ?? "")
+  ) ?? null;
+}
+
+function getStructuredObject(container: ParentNode, label: string) {
+  const element = Array.from(container.querySelectorAll(".schema-structured-object")).find(
+    (summary) => summary.getAttribute("aria-label")?.startsWith(`${label},`)
   );
   if (!element) {
-    throw new Error(`Expected a Material Web outlined button labelled "${label}".`);
+    throw new Error(`Expected a structured object editor labelled "${label}".`);
   }
-  return element;
+  return element as HTMLElement;
 }
 
 function getMaterialSelect(container: ParentNode, label: string) {
@@ -167,6 +179,16 @@ function getMaterialSelect(container: ParentNode, label: string) {
     throw new Error(`Expected a Material Web select labelled "${label}".`);
   }
   return element;
+}
+
+function getMaterialTextField(container: ParentNode, label: string) {
+  const element = Array.from(container.querySelectorAll("md-outlined-text-field")).find(
+    (candidate) => materialElementLabel(candidate as HTMLElement & { label?: string }) === label
+  );
+  if (!element) {
+    throw new Error(`Expected a Material Web text field labelled "${label}".`);
+  }
+  return element as HTMLElement;
 }
 
 function materialElementLabel(element: HTMLElement & { label?: string }) {

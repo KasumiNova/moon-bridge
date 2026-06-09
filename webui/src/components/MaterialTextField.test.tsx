@@ -19,6 +19,18 @@ describe("MaterialTextField", () => {
     expect(field).toHaveClass("material-text-field--single-line");
   });
 
+  test("serializes the Material label on the host element", () => {
+    const { container } = render(
+      <MaterialOutlinedTextField
+        label="Max uses"
+        value=""
+        onInput={() => undefined}
+      />
+    );
+
+    expect(getOutlinedTextField(container, "Max uses")).toHaveAttribute("label", "Max uses");
+  });
+
   test("marks single-line filled text fields with the compact density class", () => {
     const { container } = render(
       <MaterialFilledTextField

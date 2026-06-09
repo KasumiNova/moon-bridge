@@ -76,7 +76,7 @@ describe("ModelsProvidersPage", () => {
     expect(screen.queryByLabelText(/^enabled$/i)).not.toBeInTheDocument();
   });
 
-  test("renders provider advanced feature JSON fields without summary toggles", async () => {
+  test("renders provider advanced feature structured controls without JSON editors or summary toggles", async () => {
     vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
     vi.spyOn(configGraph, "patchConfigGraph").mockResolvedValue({
       result: "committed",
@@ -88,8 +88,11 @@ describe("ModelsProvidersPage", () => {
     const providerPanel = await screen.findByLabelText("Provider anthropic");
     const advancedFeatures = within(providerPanel).getByRole("group", { name: "Advanced Features" });
 
-    expect(getMaterialTextField(advancedFeatures, "Provider web search JSON")).toHaveClass("schema-json-editor--fixed");
-    expect(getMaterialTextField(advancedFeatures, "Provider extensions JSON")).toHaveClass("schema-json-editor--fixed");
+    expect(getMaterialSelect(advancedFeatures, "Provider web search mode")).toBeInTheDocument();
+    expect(getMaterialTextField(advancedFeatures, "Provider web search max uses")).toHaveAttribute("spellcheck", "false");
+    expect(getMaterialTextField(advancedFeatures, "Provider web search search max rounds")).toHaveAttribute("spellcheck", "false");
+    expect(queryMaterialTextField(advancedFeatures, "Provider web search JSON")).not.toBeInTheDocument();
+    expect(queryMaterialTextField(advancedFeatures, "Provider extensions JSON")).not.toBeInTheDocument();
     expect(queryMaterialOutlinedButton(advancedFeatures, /Provider web search.*1 key/)).not.toBeInTheDocument();
     expect(queryMaterialOutlinedButton(advancedFeatures, /Provider extensions.*0 keys/)).not.toBeInTheDocument();
     expect(queryMaterialTextField(advancedFeatures, "Provider web search JSON editor")).not.toBeInTheDocument();

@@ -249,7 +249,7 @@ describe("ResourceEditorCard", () => {
     expect(within(screen.getByLabelText("main 状态")).getByText("需要重启")).toBeInTheDocument();
   });
 
-  test("merges object fields into settings instead of an Advanced JSON group", () => {
+  test("merges object fields into basic without a raw JSON editor group", () => {
     vi.spyOn(configGraph, "patchConfigGraph").mockResolvedValue({
       result: "committed",
       revision: "rev-2"
@@ -273,17 +273,20 @@ describe("ResourceEditorCard", () => {
     );
 
     const identityGroup = screen.getByRole("group", { name: "Identity" });
-    const standardGroup = screen.getByRole("group", { name: "Settings" });
+    const standardGroup = screen.getByRole("group", { name: "Basic" });
 
     expect(getMaterialTextField(identityGroup, "Offer model")).toBeInTheDocument();
     expect(getMaterialTextField(identityGroup, "Upstream model name")).toBeInTheDocument();
     expect(getMaterialTextField(standardGroup, "Offer priority")).toBeInTheDocument();
-    expect(getMaterialButton(standardGroup, /Pricing.*1 key/, "outlined")).toBeInTheDocument();
-    expect(getMaterialButton(standardGroup, /Offer overrides.*0 keys/, "outlined")).toBeInTheDocument();
+    expect(getStructuredObject(standardGroup, "Pricing")).not.toHaveTextContent("Structured editor");
+    expect(getMaterialTextField(standardGroup, "input_price")).toBeInTheDocument();
+    expect(getStructuredObject(standardGroup, "Offer overrides")).toHaveTextContent("No configured entries.");
+    expect(queryMaterialOutlinedButton(standardGroup, /Pricing.*1 key/)).not.toBeInTheDocument();
+    expect(queryMaterialTextField(standardGroup, "Pricing JSON")).not.toBeInTheDocument();
     expect(screen.queryByRole("group", { name: "Advanced JSON" })).not.toBeInTheDocument();
   });
 
-  test("keeps plain long text fields in settings instead of advanced JSON", () => {
+  test("keeps plain long text fields in basic without a raw JSON editor group", () => {
     vi.spyOn(configGraph, "patchConfigGraph").mockResolvedValue({
       result: "committed",
       revision: "rev-2"
@@ -300,7 +303,7 @@ describe("ResourceEditorCard", () => {
       <ResourceEditorCard resource={model} revision="rev-1" title="Model" />
     );
 
-    const settingsGroup = screen.getByRole("group", { name: "Settings" });
+    const settingsGroup = screen.getByRole("group", { name: "Basic" });
     expect(getMaterialTextField(settingsGroup, "Model description")).toBeInTheDocument();
     expect(screen.queryByRole("group", { name: "Advanced JSON" })).not.toBeInTheDocument();
   });
@@ -343,7 +346,7 @@ describe("ResourceEditorCard", () => {
     ]);
   });
 
-  test("classifies field widths by expected content density", () => {
+  test("groups model settings into basic, multimodal, advanced features, and reasoning panels", () => {
     vi.spyOn(configGraph, "patchConfigGraph").mockResolvedValue({
       result: "committed",
       revision: "rev-2"
@@ -351,27 +354,35 @@ describe("ResourceEditorCard", () => {
     const model = resource("model", "claude-sonnet", "Claude Sonnet", {
       display_name: "Claude Sonnet",
       context_window: 200000,
+      max_output_tokens: 8192,
       supports_reasoning: true,
       default_reasoning_level: "medium",
       default_reasoning_summary: "auto",
       description: "Balanced model",
+      base_instructions: "Stay concise.",
       supported_reasoning_levels: [
         { effort: "low", description: "Fast responses with lighter reasoning" },
         { effort: "medium", description: "Balances speed and reasoning depth" },
         { effort: "high", description: "Greater reasoning depth" }
       ],
       input_modalities: ["text", "image"],
-      web_search: { support: "auto" },
-      extensions: {}
+      supports_image_detail_original: true,
+      web_search: { support: "auto", max_uses: 4 },
+      extensions: {
+        visual: { enabled: true }
+      }
     }, [
       field("display_name", "Display Name"),
       field("context_window", "Context Window", "number", "number"),
+      field("max_output_tokens", "Max Output Tokens", "number", "number"),
       field("supports_reasoning", "Supports Reasoning", "boolean", "switch"),
       field("default_reasoning_level", "Default Reasoning Level"),
       field("supported_reasoning_levels", "Supported Reasoning Levels", "array", "array"),
       field("default_reasoning_summary", "Default Reasoning Summary"),
       field("description", "Description", "string", "textarea"),
+      field("base_instructions", "Base Instructions", "string", "textarea"),
       field("input_modalities", "Input Modalities", "array", "array"),
+      field("supports_image_detail_original", "Supports Image Detail Original", "boolean", "switch"),
       field("web_search", "Web Search", "object", "object"),
       field("extensions", "Extensions", "object", "object")
     ]);
@@ -381,6 +392,23 @@ describe("ResourceEditorCard", () => {
     );
 
     const reasoningPanel = screen.getByRole("group", { name: "Reasoning" });
+    const basicPanel = screen.getByRole("group", { name: "Basic" });
+    const multimodalPanel = screen.getByRole("group", { name: "Multimodal" });
+    const advancedPanel = screen.getByRole("group", { name: "Advanced Features" });
+    expect(basicPanel).toContainElement(getMaterialTextField(document, "Context window"));
+    expect(basicPanel).toContainElement(getMaterialTextField(document, "Max output tokens"));
+    expect(basicPanel).toContainElement(getMaterialTextField(document, "Model description"));
+    expect(basicPanel).toContainElement(getMaterialTextField(document, "Base instructions"));
+    expect(multimodalPanel).toHaveClass("resource-field-group--multimodal");
+    expect(getEditableList(multimodalPanel, "Input modalities")).toBeInTheDocument();
+    expect(getMaterialSwitch(multimodalPanel, "Supports original image detail")).toBeInTheDocument();
+    expect(advancedPanel).toHaveClass("resource-field-group--advanced");
+    expect(getMaterialSelect(advancedPanel, "Model web search mode")).toBeInTheDocument();
+    expect(getMaterialTextField(advancedPanel, "Model web search max uses")).toBeInTheDocument();
+    expect(getExtensionFeatureRow(advancedPanel, "visual")).toBeInTheDocument();
+    expect(getMaterialSwitch(advancedPanel, "Enable visual extension")).toBeInTheDocument();
+    expect(queryMaterialTextField(document, "Model web search JSON")).not.toBeInTheDocument();
+    expect(queryMaterialTextField(document, "Model extensions JSON")).not.toBeInTheDocument();
     expect(reasoningPanel).toHaveClass("resource-field-group--reasoning");
     const reasoningSwitch = getMaterialSwitch(reasoningPanel, "Supports reasoning");
     expect(reasoningSwitch.selected).toBe(true);
@@ -407,7 +435,7 @@ describe("ResourceEditorCard", () => {
     expect(getMaterialTextField(document, "Context window").closest(".form-grid__compact")).toBeInTheDocument();
     expect(getMaterialTextField(document, "Model description").closest(".form-grid__wide")).toBeInTheDocument();
     expect(getEditableList(reasoningPanel, "Supported reasoning levels")).toBeInTheDocument();
-    expect(getEditableList(document, "Input modalities")).toBeInTheDocument();
+    expect(getEditableList(multimodalPanel, "Input modalities")).toBeInTheDocument();
     expect(getEditableListItems(document, "Supported reasoning levels")).toEqual(["low", "medium", "high"]);
     expect(getEditableListItems(document, "Input modalities")).toEqual(["text", "image"]);
     expect(getEditableList(document, "Supported reasoning levels").querySelector("md-chip-set")).toBeInTheDocument();
@@ -418,21 +446,219 @@ describe("ResourceEditorCard", () => {
       .toBeInTheDocument();
     expect(queryMaterialTextField(document, "Supported reasoning levels JSON")).not.toBeInTheDocument();
     expect(queryMaterialTextField(document, "Input modalities JSON")).not.toBeInTheDocument();
-    expect(getMaterialTextField(document, "Model web search JSON")).toHaveClass("schema-json-editor--fixed");
-    expect(getMaterialTextField(document, "Model extensions JSON")).toHaveClass("schema-json-editor--fixed");
-    for (const label of [
-      "Model web search",
-      "Model extensions"
-    ]) {
-      const editor = getMaterialTextField(document, `${label} JSON`);
-      expect(editor.closest(".schema-field")?.querySelector(".schema-field__topline")).not.toBeInTheDocument();
-      expect(editor.closest(".schema-field")?.querySelector(".schema-field__label")).not.toBeInTheDocument();
-      expect(queryMaterialTextField(document, `${label} JSON editor`)).not.toBeInTheDocument();
-    }
     expect(queryMaterialOutlinedButton(document, /Supported reasoning levels.*3 items/)).not.toBeInTheDocument();
     expect(queryMaterialOutlinedButton(document, /Input modalities.*2 items/)).not.toBeInTheDocument();
     expect(queryMaterialOutlinedButton(document, /Model web search.*1 key/)).not.toBeInTheDocument();
-    expect(queryMaterialOutlinedButton(document, /Model extensions.*0 keys/)).not.toBeInTheDocument();
+    expect(queryMaterialOutlinedButton(document, /Model extensions.*1 key/)).not.toBeInTheDocument();
+  });
+
+  test("autosaves model web search through structured Material controls while preserving existing keys", async () => {
+    const patch = vi.spyOn(configGraph, "patchConfigGraph").mockResolvedValue({
+      result: "committed",
+      revision: "rev-2"
+    });
+    const model = resource("model", "claude-sonnet", "Claude Sonnet", {
+      web_search: {
+        support: "auto",
+        max_uses: 4,
+        search_max_rounds: 2,
+        tavily_api_key: "******",
+        custom_flag: "keep"
+      }
+    }, [
+      field("web_search", "Web Search", "object", "object")
+    ]);
+
+    renderWithConsoleProviders(
+      <ResourceEditorCard resource={model} revision="rev-1" title="Model" />
+    );
+
+    const advancedPanel = screen.getByRole("group", { name: "Advanced Features" });
+    const supportSelect = getMaterialSelect(advancedPanel, "Model web search mode");
+    expect(getMaterialSelectOptions(supportSelect).map((option) => option.value)).toEqual([
+      "auto",
+      "enabled",
+      "disabled",
+      "injected"
+    ]);
+    expect(getMaterialTextField(advancedPanel, "Model web search max uses")).toHaveAttribute("spellcheck", "false");
+    expect(getMaterialTextField(advancedPanel, "Model web search Tavily API key")).toHaveProperty("type", "password");
+    expect(getMaterialTextField(advancedPanel, "Model web search Firecrawl API key")).toHaveProperty("type", "password");
+    expect(queryMaterialTextField(advancedPanel, "Model web search JSON")).not.toBeInTheDocument();
+
+    fireEvent.blur(getMaterialTextField(advancedPanel, "Model web search Tavily API key"));
+    expect(patch).not.toHaveBeenCalled();
+
+    setMaterialSelectValueBySelectedOption(supportSelect, "disabled");
+
+    await waitFor(() =>
+      expect(patch).toHaveBeenCalledWith({
+        baseRevision: "rev-1",
+        changes: [
+          {
+            kind: "model",
+            id: "claude-sonnet",
+            field: "web_search",
+            value: {
+              support: "disabled",
+              max_uses: 4,
+              search_max_rounds: 2,
+              tavily_api_key: "******",
+              custom_flag: "keep"
+            }
+          }
+        ]
+      })
+    );
+  });
+
+  test("autosaves provider and route web search through structured Material controls", async () => {
+    const patch = vi.spyOn(configGraph, "patchConfigGraph").mockResolvedValue({
+      result: "committed",
+      revision: "rev-2"
+    });
+    const provider = resource("provider", "anthropic", "Anthropic", {
+      web_search: {
+        support: "injected",
+        tavily_api_key: "******",
+        firecrawl_api_key: "******",
+        search_max_rounds: 2
+      }
+    }, [
+      field("web_search", "Web Search", "object", "object")
+    ]);
+    const { unmount } = renderWithConsoleProviders(
+      <ResourceEditorCard resource={provider} revision="rev-1" title="Provider" />
+    );
+
+    setMaterialTextFieldValue(getMaterialTextField(document, "Provider web search Tavily API key"), "tv-new");
+    fireEvent.blur(getMaterialTextField(document, "Provider web search Tavily API key"));
+
+    await waitFor(() =>
+      expect(patch).toHaveBeenCalledWith({
+        baseRevision: "rev-1",
+        changes: [
+          {
+            kind: "provider",
+            id: "anthropic",
+            field: "web_search",
+            value: {
+              support: "injected",
+              tavily_api_key: "tv-new",
+              firecrawl_api_key: "******",
+              search_max_rounds: 2
+            }
+          }
+        ]
+      })
+    );
+
+    unmount();
+    patch.mockClear();
+    const route = resource("route", "primary", "Primary", {
+      web_search: {
+        support: "auto",
+        max_uses: 3
+      }
+    }, [
+      field("web_search", "Web Search", "object", "object")
+    ]);
+    renderWithConsoleProviders(
+      <ResourceEditorCard resource={route} revision="rev-1" title="Route" />
+    );
+
+    setMaterialSelectValueBySelectedOption(getMaterialSelect(document, "Route web search mode"), "enabled");
+
+    await waitFor(() =>
+      expect(patch).toHaveBeenCalledWith({
+        baseRevision: "rev-1",
+        changes: [
+          {
+            kind: "route",
+            id: "primary",
+            field: "web_search",
+            value: {
+              support: "enabled",
+              max_uses: 3
+            }
+          }
+        ]
+      })
+    );
+  });
+
+  test("autosaves model extensions through structured Material controls while preserving extension config", async () => {
+    const patch = vi.spyOn(configGraph, "patchConfigGraph").mockResolvedValue({
+      result: "committed",
+      revision: "rev-2"
+    });
+    const model = resource("model", "claude-sonnet", "Claude Sonnet", {
+      extensions: {
+        visual: {
+          enabled: true,
+          config: { provider: "openai", model: "gpt-4.1" },
+          custom_flag: "keep"
+        }
+      }
+    }, [
+      field("extensions", "Extensions", "object", "object")
+    ]);
+
+    renderWithConsoleProviders(
+      <ResourceEditorCard resource={model} revision="rev-1" title="Model" />
+    );
+
+    const advancedPanel = screen.getByRole("group", { name: "Advanced Features" });
+    expect(getExtensionFeatureRow(advancedPanel, "visual")).toBeInTheDocument();
+    expect(queryMaterialTextField(advancedPanel, "Model extensions JSON")).not.toBeInTheDocument();
+    expect(getMaterialTextField(advancedPanel, "visual provider")).toHaveAttribute("spellcheck", "false");
+    expect(getMaterialTextField(advancedPanel, "visual model")).toHaveAttribute("spellcheck", "false");
+
+    setMaterialSwitchSelected(getMaterialSwitch(advancedPanel, "Enable visual extension"), false);
+
+    await waitFor(() =>
+      expect(patch).toHaveBeenCalledWith({
+        baseRevision: "rev-1",
+        changes: [
+          {
+            kind: "model",
+            id: "claude-sonnet",
+            field: "extensions",
+            value: {
+              visual: {
+                enabled: false,
+                config: { provider: "openai", model: "gpt-4.1" },
+                custom_flag: "keep"
+              }
+            }
+          }
+        ]
+      })
+    );
+
+    patch.mockClear();
+    setMaterialTextFieldValue(getMaterialTextField(advancedPanel, "visual model"), "gpt-4.2");
+    fireEvent.blur(getMaterialTextField(advancedPanel, "visual model"));
+
+    await waitFor(() =>
+      expect(patch).toHaveBeenCalledWith({
+        baseRevision: "rev-1",
+        changes: [
+          {
+            kind: "model",
+            id: "claude-sonnet",
+            field: "extensions",
+            value: {
+              visual: {
+                enabled: false,
+                config: { provider: "openai", model: "gpt-4.2" },
+                custom_flag: "keep"
+              }
+            }
+          }
+        ]
+      })
+    );
   });
 
   test("hides model reasoning options when the model does not support reasoning", async () => {
@@ -750,6 +976,16 @@ function getEditableListItems(container: ParentNode, label: string) {
     .map((item) => item.textContent?.trim() ?? "");
 }
 
+function getExtensionFeatureRow(container: ParentNode, name: string) {
+  const element = Array.from(container.querySelectorAll<HTMLElement>(".extension-feature-row")).find(
+    (candidate) => candidate.getAttribute("data-extension-name") === name
+  );
+  if (!element) {
+    throw new Error(`Missing extension feature row: ${name}`);
+  }
+  return element;
+}
+
 function getMaterialInputChip(container: ParentNode, label: string) {
   const element = Array.from(container.querySelectorAll("md-input-chip")).find(
     (candidate) => candidate.getAttribute("aria-label") === label
@@ -840,6 +1076,16 @@ function queryMaterialOutlinedButton(container: ParentNode, label: string | RegE
   ) ?? null;
 }
 
+function getStructuredObject(container: ParentNode, label: string) {
+  const element = Array.from(container.querySelectorAll(".schema-structured-object")).find(
+    (summary) => summary.getAttribute("aria-label")?.startsWith(`${label},`)
+  );
+  if (!element) {
+    throw new Error(`Missing structured object editor: ${label}`);
+  }
+  return element as HTMLElement;
+}
+
 function expectMaterialFilledButtonContentColors(button: Element, colorToken: string) {
   expect(button.tagName.toLowerCase()).toBe("md-filled-button");
   for (const property of [
@@ -870,6 +1116,20 @@ function setMaterialSelectValue(element: HTMLElement & { select: (value: string)
   act(() => {
     element.select(value);
     element.value = value;
+    element.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+}
+
+function setMaterialSelectValueBySelectedOption(
+  element: HTMLElement & { value: string },
+  value: string
+) {
+  act(() => {
+    for (const option of Array.from(element.querySelectorAll<MaterialSelectOptionElement>("md-select-option"))) {
+      const optionValue = option.value || option.getAttribute("value") || option.displayText;
+      option.selected = optionValue === value;
+    }
+    element.value = "";
     element.dispatchEvent(new Event("change", { bubbles: true }));
   });
 }

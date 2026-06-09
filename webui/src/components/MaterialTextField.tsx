@@ -156,6 +156,11 @@ const MaterialTextField = forwardRef<MaterialTextFieldElement, MaterialTextField
       field.required = required;
       field.spellcheck = spellCheck ?? false;
       field.setAttribute("spellcheck", spellCheck ?? false ? "true" : "false");
+      if (label) {
+        field.setAttribute("label", label);
+      } else {
+        field.removeAttribute("label");
+      }
       field.inputMode = inputMode ?? "";
       if (ariaLabel) {
         field.setAttribute("aria-label", ariaLabel);

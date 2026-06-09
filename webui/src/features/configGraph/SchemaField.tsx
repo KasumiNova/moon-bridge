@@ -12,11 +12,10 @@ import { configDescriptions, type ConfigPath } from "../../configDocs/configDesc
 import type { FieldSchema } from "../../rpc/types";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { MessageKey } from "../../i18n/messages";
-import { MaterialIconButton, MaterialOutlinedButton } from "../../components/MaterialButton";
+import { MaterialIconButton } from "../../components/MaterialButton";
 import { MaterialOutlinedTextField, type MaterialTextFieldElement } from "../../components/MaterialTextField";
 import { MaterialSwitch } from "../../components/MaterialSwitch";
 import { SelectMenu, type SelectMenuOption } from "./SelectMenu";
-import type { MdOutlinedButton } from "@material/web/button/outlined-button.js";
 import type { MdIconButton } from "@material/web/iconbutton/icon-button.js";
 import { type TooltipPosition, useAnchoredTooltipPosition } from "./helpTooltipPosition";
 
@@ -53,10 +52,6 @@ export function SchemaField({
   const [text, setText] = useState(displayValue(field, value));
   const [parseError, setParseError] = useState("");
   const [helpOpen, setHelpOpen] = useState(false);
-  const jsonFixedExpanded = objectDisplay === "expandedFixed";
-  const [jsonExpanded, setJsonExpanded] = useState(jsonFixedExpanded || parseError !== "");
-  const jsonEditorRef = useRef<MaterialTextFieldElement>(null);
-  const jsonSummaryRef = useRef<MdOutlinedButton>(null);
   const trailingHelpAnchorRef = useRef<MdIconButton>(null);
   const displayLabel = fieldLabel(field, docPath, locale);
 
@@ -64,16 +59,6 @@ export function SchemaField({
     setText(displayValue(field, value));
     setParseError("");
   }, [field, value]);
-
-  useEffect(() => {
-    if (jsonFixedExpanded && !jsonExpanded) {
-      setJsonExpanded(true);
-      return;
-    }
-    if (!jsonFixedExpanded && jsonExpanded) {
-      jsonEditorRef.current?.focus();
-    }
-  }, [jsonExpanded, jsonFixedExpanded]);
 
   const wide = isWideField(field);
   const errorId = `${id}-error`;
@@ -210,87 +195,106 @@ export function SchemaField({
   }
 
   if (field.type === "object" || field.type === "array" || field.control === "object" || field.control === "array") {
-    const summaryId = `${id}-summary`;
-    const summary = jsonSummary(value, field, t);
-    const jsonFieldLabel = t("field.jsonEditorLabel", { label: displayLabel });
+    const summary = structuredSummary(value, field, displayLabel, t);
+    if (isObjectFieldValue(value)) {
+      return (
+        <div className={schemaFieldClass(wide)}>
+          {objectDisplay === "expandedFixed" ? null : (
+            <FieldTopline
+              field={field}
+              label={displayLabel}
+              helpId={helpId}
+              helpOpen={helpOpen}
+              helpParts={helpParts}
+              id={id}
+              setHelpOpen={setHelpOpen}
+            />
+          )}
+          <StructuredObjectEditor
+            describedBy={fieldDescribedBy}
+            disabled={disabled}
+            id={id}
+            label={displayLabel}
+            objectDisplay={objectDisplay}
+            onCommit={commit}
+            summary={summary}
+            value={value}
+            helpButton={objectDisplay === "expandedFixed" ? (
+              <FieldHelpIconButton
+                anchorRef={trailingHelpAnchorRef}
+                field={field}
+                label={displayLabel}
+                helpId={helpId}
+                helpOpen={helpOpen}
+                setHelpOpen={setHelpOpen}
+              />
+            ) : null}
+          />
+          {objectDisplay === "expandedFixed" ? (
+            <FieldHelpTooltip
+              anchorRef={trailingHelpAnchorRef}
+              helpId={helpId}
+              helpOpen={helpOpen}
+              helpParts={helpParts}
+            />
+          ) : null}
+          <FieldA11yMessages errorId={errorId} error={fieldError} />
+        </div>
+      );
+    }
     return (
       <div className={schemaFieldClass(wide)}>
-        {jsonFixedExpanded ? null : (
+        {objectDisplay === "expandedFixed" ? null : (
           <FieldTopline
             field={field}
             label={displayLabel}
             helpId={helpId}
             helpOpen={helpOpen}
             helpParts={helpParts}
-            id={jsonExpanded ? id : summaryId}
+            id={id}
             setHelpOpen={setHelpOpen}
           />
         )}
-        {jsonFixedExpanded ? null : (
-          <MaterialOutlinedButton
-            ariaExpanded={jsonExpanded}
-            ariaLabel={t("field.summaryButtonLabel", { label: displayLabel, summary })}
-            className="schema-json-summary"
-            controls={id}
-            id={summaryId}
-            ref={jsonSummaryRef}
-            onClick={() => {
-              setJsonExpanded((expanded) => {
-                if (expanded) {
-                  window.requestAnimationFrame(() => jsonSummaryRef.current?.focus());
-                }
-                return !expanded;
-              });
-            }}
-          >
-            <span>{displayLabel}</span>
-            <strong>{summary}</strong>
-            <span className="material-symbol" aria-hidden="true">
-              {jsonExpanded ? "expand_less" : "expand_more"}
-            </span>
-          </MaterialOutlinedButton>
-        )}
-        {jsonExpanded ? (
-          <>
-            <MaterialOutlinedTextField
-              ariaDescribedBy={fieldDescribedBy}
-              ariaLabel={jsonFieldLabel}
-              ariaInvalid={Boolean(fieldError)}
-              className={jsonFixedExpanded ? "schema-json-editor schema-json-editor--fixed" : "schema-json-editor"}
-              disabled={disabled}
-              error={Boolean(fieldError)}
-              errorText={fieldError}
-              id={id}
-              label={jsonFieldLabel}
-              ref={jsonEditorRef}
-              required={field.required}
-              spellCheck={false}
-              supportingText={fieldSupportingText(field, t("field.secretReplacementHint"))}
-              trailingIcon={jsonFixedExpanded ? (
-                <FieldHelpIconButton
-                  anchorRef={trailingHelpAnchorRef}
-                  field={field}
-                  label={displayLabel}
-                  helpId={helpId}
-                  helpOpen={helpOpen}
-                  setHelpOpen={setHelpOpen}
-                  slot="trailing-icon"
-                />
-              ) : undefined}
-              type="textarea"
-              value={text}
-              onInput={updateJSON}
-              onBlur={commitOnBlur}
-            />
-            {jsonFixedExpanded ? (
-              <FieldHelpTooltip
+        <div
+          aria-describedby={fieldDescribedBy}
+          aria-label={t("field.structuredSummaryLabel", { label: displayLabel })}
+          className="schema-structured-summary"
+          id={id}
+        >
+          <div className="schema-structured-summary__header">
+            <span>{summary.title}</span>
+            <strong>{t("field.structuredReadonly")}</strong>
+            {objectDisplay === "expandedFixed" ? (
+              <FieldHelpIconButton
                 anchorRef={trailingHelpAnchorRef}
+                field={field}
+                label={displayLabel}
                 helpId={helpId}
                 helpOpen={helpOpen}
-                helpParts={helpParts}
+                setHelpOpen={setHelpOpen}
               />
             ) : null}
-          </>
+          </div>
+          {summary.rows.length ? (
+            <dl className="schema-structured-summary__rows">
+              {summary.rows.map((row) => (
+                <div className="schema-structured-summary__row" key={row.key}>
+                  <dt>{row.key}</dt>
+                  <dd>{row.value}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : (
+            <p className="schema-structured-summary__empty">{t("field.structuredEmpty")}</p>
+          )}
+        </div>
+        {objectDisplay === "expandedFixed" ? (
+          <FieldHelpTooltip
+            anchorRef={trailingHelpAnchorRef}
+            helpId={helpId}
+            helpOpen={helpOpen}
+            helpParts={helpParts}
+          />
         ) : null}
         <FieldA11yMessages errorId={errorId} error={fieldError} />
       </div>
@@ -340,18 +344,6 @@ export function SchemaField({
       <FieldA11yMessages errorId={errorId} error={fieldError} />
     </div>
   );
-
-  function updateJSON(next: string) {
-    setText(next);
-    try {
-      const parsed = JSON.parse(next);
-      setParseError("");
-      onChange(parsed);
-    } catch (cause) {
-      const message = cause instanceof Error ? cause.message : t("field.invalidJson");
-      setParseError(t("field.invalidJsonWithMessage", { message }));
-    }
-  }
 
   function updateTextValue(next: string, emit: (value: unknown) => void, schema: FieldSchema) {
     setText(next);
@@ -455,6 +447,252 @@ function FieldTopline({
           setHelpOpen={setHelpOpen}
         />
       </span>
+    </div>
+  );
+}
+
+function StructuredObjectEditor({
+  describedBy,
+  disabled,
+  helpButton,
+  id,
+  label,
+  objectDisplay,
+  onCommit,
+  summary,
+  value
+}: {
+  describedBy?: string;
+  disabled: boolean;
+  helpButton: ReactNode;
+  id: string;
+  label: string;
+  objectDisplay: "collapsible" | "expandedFixed";
+  onCommit: (value: unknown) => void;
+  summary: StructuredSummary;
+  value: Record<string, unknown>;
+}) {
+  const { t } = useI18n();
+  const editableEntries = Object.entries(value).filter(([, entryValue]) => isStructuredEditableScalar(entryValue));
+  const summaryEntries = Object.entries(value).filter(([, entryValue]) => !isStructuredEditableScalar(entryValue));
+  return (
+    <div
+      aria-describedby={describedBy}
+      aria-label={t("field.structuredEditorLabel", { label })}
+      className="schema-structured-object"
+      id={id}
+    >
+      <div className="schema-structured-object__header">
+        <span>{label}</span>
+        {helpButton}
+      </div>
+      {editableEntries.length ? (
+        <div className="schema-structured-object__grid">
+          {editableEntries.map(([key, entryValue]) => (
+            <StructuredObjectEntry
+              disabled={disabled}
+              key={key}
+              label={key}
+              value={entryValue}
+              onCommit={(nextValue) => onCommit({ ...value, [key]: nextValue })}
+            />
+          ))}
+        </div>
+      ) : null}
+      {summaryEntries.length || editableEntries.length === 0 ? (
+        <StructuredObjectSummary
+          objectDisplay={objectDisplay}
+          summary={{
+            title: editableEntries.length === 0 ? summary.title : t("field.structuredNestedValues"),
+            rows: (editableEntries.length === 0 ? summary.rows : summaryEntries.map(([key, entryValue]) => ({
+              key,
+              value: structuredScalar(entryValue, undefined, t)
+            })))
+          }}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function StructuredObjectEntry({
+  disabled,
+  label,
+  onCommit,
+  value
+}: {
+  disabled: boolean;
+  label: string;
+  onCommit: (value: unknown) => void;
+  value: unknown;
+}) {
+  if (typeof value === "boolean") {
+    return (
+      <div className="schema-field schema-field--inline schema-structured-object__boolean">
+        <div className="schema-field__switch-line">
+          <span className="schema-field__label-row">
+            <span className="schema-field__label">{label}</span>
+          </span>
+          <MaterialSwitch
+            disabled={disabled}
+            label={label}
+            selected={value}
+            onChange={onCommit}
+          />
+        </div>
+      </div>
+    );
+  }
+  if (typeof value === "number") {
+    return (
+      <StructuredObjectNumberField
+        disabled={disabled}
+        label={label}
+        value={value}
+        onCommit={onCommit}
+      />
+    );
+  }
+  return (
+    <StructuredObjectTextField
+      disabled={disabled}
+      label={label}
+      value={typeof value === "string" ? value : ""}
+      onCommit={onCommit}
+    />
+  );
+}
+
+function StructuredObjectTextField({
+  disabled,
+  label,
+  onCommit,
+  value
+}: {
+  disabled: boolean;
+  label: string;
+  onCommit: (value: unknown) => void;
+  value: string;
+}) {
+  const [draft, setDraft] = useState(value);
+
+  useEffect(() => {
+    setDraft(value);
+  }, [value]);
+
+  return (
+    <div className="mb-field" data-variant="input">
+      <div className="mb-field__control">
+        <MaterialOutlinedTextField
+          disabled={disabled}
+          label={label}
+          spellCheck={false}
+          type="text"
+          value={draft}
+          onBlur={() => {
+            if (draft !== value) {
+              onCommit(draft);
+            }
+          }}
+          onInput={setDraft}
+        />
+      </div>
+    </div>
+  );
+}
+
+function StructuredObjectNumberField({
+  disabled,
+  label,
+  onCommit,
+  value
+}: {
+  disabled: boolean;
+  label: string;
+  onCommit: (value: unknown) => void;
+  value: number;
+}) {
+  const { t } = useI18n();
+  const [draft, setDraft] = useState(String(value));
+  const [localError, setLocalError] = useState("");
+
+  useEffect(() => {
+    setDraft(String(value));
+    setLocalError("");
+  }, [value]);
+
+  function commit() {
+    const trimmed = draft.trim();
+    if (trimmed === String(value)) {
+      setLocalError("");
+      return;
+    }
+    const parsed = Number(trimmed);
+    if (!Number.isFinite(parsed)) {
+      setLocalError(t("field.invalidNumber"));
+      return;
+    }
+    setLocalError("");
+    onCommit(parsed);
+  }
+
+  return (
+    <div className="mb-field" data-variant="input">
+      <div className="mb-field__control">
+        <MaterialOutlinedTextField
+          ariaInvalid={Boolean(localError)}
+          disabled={disabled}
+          error={Boolean(localError)}
+          errorText={localError}
+          inputMode="decimal"
+          label={label}
+          spellCheck={false}
+          type="text"
+          value={draft}
+          onBlur={commit}
+          onInput={(next) => {
+            setDraft(next);
+            if (localError && next.trim() === String(value)) {
+              setLocalError("");
+            }
+          }}
+        />
+      </div>
+      {localError ? (
+        <p className="field-error field-error--sr" role="alert">
+          {localError}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function StructuredObjectSummary({
+  objectDisplay,
+  summary
+}: {
+  objectDisplay: "collapsible" | "expandedFixed";
+  summary: StructuredSummary;
+}) {
+  const { t } = useI18n();
+  return (
+    <div className="schema-structured-summary schema-structured-summary--nested">
+      <div className="schema-structured-summary__header">
+        <span>{summary.title}</span>
+        <strong>{t(objectDisplay === "expandedFixed" ? "field.structuredReadonly" : "field.structuredSummary")}</strong>
+      </div>
+      {summary.rows.length ? (
+        <dl className="schema-structured-summary__rows">
+          {summary.rows.map((row) => (
+            <div className="schema-structured-summary__row" key={row.key}>
+              <dt>{row.key}</dt>
+              <dd>{row.value}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : (
+        <p className="schema-structured-summary__empty">{t("field.structuredEmpty")}</p>
+      )}
     </div>
   );
 }
@@ -727,11 +965,50 @@ function optionLabel(option: string, t: (key: MessageKey) => string) {
   return key ? t(key) : option;
 }
 
-function jsonSummary(
+type StructuredSummary = {
+  rows: Array<{ key: string; value: string }>;
+  title: string;
+};
+
+function structuredSummary(
   value: unknown,
   field: FieldSchema,
+  label: string,
+  t: (key: MessageKey, values?: Record<string, string | number>) => string
+): StructuredSummary {
+  if (Array.isArray(value)) {
+    return {
+      title: label,
+      rows: value.slice(0, 6).map((item, index) => ({
+        key: String(index + 1),
+        value: structuredScalar(item, field, t)
+      }))
+    };
+  }
+  if (value && typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>);
+    return {
+      title: label,
+      rows: entries.slice(0, 6).map(([key, item]) => ({
+        key,
+        value: structuredScalar(item, field, t)
+      }))
+    };
+  }
+  return {
+    title: label,
+    rows: []
+  };
+}
+
+function structuredScalar(
+  value: unknown,
+  field: FieldSchema | undefined,
   t: (key: MessageKey, values?: Record<string, string | number>) => string
 ) {
+  if (value === undefined || value === null || value === "") {
+    return t("field.structuredEmptyValue");
+  }
   if (Array.isArray(value)) {
     return t(summaryKey("field.summary.items", value.length), { count: value.length });
   }
@@ -739,11 +1016,20 @@ function jsonSummary(
     const count = Object.keys(value).length;
     return t(summaryKey("field.summary.keys", count), { count });
   }
-  return field.type === "array"
-    ? t("field.summary.items.many", { count: 0 })
-    : t("field.summary.keys.many", { count: 0 });
+  if (field?.secret) {
+    return "******";
+  }
+  return String(value);
 }
 
 function summaryKey(prefix: "field.summary.items" | "field.summary.keys", count: number): MessageKey {
   return `${prefix}.${count === 1 ? "one" : "many"}` as MessageKey;
+}
+
+function isObjectFieldValue(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function isStructuredEditableScalar(value: unknown) {
+  return value === undefined || value === null || typeof value === "string" || typeof value === "number" || typeof value === "boolean";
 }

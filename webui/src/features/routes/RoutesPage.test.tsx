@@ -26,8 +26,15 @@ describe("RoutesPage", () => {
     expect(getMaterialTextField(document, "Route display name")).toBeInTheDocument();
     expect(getMaterialTextField(document, "Route context window")).toBeInTheDocument();
     const advancedFeatures = screen.getByRole("group", { name: "Advanced Features" });
-    expect(getMaterialTextField(advancedFeatures, "Route web search JSON")).toHaveClass("schema-json-editor--fixed");
-    expect(getMaterialTextField(advancedFeatures, "Route extensions JSON")).toHaveClass("schema-json-editor--fixed");
+    expect(getMaterialSelect(advancedFeatures, "Route web search mode")).toBeInTheDocument();
+    expect(getMaterialTextField(advancedFeatures, "Route web search max uses")).toHaveAttribute("spellcheck", "false");
+    expect(getMaterialTextField(advancedFeatures, "Route web search search max rounds")).toHaveAttribute("spellcheck", "false");
+    expect(Array.from(advancedFeatures.querySelectorAll("md-outlined-text-field")).some(
+      (candidate) => materialElementLabel(candidate as MaterialTextFieldElement) === "Route web search JSON"
+    )).toBe(false);
+    expect(Array.from(advancedFeatures.querySelectorAll("md-outlined-text-field")).some(
+      (candidate) => materialElementLabel(candidate as MaterialTextFieldElement) === "Route extensions JSON"
+    )).toBe(false);
     expect(queryMaterialOutlinedButton(advancedFeatures, /Route web search.*1 key/)).not.toBeInTheDocument();
     expect(queryMaterialOutlinedButton(advancedFeatures, /Route extensions.*0 keys/)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/priority/i)).not.toBeInTheDocument();

@@ -2,6 +2,7 @@ package config
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -190,11 +191,66 @@ type ReasoningLevelPresetFileConfig struct {
 }
 
 type WebSearchFileConfig struct {
-	Support         string `yaml:"support" json:"support,omitempty"`
-	MaxUses         int    `yaml:"max_uses" json:"max_uses,omitempty"`
-	TavilyAPIKey    string `yaml:"tavily_api_key" json:"tavily_api_key,omitempty"`
-	FirecrawlAPIKey string `yaml:"firecrawl_api_key" json:"firecrawl_api_key,omitempty"`
-	SearchMaxRounds int    `yaml:"search_max_rounds" json:"search_max_rounds,omitempty"`
+	Support         string         `yaml:"support" json:"support,omitempty"`
+	MaxUses         int            `yaml:"max_uses" json:"max_uses,omitempty"`
+	TavilyAPIKey    string         `yaml:"tavily_api_key" json:"tavily_api_key,omitempty"`
+	FirecrawlAPIKey string         `yaml:"firecrawl_api_key" json:"firecrawl_api_key,omitempty"`
+	SearchMaxRounds int            `yaml:"search_max_rounds" json:"search_max_rounds,omitempty"`
+	Extra           map[string]any `yaml:",inline" json:"-"`
+}
+
+func (cfg *WebSearchFileConfig) UnmarshalYAML(value *yaml.Node) error {
+	type plain WebSearchFileConfig
+	var out plain
+	if err := value.Decode(&out); err != nil {
+		return err
+	}
+	cfg.Support = out.Support
+	cfg.MaxUses = out.MaxUses
+	cfg.TavilyAPIKey = out.TavilyAPIKey
+	cfg.FirecrawlAPIKey = out.FirecrawlAPIKey
+	cfg.SearchMaxRounds = out.SearchMaxRounds
+	cfg.Extra = removeKnownKeys(out.Extra, webSearchKnownKeys)
+	return nil
+}
+
+func (cfg WebSearchFileConfig) MarshalYAML() (any, error) {
+	return mergeKnownFields(cfg.Extra, map[string]any{
+		"support":           emptyStringAsNil(cfg.Support),
+		"max_uses":          emptyIntAsNil(cfg.MaxUses),
+		"tavily_api_key":    emptyStringAsNil(cfg.TavilyAPIKey),
+		"firecrawl_api_key": emptyStringAsNil(cfg.FirecrawlAPIKey),
+		"search_max_rounds": emptyIntAsNil(cfg.SearchMaxRounds),
+	}), nil
+}
+
+func (cfg *WebSearchFileConfig) UnmarshalJSON(data []byte) error {
+	type plain WebSearchFileConfig
+	var out plain
+	if err := json.Unmarshal(data, &out); err != nil {
+		return err
+	}
+	var raw map[string]any
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	cfg.Support = out.Support
+	cfg.MaxUses = out.MaxUses
+	cfg.TavilyAPIKey = out.TavilyAPIKey
+	cfg.FirecrawlAPIKey = out.FirecrawlAPIKey
+	cfg.SearchMaxRounds = out.SearchMaxRounds
+	cfg.Extra = removeKnownKeys(raw, webSearchKnownKeys)
+	return nil
+}
+
+func (cfg WebSearchFileConfig) MarshalJSON() ([]byte, error) {
+	return json.Marshal(mergeKnownFields(cfg.Extra, map[string]any{
+		"support":           emptyStringAsNil(cfg.Support),
+		"max_uses":          emptyIntAsNil(cfg.MaxUses),
+		"tavily_api_key":    emptyStringAsNil(cfg.TavilyAPIKey),
+		"firecrawl_api_key": emptyStringAsNil(cfg.FirecrawlAPIKey),
+		"search_max_rounds": emptyIntAsNil(cfg.SearchMaxRounds),
+	}))
 }
 
 type PersistenceFileConfig struct {
@@ -365,6 +421,7 @@ func FromFileConfigWithOptions(fileConfig FileConfig, opts LoadOptions) (Config,
 		TavilyAPIKey:     strings.TrimSpace(fileConfig.WebSearch.TavilyAPIKey),
 		FirecrawlAPIKey:  strings.TrimSpace(fileConfig.WebSearch.FirecrawlAPIKey),
 		SearchMaxRounds:  intOrDefault(fileConfig.WebSearch.SearchMaxRounds, 5),
+		WebSearchExtra:   cloneAnyMap(fileConfig.WebSearch.Extra),
 		DefaultMaxTokens: intOrDefault(defaults.MaxTokens, 1024),
 		Cache:            fromCacheFileConfig(fileConfig.Cache),
 		Persistence:      FromPersistenceFileConfig(fileConfig.Persistence),
@@ -397,14 +454,15 @@ func fromModelDefFileConfig(fileConfig map[string]ModelDefFileConfig, specs exte
 			return nil, err
 		}
 		ws := WebSearchConfig{}
-		if m.WebSearch.Support != "" {
+		if hasWebSearchFileConfig(m.WebSearch) {
 			wsSupport, _ := parseWebSearchSupport(m.WebSearch.Support)
 			ws = WebSearchConfig{
-				Support:         wsSupport,
+				Support:         explicitWebSearchSupport(m.WebSearch.Support, wsSupport),
 				MaxUses:         m.WebSearch.MaxUses,
 				TavilyAPIKey:    strings.TrimSpace(m.WebSearch.TavilyAPIKey),
 				FirecrawlAPIKey: strings.TrimSpace(m.WebSearch.FirecrawlAPIKey),
 				SearchMaxRounds: m.WebSearch.SearchMaxRounds,
+				Extra:           cloneAnyMap(m.WebSearch.Extra),
 			}
 		}
 		var reasoningPresets []ReasoningLevelPreset
@@ -543,6 +601,7 @@ func fromProviderDefFileConfig(fileConfig map[string]ProviderDefFileConfig, spec
 			TavilyAPIKey:     strings.TrimSpace(def.WebSearch.TavilyAPIKey),
 			FirecrawlAPIKey:  strings.TrimSpace(def.WebSearch.FirecrawlAPIKey),
 			SearchMaxRounds:  def.WebSearch.SearchMaxRounds,
+			WebSearchExtra:   cloneAnyMap(def.WebSearch.Extra),
 			Extensions:       providerExtensions,
 			Models:           providerModels,
 			Offers:           offers,
@@ -598,14 +657,15 @@ func mergeModelDefOverrides(base ModelDef, override ModelDefFileConfig) ModelDef
 	if override.SupportsImageDetailOriginal != nil {
 		out.SupportsImageDetailOriginal = *override.SupportsImageDetailOriginal
 	}
-	if override.WebSearch.Support != "" {
+	if hasWebSearchFileConfig(override.WebSearch) {
 		wsSupport, _ := parseWebSearchSupport(override.WebSearch.Support)
 		out.WebSearch = WebSearchConfig{
-			Support:         wsSupport,
+			Support:         explicitWebSearchSupport(override.WebSearch.Support, wsSupport),
 			MaxUses:         override.WebSearch.MaxUses,
 			TavilyAPIKey:    strings.TrimSpace(override.WebSearch.TavilyAPIKey),
 			FirecrawlAPIKey: strings.TrimSpace(override.WebSearch.FirecrawlAPIKey),
 			SearchMaxRounds: override.WebSearch.SearchMaxRounds,
+			Extra:           cloneAnyMap(override.WebSearch.Extra),
 		}
 	}
 	if override.Extensions != nil {
@@ -617,6 +677,7 @@ func mergeModelDefOverrides(base ModelDef, override ModelDefFileConfig) ModelDef
 			out.Extensions[k] = ExtensionSettings{
 				Enabled:   enabled,
 				RawConfig: cloneAnyMap(v.Config),
+				Extra:     cloneAnyMap(v.Extra),
 			}
 		}
 	}
@@ -753,14 +814,15 @@ func buildRoutes(rawRoutes map[string]RouteFileConfig, providerDefs map[string]P
 		if routeCfg.ContextWindow > 0 {
 			entry.ContextWindow = routeCfg.ContextWindow
 		}
-		if routeCfg.WebSearch.Support != "" {
+		if hasWebSearchFileConfig(routeCfg.WebSearch) {
 			wsSupport, _ := parseWebSearchSupport(routeCfg.WebSearch.Support)
 			entry.WebSearch = WebSearchConfig{
-				Support:         wsSupport,
+				Support:         explicitWebSearchSupport(routeCfg.WebSearch.Support, wsSupport),
 				MaxUses:         routeCfg.WebSearch.MaxUses,
 				TavilyAPIKey:    strings.TrimSpace(routeCfg.WebSearch.TavilyAPIKey),
 				FirecrawlAPIKey: strings.TrimSpace(routeCfg.WebSearch.FirecrawlAPIKey),
 				SearchMaxRounds: routeCfg.WebSearch.SearchMaxRounds,
+				Extra:           cloneAnyMap(routeCfg.WebSearch.Extra),
 			}
 		}
 
@@ -817,6 +879,22 @@ func parseWebSearchSupport(value string) (WebSearchSupport, error) {
 	default:
 		return "", fmt.Errorf("invalid web_search.support %q", value)
 	}
+}
+
+func explicitWebSearchSupport(raw string, parsed WebSearchSupport) WebSearchSupport {
+	if strings.TrimSpace(raw) == "" {
+		return ""
+	}
+	return parsed
+}
+
+func hasWebSearchFileConfig(cfg WebSearchFileConfig) bool {
+	return strings.TrimSpace(cfg.Support) != "" ||
+		cfg.MaxUses != 0 ||
+		strings.TrimSpace(cfg.TavilyAPIKey) != "" ||
+		strings.TrimSpace(cfg.FirecrawlAPIKey) != "" ||
+		cfg.SearchMaxRounds != 0 ||
+		len(cfg.Extra) > 0
 }
 
 func FromResponseProxyFileConfig(fileConfig ProxyTargetFileConfig) ResponseProxyConfig {
