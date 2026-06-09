@@ -105,6 +105,47 @@ func TestEmbeddedIndexReferencesExistingAssets(t *testing.T) {
 	}
 }
 
+func TestEmbeddedConsoleIncludesModelReasoningSupportSwitch(t *testing.T) {
+	scripts := embeddedScriptBodies(t)
+	combined := strings.Join(scripts, "\n")
+
+	if !strings.Contains(combined, "supports_reasoning") {
+		t.Fatalf("embedded console scripts do not include supports_reasoning; run make webui-build to sync the bundled webui")
+	}
+	if !strings.Contains(combined, "Model reasoning support field") {
+		t.Fatalf("embedded console scripts do not include the model reasoning switch guard; run make webui-build to sync the bundled webui")
+	}
+}
+
+func embeddedScriptBodies(t *testing.T) []string {
+	t.Helper()
+
+	handler := webui.Embedded()
+
+	index := httptest.NewRecorder()
+	handler.ServeHTTP(index, httptest.NewRequest(http.MethodGet, "/console/", nil))
+	if index.Code != http.StatusOK {
+		t.Fatalf("index status = %d, body = %s", index.Code, index.Body.String())
+	}
+
+	scriptSrcs := regexp.MustCompile(`src="(/console/assets/[^"]+)"`).FindAllStringSubmatch(index.Body.String(), -1)
+	if len(scriptSrcs) == 0 {
+		t.Fatalf("index does not reference any console script asset: %s", index.Body.String())
+	}
+
+	scripts := make([]string, 0, len(scriptSrcs))
+	for _, match := range scriptSrcs {
+		assetPath := match[1]
+		recorder := httptest.NewRecorder()
+		handler.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, assetPath, nil))
+		if recorder.Code != http.StatusOK {
+			t.Fatalf("asset %s status = %d, body = %s", assetPath, recorder.Code, recorder.Body.String())
+		}
+		scripts = append(scripts, recorder.Body.String())
+	}
+	return scripts
+}
+
 func testFS() fs.FS {
 	return fstest.MapFS{
 		"index.html": &fstest.MapFile{
