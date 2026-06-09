@@ -31,8 +31,8 @@ describe("ResourceEditorCard", () => {
     expect(screen.getByRole("heading", { name: "anthropic" })).toBeInTheDocument();
     expect(document.querySelector(".resource-kind-icon")).toBeInTheDocument();
     expect(within(screen.getByLabelText("anthropic status")).getByText("Saved")).toBeInTheDocument();
-    expect(getMaterialTextField(document, "Base URL")).toBeInTheDocument();
-    expect(getMaterialTextField(document, "API Key")).toHaveProperty("type", "password");
+    expect(getMaterialTextField(document, "Upstream base URL")).toBeInTheDocument();
+    expect(getMaterialTextField(document, "Upstream API key")).toHaveProperty("type", "password");
   });
 
   test("surfaces restart and critical runtime metadata", () => {
@@ -156,6 +156,7 @@ describe("ResourceEditorCard", () => {
     expect(screen.getByText("关键运行时")).toBeInTheDocument();
     expect(screen.getAllByText("1 个字段").length).toBeGreaterThan(0);
     expect(screen.getAllByText("变更后重启").length).toBeGreaterThan(0);
+    expect(within(screen.getByLabelText("main 状态")).getByText("需要重启")).toBeInTheDocument();
   });
 
   test("merges object fields into settings instead of an Advanced JSON group", () => {
@@ -184,11 +185,11 @@ describe("ResourceEditorCard", () => {
     const identityGroup = screen.getByRole("group", { name: "Identity" });
     const standardGroup = screen.getByRole("group", { name: "Settings" });
 
-    expect(getMaterialTextField(identityGroup, "Model")).toBeInTheDocument();
-    expect(getMaterialTextField(identityGroup, "Upstream Name")).toBeInTheDocument();
-    expect(getMaterialTextField(standardGroup, "Priority")).toBeInTheDocument();
+    expect(getMaterialTextField(identityGroup, "Offer model")).toBeInTheDocument();
+    expect(getMaterialTextField(identityGroup, "Upstream model name")).toBeInTheDocument();
+    expect(getMaterialTextField(standardGroup, "Offer priority")).toBeInTheDocument();
     expect(getMaterialButton(standardGroup, /Pricing.*1 key/, "outlined")).toBeInTheDocument();
-    expect(getMaterialButton(standardGroup, /Overrides.*0 keys/, "outlined")).toBeInTheDocument();
+    expect(getMaterialButton(standardGroup, /Offer overrides.*0 keys/, "outlined")).toBeInTheDocument();
     expect(screen.queryByRole("group", { name: "Advanced JSON" })).not.toBeInTheDocument();
   });
 
@@ -210,7 +211,7 @@ describe("ResourceEditorCard", () => {
     );
 
     const settingsGroup = screen.getByRole("group", { name: "Settings" });
-    expect(getMaterialTextField(settingsGroup, "Description")).toBeInTheDocument();
+    expect(getMaterialTextField(settingsGroup, "Model description")).toBeInTheDocument();
     expect(screen.queryByRole("group", { name: "Advanced JSON" })).not.toBeInTheDocument();
   });
 
@@ -237,11 +238,11 @@ describe("ResourceEditorCard", () => {
       <ResourceEditorCard resource={model} revision="rev-1" title="Model" />
     );
 
-    expect(getMaterialTextField(document, "Display Name").closest(".form-grid__medium")).toBeInTheDocument();
-    expect(getMaterialTextField(document, "Context Window").closest(".form-grid__compact")).toBeInTheDocument();
-    expect(getMaterialTextField(document, "Default Reasoning Level").closest(".form-grid__compact")).toBeInTheDocument();
-    expect(getMaterialTextField(document, "Description").closest(".form-grid__wide")).toBeInTheDocument();
-    expect(getMaterialButton(document, /Extensions.*0 keys/, "outlined").closest(".form-grid__wide")).toBeInTheDocument();
+    expect(getMaterialTextField(document, "Model display name").closest(".form-grid__medium")).toBeInTheDocument();
+    expect(getMaterialTextField(document, "Context window").closest(".form-grid__compact")).toBeInTheDocument();
+    expect(getMaterialTextField(document, "Default reasoning level").closest(".form-grid__compact")).toBeInTheDocument();
+    expect(getMaterialTextField(document, "Model description").closest(".form-grid__wide")).toBeInTheDocument();
+    expect(getMaterialButton(document, /Model extensions.*0 keys/, "outlined").closest(".form-grid__wide")).toBeInTheDocument();
   });
 
   test("uses Material Web buttons for delete confirmation state changes", async () => {

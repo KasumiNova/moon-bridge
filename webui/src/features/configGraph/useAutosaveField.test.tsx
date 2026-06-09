@@ -22,7 +22,9 @@ describe("useAutosaveField", () => {
         field: "model",
         committedValue: "claude-3-5-sonnet",
         revision: "rev-1",
-        save
+        save,
+        configUpdateFailedMessage,
+        requestFailedMessage
       })
     );
 
@@ -42,7 +44,9 @@ describe("useAutosaveField", () => {
         field: "model",
         committedValue: "old-model",
         revision: "rev-1",
-        save
+        save,
+        configUpdateFailedMessage,
+        requestFailedMessage
       })
     );
 
@@ -72,7 +76,9 @@ describe("useAutosaveField", () => {
         field: "model",
         committedValue: "old-model",
         revision: "rev-1",
-        save
+        save,
+        configUpdateFailedMessage,
+        requestFailedMessage
       })
     );
 
@@ -90,7 +96,9 @@ describe("useAutosaveField", () => {
         field: "enabled",
         committedValue: false,
         revision: "rev-1",
-        save
+        save,
+        configUpdateFailedMessage,
+        requestFailedMessage
       })
     );
 
@@ -129,7 +137,9 @@ describe("useAutosaveField", () => {
         field: "max_tokens",
         committedValue: 1024,
         revision: "rev-1",
-        save
+        save,
+        configUpdateFailedMessage,
+        requestFailedMessage
       })
     );
 
@@ -139,6 +149,31 @@ describe("useAutosaveField", () => {
     await waitFor(() => expect(result.current.status).toBe("error"));
     expect(result.current.value).toBe(-1);
     expect(result.current.error?.message).toBe("must be positive");
+  });
+
+  test("uses the localized generic message when rejected patches do not include field errors", async () => {
+    const save: SaveField<number> = vi.fn().mockResolvedValue({
+      result: "validationRejected",
+      revision: "rev-1"
+    } satisfies PatchResponse);
+    const { result } = renderHook(() =>
+      useAutosaveField({
+        resourceKind: "defaults",
+        resourceId: "main",
+        field: "max_tokens",
+        committedValue: 1024,
+        revision: "rev-1",
+        save,
+        configUpdateFailedMessage,
+        requestFailedMessage
+      })
+    );
+
+    act(() => result.current.setValue(-1));
+    act(() => result.current.commit());
+
+    await waitFor(() => expect(result.current.status).toBe("error"));
+    expect(result.current.error?.message).toBe("Config update validationRejected failed.");
   });
 
   test("rolls back to the server value after runtime rejection", async () => {
@@ -163,7 +198,9 @@ describe("useAutosaveField", () => {
         field: "addr",
         committedValue: "old-address",
         revision: "rev-1",
-        save
+        save,
+        configUpdateFailedMessage,
+        requestFailedMessage
       })
     );
 
@@ -185,7 +222,9 @@ describe("useAutosaveField", () => {
           field: "model",
           committedValue,
           revision,
-          save
+          save,
+          configUpdateFailedMessage,
+          requestFailedMessage
         }),
       { initialProps: { committedValue: "original", revision: "rev-1" } }
     );
@@ -200,3 +239,6 @@ describe("useAutosaveField", () => {
     expect(result.current.status).toBe("dirty");
   });
 });
+
+const requestFailedMessage = "Request failed";
+const configUpdateFailedMessage = (result: PatchResponse["result"]) => `Config update ${result} failed.`;

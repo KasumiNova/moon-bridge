@@ -174,11 +174,12 @@ export function LogPanel({ labelledBy, embedded }: { labelledBy?: string; embedd
 }
 
 function LogRow({ entry, index }: { entry: LogEntry; index: number }) {
+  const { t } = useI18n();
   const level = normalizeLevel(entry.level);
   return (
     <motion.article
       className={`log-row log-row--${level}`}
-      aria-label={`Log ${index + 1}`}
+      aria-label={t("logs.rowLabel", { index: index + 1 })}
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={springs.effects}

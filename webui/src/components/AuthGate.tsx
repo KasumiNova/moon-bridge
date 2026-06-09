@@ -61,7 +61,7 @@ export function AuthGate({ children, error, onTokenSaved }: AuthGateProps) {
         <MaterialFilledTextField
           autoFocus
           className="auth-token-field"
-          label="Token"
+          label={t("auth.token")}
           type="password"
           value={token}
           onInput={setToken}

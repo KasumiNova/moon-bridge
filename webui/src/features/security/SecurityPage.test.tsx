@@ -19,10 +19,10 @@ describe("SecurityPage", () => {
     expect(within(screen.getByLabelText("Server")).getByRole("heading", { level: 3, name: "main" })).toBeInTheDocument();
     expect(within(screen.getByLabelText("Server main status")).getByText("Restart required")).toBeInTheDocument();
     expect(within(screen.getByLabelText("Server main status")).getByText("Critical")).toBeInTheDocument();
-    expect(screen.getByLabelText("Address")).toHaveValue(":38440");
-    expect(screen.getByLabelText("Max Sessions")).toHaveValue("64");
+    expect(screen.getByLabelText("Listen address")).toHaveValue(":38440");
+    expect(screen.getByLabelText("Max sessions")).toHaveValue("64");
     expect(screen.getByLabelText("Session TTL")).toHaveValue("24h");
-    expect(screen.getByLabelText("Auth Token")).toHaveValue("");
+    expect(screen.getByLabelText("Auth token")).toHaveValue("");
     expect(screen.queryByDisplayValue("******")).not.toBeInTheDocument();
     expect(screen.getByText("Restart required")).toBeInTheDocument();
   });
@@ -33,8 +33,10 @@ describe("SecurityPage", () => {
     renderWithConsoleProviders(<SecurityPage />, { locale: "zh-CN" });
 
     expect(await screen.findByRole("heading", { level: 2, name: "服务访问" })).toBeInTheDocument();
-    expect(within(screen.getByLabelText("服务访问 main status")).getByText("需要重启")).toBeInTheDocument();
-    expect(getMaterialTextField(document, "Auth Token").supportingText).toBe("输入新值以替换已保存的密钥。");
+    expect(within(screen.getByLabelText("服务访问 main 状态")).getByText("需要重启")).toBeInTheDocument();
+    expect(getMaterialTextField(document, "认证 Token").supportingText).toBe("输入新值以替换已保存的密钥。");
+    expect(getMaterialTextField(document, "认证 Token")).toHaveAttribute("aria-label", "认证 Token");
+    expect(screen.queryByLabelText("Auth Token")).not.toBeInTheDocument();
   });
 });
 

@@ -42,7 +42,7 @@ function ServerSection({
     <section className="content-panel" aria-label={title}>
       <h2>{title}</h2>
       <ResourceEditorCard
-        ariaLabel={`${title} ${resource.id}`}
+        ariaLabel={t("resource.cardLabel", { title, id: resource.id })}
         resource={resource}
         revision={revision}
         title={title}

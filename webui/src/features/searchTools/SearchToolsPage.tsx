@@ -67,7 +67,7 @@ export function SearchToolsPage() {
         <div className="resource-card-list">
           {extensions.map((extension) => (
             <ResourceEditorCard
-              ariaLabel={`${t("searchTools.extension")} ${extension.id}`}
+              ariaLabel={t("resource.cardLabel", { title: t("searchTools.extension"), id: extension.id })}
               key={extension.id}
               resource={extension}
               revision={graph.data.revision}
@@ -97,11 +97,12 @@ function ResourceSection({
   revision: string;
   title: string;
 }) {
+  const { t } = useI18n();
   return (
     <section className="content-panel" aria-label={title}>
       <h2>{title}</h2>
       <ResourceEditorCard
-        ariaLabel={`${title} ${resource.id}`}
+        ariaLabel={t("resource.cardLabel", { title, id: resource.id })}
         resource={resource}
         revision={revision}
         title={title}

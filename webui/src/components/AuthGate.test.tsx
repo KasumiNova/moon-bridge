@@ -72,6 +72,19 @@ describe("AuthGate", () => {
       "remembered-token"
     );
   });
+
+  test("localizes authentication controls in Chinese locale", () => {
+    renderWithConsoleProviders(
+      <AuthGate error={new ApiError(401, "invalid_auth", "missing token")}>
+        Console content
+      </AuthGate>,
+      { locale: "zh-CN" }
+    );
+
+    expect(getMaterialTextField(document, "Token")).toBeInTheDocument();
+    expect(getMaterialCheckbox(document, "在此设备记住")).toBeInTheDocument();
+    expect(getMaterialButton(document, "保存 Token")).toBeInTheDocument();
+  });
 });
 
 function getMaterialTextField(container: ParentNode, label: string) {

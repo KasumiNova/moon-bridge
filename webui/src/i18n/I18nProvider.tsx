@@ -30,7 +30,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
   const t = useCallback(
     (key: MessageKey, values?: Record<string, InterpolationValue>) =>
-      interpolate(messages[locale][key] ?? messages["zh-CN"][key], values),
+      translateMessageForLocale(locale, key, values),
     [locale]
   );
 
@@ -45,6 +45,18 @@ export function useI18n() {
     throw new Error("useI18n must be used within I18nProvider");
   }
   return context;
+}
+
+export function translateMessage(key: MessageKey, values?: Record<string, InterpolationValue>) {
+  return translateMessageForLocale(readInitialLocale(), key, values);
+}
+
+function translateMessageForLocale(
+  locale: Locale,
+  key: MessageKey,
+  values?: Record<string, InterpolationValue>
+) {
+  return interpolate(messages[locale][key] ?? messages["zh-CN"][key], values);
 }
 
 function readInitialLocale(): Locale {

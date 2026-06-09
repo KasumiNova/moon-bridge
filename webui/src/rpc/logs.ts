@@ -1,4 +1,5 @@
 import { ApiError, apiFetch, normalizeURL, readStoredToken } from "./http";
+import { translateMessage } from "../i18n/I18nProvider";
 import type { LogEntry } from "./types";
 
 export type RecentLogsOptions = {
@@ -36,11 +37,11 @@ export async function createLogStream(options: LogStreamOptions = {}) {
     throw new ApiError(
       response.status,
       "log_stream_error",
-      `Log stream failed with status ${response.status}`
+      translateMessage("logs.streamFailedWithStatus", { status: response.status })
     );
   }
   if (!response.body) {
-    throw new ApiError(response.status, "log_stream_error", "Log stream response body is empty");
+    throw new ApiError(response.status, "log_stream_error", translateMessage("logs.streamBodyEmpty"));
   }
   return response;
 }

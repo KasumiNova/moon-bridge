@@ -94,6 +94,7 @@ export function OverviewPage() {
 }
 
 function useLiveUsageDuration(rawDuration: string | undefined, active: boolean) {
+  const { t } = useI18n();
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const baseSeconds = rawDuration ? parseDurationSeconds(rawDuration) : undefined;
 
@@ -112,9 +113,13 @@ function useLiveUsageDuration(rawDuration: string | undefined, active: boolean) 
     return "";
   }
   if (!active || baseSeconds === undefined) {
-    return formatDuration(rawDuration);
+    return formatDuration(rawDuration, translateDurationPart);
   }
-  return formatDurationSeconds(baseSeconds + elapsedSeconds);
+  return formatDurationSeconds(baseSeconds + elapsedSeconds, translateDurationPart);
+
+  function translateDurationPart(key: MessageKey, count: number) {
+    return t(key, { count });
+  }
 }
 
 function UsageDashboard({ stats }: { stats: UsageStats }) {
@@ -145,10 +150,10 @@ function UsageDashboard({ stats }: { stats: UsageStats }) {
 
       <div className="usage-chart-grid">
         <UsageBarChart
-          ariaLabel={chartAriaLabel(t("overview.tokenSplitChart"), [
+          ariaLabel={chartAriaLabel(t, t("overview.tokenSplitChart"), [
             [t("overview.inputTokens"), stats.totals.input_tokens],
             [t("overview.outputTokens"), stats.totals.output_tokens]
-          ])}
+          ], t("overview.noData"))}
           title={t("overview.tokenSplit")}
           segments={[
             { label: t("overview.inputTokens"), value: stats.totals.input_tokens, className: "usage-segment--input" },
@@ -156,10 +161,10 @@ function UsageDashboard({ stats }: { stats: UsageStats }) {
           ]}
         />
         <UsageBarChart
-          ariaLabel={chartAriaLabel(t("overview.cacheSplitChart"), [
+          ariaLabel={chartAriaLabel(t, t("overview.cacheSplitChart"), [
             [t("overview.cacheWrite"), stats.totals.cache_creation],
             [t("overview.cacheRead"), stats.totals.cache_read]
-          ])}
+          ], t("overview.noData"))}
           title={t("overview.cacheSplit")}
           segments={[
             { label: t("overview.cacheWrite"), value: stats.totals.cache_creation, className: "usage-segment--cache-write" },
@@ -168,8 +173,10 @@ function UsageDashboard({ stats }: { stats: UsageStats }) {
         />
         <UsageBarChart
           ariaLabel={chartAriaLabel(
+            t,
             t("overview.costByModelChart"),
-            stats.by_model.map((row) => [row.model, row.cost])
+            stats.by_model.map((row) => [row.model, row.cost]),
+            t("overview.noData")
           )}
           title={t("overview.costByModel")}
           segments={stats.by_model.map((row, index) => ({
@@ -268,8 +275,9 @@ function UsageBarChart({
 }
 
 function UsageModelRow({ row }: { row: UsageStatsModelRow }) {
+  const { t } = useI18n();
   return (
-    <tr aria-label={`${row.model} usage`}>
+    <tr aria-label={t("overview.modelUsageRow", { model: row.model })}>
       <td>{row.model}</td>
       <td>{row.actual_model || "-"}</td>
       <td>{formatNumber(row.requests)}</td>
@@ -279,7 +287,7 @@ function UsageModelRow({ row }: { row: UsageStatsModelRow }) {
       <td>{formatTokenValue(row.cache_read)}</td>
       <td>{formatPercent(row.cache_hit_rate)}</td>
       <td>{formatCurrency(row.cost)}</td>
-      <td>{formatCurrency(row.avg_cost_per_mtoken)}/M</td>
+      <td>{formatCurrency(row.avg_cost_per_mtoken)}{t("overview.costPerMillionSuffix")}</td>
     </tr>
   );
 }
@@ -288,8 +296,10 @@ function formatNumber(value: number) {
   return new Intl.NumberFormat().format(value);
 }
 
-/** Humanizes a Go duration string (e.g. "41m13.801862068s") into "41m 14s". */
-function formatDuration(raw: string) {
+function formatDuration(
+  raw: string,
+  translatePart: (key: MessageKey, count: number) => string
+) {
   if (!raw || raw === "N/A") {
     return "—";
   }
@@ -297,7 +307,7 @@ function formatDuration(raw: string) {
   if (seconds === undefined) {
     return raw.trim();
   }
-  return formatDurationSeconds(seconds);
+  return formatDurationSeconds(seconds, translatePart);
 }
 
 function parseDurationSeconds(raw: string) {
@@ -311,20 +321,23 @@ function parseDurationSeconds(raw: string) {
   return hours * 3600 + minutes * 60 + seconds;
 }
 
-function formatDurationSeconds(totalSeconds: number) {
+function formatDurationSeconds(
+  totalSeconds: number,
+  translatePart: (key: MessageKey, count: number) => string
+) {
   const roundedSeconds = Math.max(0, Math.round(totalSeconds));
   const hours = Math.floor(roundedSeconds / 3600);
   const minutes = Math.floor((roundedSeconds % 3600) / 60);
   const seconds = roundedSeconds % 60;
   const parts: string[] = [];
   if (hours) {
-    parts.push(`${hours}h`);
+    parts.push(translatePart("overview.duration.hoursShort", hours));
   }
   if (minutes) {
-    parts.push(`${minutes}m`);
+    parts.push(translatePart("overview.duration.minutesShort", minutes));
   }
   if (seconds || parts.length === 0) {
-    parts.push(`${seconds}s`);
+    parts.push(translatePart("overview.duration.secondsShort", seconds));
   }
   return parts.join(" ");
 }
@@ -353,9 +366,16 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
-function chartAriaLabel(title: string, values: Array<[string, number]>) {
+function chartAriaLabel(
+  t: (key: MessageKey, values?: Record<string, string | number>) => string,
+  title: string,
+  values: Array<[string, number]>,
+  emptySummary: string
+) {
   const summary = values.length > 0
-    ? values.map(([label, value]) => `${label}: ${formatNumber(value)}`).join(", ")
-    : "no data";
-  return `${title}. ${summary}`;
+    ? values
+      .map(([label, value]) => t("overview.chartAriaItem", { label, value: formatNumber(value) }))
+      .join(t("overview.chartAriaSeparator"))
+    : emptySummary;
+  return t("overview.chartAriaLabel", { title, summary });
 }

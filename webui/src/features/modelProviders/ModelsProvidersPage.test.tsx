@@ -85,9 +85,56 @@ describe("ModelsProvidersPage", () => {
     renderWithConsoleProviders(<ModelsProvidersPage />, { locale: "zh-CN" });
 
     expect(await screen.findByRole("heading", { name: "提供商 (1)" })).toBeInTheDocument();
-    expect(within(screen.getByLabelText("Provider anthropic")).getByRole("heading", { name: "提供商能力 (1)" })).toBeInTheDocument();
+    expect(within(screen.getByLabelText("提供商 anthropic")).getByRole("heading", { name: "提供商能力 (1)" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "模型 (1)" })).toBeInTheDocument();
-    expect(within(screen.getByLabelText("anthropic status")).getByText("已保存")).toBeInTheDocument();
+    expect(within(screen.getByLabelText("anthropic 状态")).getByText("已保存")).toBeInTheDocument();
+    expect(getMaterialTextField(document, "上游 Base URL")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Base URL")).not.toBeInTheDocument();
+  });
+
+  test("localizes create model help and validation in Chinese locale", async () => {
+    vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
+    const create = vi.spyOn(configGraph, "createConfigResource").mockResolvedValue({
+      result: "committed",
+      revision: "rev-2",
+      graph: configGraphFixture({ revision: "rev-2" })
+    });
+
+    renderWithConsoleProviders(<ModelsProvidersPage />, { locale: "zh-CN" });
+
+    await waitForMaterialButton(document, "添加模型");
+    await userEvent.click(getMaterialButton(document, "添加模型", "filled"));
+    const form = screen.getByRole("form", { name: "创建模型" });
+    await userEvent.click(getMaterialIconButton(form, "显示名称 帮助"));
+
+    expect(within(form).getByRole("tooltip")).toHaveTextContent("控制台中展示的人类可读名称。");
+
+    setMaterialTextFieldValue(getMaterialTextField(form, "上下文窗口"), "0");
+    setMaterialTextFieldValue(getMaterialTextField(form, "模型 ID"), "zero-window");
+    await submitMaterialForm(form, "创建模型");
+
+    expect(await within(form).findByRole("alert")).toHaveTextContent("上下文窗口 必须大于 0。");
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  test("localizes create provider protocol and context presets in Chinese locale", async () => {
+    vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
+
+    renderWithConsoleProviders(<ModelsProvidersPage />, { locale: "zh-CN" });
+
+    await waitForMaterialButton(document, "添加提供商");
+    await userEvent.click(getMaterialButton(document, "添加提供商", "filled"));
+    const providerForm = screen.getByRole("form", { name: "创建提供商" });
+    expect(getMaterialFilterChip(providerForm, "OpenAI Responses")).toBeInTheDocument();
+    expect(getMaterialFilterChip(providerForm, "Gemini")).toBeInTheDocument();
+
+    await userEvent.click(getMaterialButton(providerForm, "取消", "outlined"));
+    await waitForMaterialButton(document, "添加模型");
+    await userEvent.click(getMaterialButton(document, "添加模型", "filled"));
+    const modelForm = screen.getByRole("form", { name: "创建模型" });
+    expect(getMaterialFilterChip(modelForm, "128K")).toBeInTheDocument();
+    expect(getMaterialFilterChip(modelForm, "400K")).toBeInTheDocument();
+    expect(getMaterialFilterChip(modelForm, "100 万")).toBeInTheDocument();
   });
 
   test("autosaves provider fields and offer priority through graph patches", async () => {
@@ -102,7 +149,7 @@ describe("ModelsProvidersPage", () => {
     const providerPanel = (await screen.findByRole("heading", { level: 3, name: "anthropic" }))
       .closest("section")!;
     vi.useFakeTimers();
-    const baseUrlField = getMaterialTextField(providerPanel, "Base URL");
+    const baseUrlField = getMaterialTextField(providerPanel, "Upstream base URL");
     setMaterialTextFieldValue(baseUrlField, "https://api.anthropic.test");
     fireEvent.blur(baseUrlField);
 
@@ -124,7 +171,7 @@ describe("ModelsProvidersPage", () => {
     await expandOffers(screen.getByLabelText("Provider anthropic"));
     const offerPanel = screen.getByText("anthropic/claude-sonnet").closest("section")!;
     vi.useFakeTimers();
-    const priorityField = getMaterialTextField(offerPanel, "Priority");
+    const priorityField = getMaterialTextField(offerPanel, "Offer priority");
     setMaterialTextFieldValue(priorityField, "5");
     fireEvent.blur(priorityField);
 

@@ -1,3 +1,5 @@
+import { translateMessage } from "../i18n/I18nProvider";
+
 export const API_BASE = "/api/v1";
 export const TOKEN_STORAGE_KEY = "moonbridge.console.token";
 export const REMEMBER_TOKEN_STORAGE_KEY = "moonbridge.console.rememberedToken";
@@ -110,10 +112,10 @@ async function readPayload(response: Response): Promise<unknown> {
 function normalizeError(status: number, raw: unknown): ApiError {
   if (isObject(raw) && isObject(raw.error)) {
     const code = stringValue(raw.error.code) ?? stringValue(raw.error.type) ?? "request_error";
-    const message = stringValue(raw.error.message) ?? `Request failed with status ${status}`;
+    const message = stringValue(raw.error.message) ?? translateMessage("error.requestFailedWithStatus", { status });
     return new ApiError(status, code, message, raw);
   }
-  return new ApiError(status, "request_error", `Request failed with status ${status}`, raw);
+  return new ApiError(status, "request_error", translateMessage("error.requestFailedWithStatus", { status }), raw);
 }
 
 function safeGetStorage(storage: Storage | undefined, key: string): string | null {

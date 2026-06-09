@@ -35,8 +35,8 @@ describe("StoragePage", () => {
     expect(within(screen.getByLabelText("Cache")).getByRole("heading", { level: 3, name: "main" })).toBeInTheDocument();
     expect(within(screen.getByLabelText("Cache main status")).getByText("Saved")).toBeInTheDocument();
     expect(within(screen.getByLabelText("Persistence main status")).getByText("Saved")).toBeInTheDocument();
-    expect(screen.getByLabelText("Mode")).toHaveValue("memory");
-    expect(screen.getByLabelText("Active Provider")).toHaveValue("db_sqlite");
+    expect(screen.getByLabelText("Cache mode")).toHaveValue("memory");
+    expect(screen.getByLabelText("Persistence provider")).toHaveValue("db_sqlite");
     expect(screen.getByText("database unavailable")).toBeInTheDocument();
   });
 
@@ -47,6 +47,6 @@ describe("StoragePage", () => {
 
     expect(await screen.findByRole("heading", { level: 2, name: "缓存" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "持久化" })).toBeInTheDocument();
-    expect(within(screen.getByLabelText("缓存 main status")).getByText("已保存")).toBeInTheDocument();
+    expect(within(screen.getByLabelText("缓存 main 状态")).getByText("已保存")).toBeInTheDocument();
   });
 });

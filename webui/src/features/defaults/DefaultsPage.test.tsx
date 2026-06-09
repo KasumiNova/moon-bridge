@@ -23,8 +23,8 @@ describe("DefaultsPage", () => {
     expect(within(screen.getByLabelText("Trace main status")).getByText("Saved")).toBeInTheDocument();
     expect(within(screen.getByLabelText("Log main status")).getByText("Saved")).toBeInTheDocument();
     expect(screen.getAllByText("Hot reload").length).toBeGreaterThan(0);
-    expect(getMaterialTextField(document, "Model").value).toBe("claude-sonnet");
-    expect(getMaterialSelect(document, "Level").value).toBe("info");
+    expect(getMaterialTextField(document, "Default model").value).toBe("claude-sonnet");
+    expect(getMaterialSelect(document, "Log level").value).toBe("info");
   });
 
   test("autosaves defaults through graph patches", async () => {
@@ -39,7 +39,7 @@ describe("DefaultsPage", () => {
     const defaultsPanel = (await screen.findByRole("heading", { level: 2, name: "Defaults" }))
       .closest("section")!;
     vi.useFakeTimers();
-    const modelField = getMaterialTextField(defaultsPanel, "Model");
+    const modelField = getMaterialTextField(defaultsPanel, "Default model");
     setMaterialTextFieldValue(modelField, "gpt-4o");
     fireEvent.blur(modelField);
 
@@ -67,6 +67,20 @@ describe("DefaultsPage", () => {
     expect(queryMaterialFilledButton(document, "Delete Defaults main")).not.toBeInTheDocument();
     expect(queryMaterialFilledButton(document, "Delete Trace main")).not.toBeInTheDocument();
     expect(queryMaterialFilledButton(document, "Delete Log main")).not.toBeInTheDocument();
+  });
+
+  test("localizes singleton resource titles and field labels in Chinese locale", async () => {
+    vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
+
+    renderWithConsoleProviders(<DefaultsPage />, { locale: "zh-CN" });
+
+    expect(await screen.findByRole("heading", { level: 2, name: "默认值" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "追踪" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "日志" })).toBeInTheDocument();
+    expect(within(screen.getByLabelText("默认值 main 状态")).getByText("已保存")).toBeInTheDocument();
+    expect(getMaterialTextField(document, "默认模型")).toBeInTheDocument();
+    expect(getMaterialTextField(document, "全局系统提示词")).toBeInTheDocument();
+    expect(getMaterialSelect(document, "日志级别")).toBeInTheDocument();
   });
 });
 

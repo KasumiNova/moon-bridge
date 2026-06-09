@@ -58,11 +58,27 @@ export function ConfigHint({ path, id }: { path: ConfigPath; id?: string }) {
   return (
     <small id={id} className="field-hint">
       {description.description}
-      <span> {t("configDoc.type")}: {description.type}</span>
-      {description.defaultValue ? <span> {t("configDoc.default")}: {description.defaultValue}</span> : null}
+      <span> {t("configDoc.type")}: {localizedConfigMetaValue(description.type, t)}</span>
+      {description.defaultValue ? (
+        <span> {t("configDoc.default")}: {localizedConfigMetaValue(description.defaultValue, t)}</span>
+      ) : null}
       {description.sensitive ? <span> {t("configDoc.sensitive")}</span> : null}
     </small>
   );
+}
+
+function localizedConfigMetaValue(value: string, t: ReturnType<typeof useI18n>["t"]) {
+  const normalized = value.trim().toLowerCase();
+  const localized: Record<string, string> = {
+    boolean: t("configDoc.type.boolean"),
+    empty: t("configDoc.default.empty"),
+    "host:port": t("configDoc.type.hostPort"),
+    number: t("configDoc.type.number"),
+    object: t("configDoc.type.object"),
+    string: t("configDoc.type.string"),
+    url: t("configDoc.type.url")
+  };
+  return localized[normalized] ?? value;
 }
 
 export function FieldWithHint({

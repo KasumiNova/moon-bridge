@@ -115,6 +115,14 @@ export function CreateResourcePanel({
     const draft = createResourceDraft(
       kind,
       values,
+      {
+        cacheReadPrice: t("create.offer.cacheReadPrice"),
+        cacheWritePrice: t("create.offer.cacheWritePrice"),
+        contextWindow: t("create.model.contextWindow"),
+        inputPrice: t("create.offer.inputPrice"),
+        outputPrice: t("create.offer.outputPrice"),
+        priority: t("create.offer.priority")
+      },
       (field) => t("create.invalidNumber", { field }),
       (field) => t("create.positiveNumber", { field })
     );
@@ -134,7 +142,7 @@ export function CreateResourcePanel({
       setOpen(false);
       setValues(defaultValues(kind, graph, providerId, extensionIds));
     } catch (cause) {
-      setError(errorMessage(cause));
+      setError(errorMessage(cause, t("error.requestFailed")));
     }
   }
 
@@ -207,27 +215,28 @@ function CreateFields({
   const { locale, t } = useI18n();
   const models = graph.resources.filter((resource) => resource.kind === "model");
   const providers = graph.resources.filter((resource) => resource.kind === "provider");
-  const fieldHelp = (docPath: ConfigPath, fallback: string) => configDescriptions[docPath]?.description[locale] ?? fallback;
+  const fieldHelp = (docPath: ConfigPath, fallbackKey: MessageKey) =>
+    configDescriptions[docPath]?.description[locale] ?? t(fallbackKey);
 
   if (kind === "provider") {
     return (
       <>
         <TextInput
-          helpText={fieldHelp("providers.<key>.key", "Stable provider identifier.")}
+          helpText={fieldHelp("providers.<key>.key", "create.help.providerId")}
           label={t("create.provider.id")}
           path="key"
           value={values.id}
           onChange={(id) => setValues({ ...values, id })}
         />
         <TextInput
-          helpText={fieldHelp("providers.<key>.base_url", "Upstream API base URL.")}
+          helpText={fieldHelp("providers.<key>.base_url", "create.help.providerBaseUrl")}
           label={t("create.provider.baseUrl")}
           path="base_url"
           value={values.baseUrl}
           onChange={(baseUrl) => setValues({ ...values, baseUrl })}
         />
         <TextInput
-          helpText={fieldHelp("providers.<key>.api_key", "Secret sent to the upstream provider.")}
+          helpText={fieldHelp("providers.<key>.api_key", "create.help.providerApiKey")}
           label={t("create.provider.apiKey")}
           path="api_key"
           value={values.apiKey}
@@ -235,12 +244,12 @@ function CreateFields({
           secret
         />
         <ChipOptionGroup
-          helpText={fieldHelp("providers.<key>.protocol", "Selects the upstream API format.")}
+          helpText={fieldHelp("providers.<key>.protocol", "create.help.providerProtocol")}
           label={t("create.provider.protocol")}
           options={["openai-response", "openai-chat", "anthropic", "google-genai"]}
           value={values.protocol}
           onChange={(protocol) => setValues({ ...values, protocol })}
-          optionLabel={protocolOptionLabel}
+          optionLabel={(option) => protocolOptionLabel(option, t)}
         />
       </>
     );
@@ -250,21 +259,21 @@ function CreateFields({
     return (
       <>
         <TextInput
-          helpText={fieldHelp("models.<slug>.slug", "Stable model identifier.")}
+          helpText={fieldHelp("models.<slug>.slug", "create.help.modelId")}
           label={t("create.model.id")}
           path="slug"
           value={values.id}
           onChange={(id) => setValues({ ...values, id })}
         />
         <TextInput
-          helpText="Human-readable label shown in the console."
+          helpText={t("create.help.modelDisplayName")}
           label={t("create.model.displayName")}
           path="display_name"
           value={values.displayName}
           onChange={(displayName) => setValues({ ...values, displayName })}
         />
         <ContextWindowInput
-          helpText={fieldHelp("models.<slug>.context_window", "Maximum context tokens.")}
+          helpText={fieldHelp("models.<slug>.context_window", "create.help.modelContextWindow")}
           label={t("create.model.contextWindow")}
           value={values.contextWindow}
           onChange={(contextWindow) => setValues({ ...values, contextWindow })}
@@ -277,21 +286,21 @@ function CreateFields({
     return (
       <>
         <TextInput
-          helpText={fieldHelp("routes.<alias>.alias", "Client-visible route alias.")}
+          helpText={fieldHelp("routes.<alias>.alias", "create.help.routeId")}
           label={t("create.route.id")}
           path="alias"
           value={values.id}
           onChange={(id) => setValues({ ...values, id })}
         />
         <SelectInput
-          helpText={fieldHelp("routes.<alias>.model", "Local model used by this route.")}
+          helpText={fieldHelp("routes.<alias>.model", "create.help.routeModel")}
           label={t("create.route.model")}
           options={toSelectOptions(models.map((model) => model.id))}
           value={values.model}
           onChange={(model) => setValues({ ...values, model })}
         />
         <SelectInput
-          helpText={fieldHelp("routes.<alias>.provider", "Provider that handles this route.")}
+          helpText={fieldHelp("routes.<alias>.provider", "create.help.routeProvider")}
           label={t("create.route.provider")}
           options={toSelectOptions(providers.map((provider) => provider.id))}
           value={values.provider}
@@ -306,24 +315,24 @@ function CreateFields({
       <>
         <div className="schema-field form-field--create-track">
           <CreateFieldLabel
-            helpText={fieldHelp("providers.<key>.key", "Provider that owns this offer.")}
+            helpText={fieldHelp("providers.<key>.key", "create.help.offerProvider")}
             label={t("create.offer.provider")}
           />
           <MaterialAssistChip>{providerId ?? values.provider}</MaterialAssistChip>
         </div>
         <SelectInput
-          helpText={fieldHelp("providers.<key>.offers[].model", "Local model slug served by this offer.")}
+          helpText={fieldHelp("providers.<key>.offers[].model", "create.help.offerModel")}
           label={t("create.offer.model")}
           options={toSelectOptions(models.map((model) => model.id))}
           value={values.model}
           onChange={(model) => setValues({ ...values, model })}
         />
-        <TextInput helpText={fieldHelp("providers.<key>.offers[].upstream_name", "Actual upstream model name.")} label={t("create.offer.upstreamName")} path="upstream_name" value={values.upstreamName} onChange={(upstreamName) => setValues({ ...values, upstreamName })} />
-        <TextInput helpText="Provider offer ordering weight. Lower values are preferred first." label={t("create.offer.priority")} path="priority" value={values.priority} onChange={(priority) => setValues({ ...values, priority })} />
-        <TextInput helpText={fieldHelp("providers.<key>.offers[].pricing", "Input token price metadata used for cost tracking.")} label={t("create.offer.inputPrice")} path="input_price" value={values.inputPrice} onChange={(inputPrice) => setValues({ ...values, inputPrice })} />
-        <TextInput helpText={fieldHelp("providers.<key>.offers[].pricing", "Output token price metadata used for cost tracking.")} label={t("create.offer.outputPrice")} path="output_price" value={values.outputPrice} onChange={(outputPrice) => setValues({ ...values, outputPrice })} />
-        <TextInput helpText={fieldHelp("providers.<key>.offers[].pricing", "Prompt cache write price metadata used for cost tracking.")} label={t("create.offer.cacheWritePrice")} path="cache_write_price" value={values.cacheWritePrice} onChange={(cacheWritePrice) => setValues({ ...values, cacheWritePrice })} />
-        <TextInput helpText={fieldHelp("providers.<key>.offers[].pricing", "Prompt cache read price metadata used for cost tracking.")} label={t("create.offer.cacheReadPrice")} path="cache_read_price" value={values.cacheReadPrice} onChange={(cacheReadPrice) => setValues({ ...values, cacheReadPrice })} />
+        <TextInput helpText={fieldHelp("providers.<key>.offers[].upstream_name", "create.help.offerUpstreamName")} label={t("create.offer.upstreamName")} path="upstream_name" value={values.upstreamName} onChange={(upstreamName) => setValues({ ...values, upstreamName })} />
+        <TextInput helpText={t("create.help.offerPriority")} label={t("create.offer.priority")} path="priority" value={values.priority} onChange={(priority) => setValues({ ...values, priority })} />
+        <TextInput helpText={fieldHelp("providers.<key>.offers[].pricing", "create.help.offerInputPrice")} label={t("create.offer.inputPrice")} path="input_price" value={values.inputPrice} onChange={(inputPrice) => setValues({ ...values, inputPrice })} />
+        <TextInput helpText={fieldHelp("providers.<key>.offers[].pricing", "create.help.offerOutputPrice")} label={t("create.offer.outputPrice")} path="output_price" value={values.outputPrice} onChange={(outputPrice) => setValues({ ...values, outputPrice })} />
+        <TextInput helpText={fieldHelp("providers.<key>.offers[].pricing", "create.help.offerCacheWritePrice")} label={t("create.offer.cacheWritePrice")} path="cache_write_price" value={values.cacheWritePrice} onChange={(cacheWritePrice) => setValues({ ...values, cacheWritePrice })} />
+        <TextInput helpText={fieldHelp("providers.<key>.offers[].pricing", "create.help.offerCacheReadPrice")} label={t("create.offer.cacheReadPrice")} path="cache_read_price" value={values.cacheReadPrice} onChange={(cacheReadPrice) => setValues({ ...values, cacheReadPrice })} />
       </>
     );
   }
@@ -331,14 +340,14 @@ function CreateFields({
   return (
     <>
       <SelectInput
-        helpText="Stable extension identifier, for example metrics or db_sqlite."
+        helpText={t("create.help.extensionId")}
         label={t("create.extension.id")}
         options={toSelectOptions(availableExtensionIds)}
         value={values.id}
         onChange={(id) => setValues({ ...values, id })}
       />
       <SwitchInput
-        helpText={fieldHelp("extensions.<name>.enabled", "Enables the extension.")}
+        helpText={fieldHelp("extensions.<name>.enabled", "create.help.extensionEnabled")}
         label={t("create.extension.enabled")}
         value={values.enabled}
         onChange={(enabled) => setValues({ ...values, enabled })}
@@ -459,18 +468,19 @@ function ContextWindowInput({
   onChange: (value: string) => void;
   value: string;
 }) {
+  const { t } = useI18n();
   const id = useStableCreateId(label);
   const help = useCreateFieldHelp(label);
   const presets = [
-    ["128k", "128000"],
-    ["400k", "400000"],
-    ["1m", "1000000"]
+    [t("create.contextWindowPreset.128k"), "128000"],
+    [t("create.contextWindowPreset.400k"), "400000"],
+    [t("create.contextWindowPreset.1m"), "1000000"]
   ] as const;
 
   return (
     <div className="mb-field form-field--compound form-field--create-track" data-variant="input">
       <div className="create-resource__compound-control">
-        <md-chip-set className="material-chip-group" role="group" aria-label={`${label} presets`}>
+        <md-chip-set className="material-chip-group" role="group" aria-label={t("create.contextWindowPresets", { label })}>
           {presets.map(([presetLabel, presetValue]) => (
             <MaterialFilterChip
               key={presetValue}
@@ -690,10 +700,11 @@ type ResourceDraft =
 function createResourceDraft(
   kind: CreatableKind,
   values: FormValues,
+  fieldLabels: NumberFieldLabels,
   invalidNumberMessage: (field: string) => string,
   positiveNumberMessage: (field: string) => string
 ): ResourceDraft {
-  const value = createValue(kind, values, invalidNumberMessage, positiveNumberMessage);
+  const value = createValue(kind, values, fieldLabels, invalidNumberMessage, positiveNumberMessage);
   if (!value.ok) {
     return value;
   }
@@ -707,6 +718,7 @@ function createResourceDraft(
 function createValue(
   kind: CreatableKind,
   values: FormValues,
+  fieldLabels: NumberFieldLabels,
   invalidNumberMessage: (field: string) => string,
   positiveNumberMessage: (field: string) => string
 ): { ok: true; value: Record<string, unknown> } | { ok: false; error: string } {
@@ -723,7 +735,7 @@ function createValue(
   if (kind === "model") {
     const contextWindow = positiveNumericValue(
       values.contextWindow,
-      "Context window",
+      fieldLabels.contextWindow,
       invalidNumberMessage,
       positiveNumberMessage
     );
@@ -748,11 +760,11 @@ function createValue(
     };
   }
   if (kind === "provider_offer") {
-    const priority = numericValue(values.priority, "Priority", invalidNumberMessage);
-    const inputPrice = numericValue(values.inputPrice, "Input price", invalidNumberMessage);
-    const outputPrice = numericValue(values.outputPrice, "Output price", invalidNumberMessage);
-    const cacheWritePrice = numericValue(values.cacheWritePrice, "Cache write price", invalidNumberMessage);
-    const cacheReadPrice = numericValue(values.cacheReadPrice, "Cache read price", invalidNumberMessage);
+    const priority = numericValue(values.priority, fieldLabels.priority, invalidNumberMessage);
+    const inputPrice = numericValue(values.inputPrice, fieldLabels.inputPrice, invalidNumberMessage);
+    const outputPrice = numericValue(values.outputPrice, fieldLabels.outputPrice, invalidNumberMessage);
+    const cacheWritePrice = numericValue(values.cacheWritePrice, fieldLabels.cacheWritePrice, invalidNumberMessage);
+    const cacheReadPrice = numericValue(values.cacheReadPrice, fieldLabels.cacheReadPrice, invalidNumberMessage);
     if (!priority.ok) {
       return priority;
     }
@@ -791,6 +803,15 @@ function createValue(
   };
 }
 
+type NumberFieldLabels = {
+  cacheReadPrice: string;
+  cacheWritePrice: string;
+  contextWindow: string;
+  inputPrice: string;
+  outputPrice: string;
+  priority: string;
+};
+
 function numericValue(
   value: string,
   field: string,
@@ -822,7 +843,7 @@ function positiveNumericValue(
   return parsed;
 }
 
-function errorMessage(cause: unknown) {
+function errorMessage(cause: unknown, fallback: string) {
   const rawErrors = rawErrorsFrom(cause);
   if (rawErrors.length > 0 && typeof rawErrors[0]?.message === "string") {
     return rawErrors[0].message;
@@ -830,7 +851,7 @@ function errorMessage(cause: unknown) {
   if (cause instanceof Error) {
     return cause.message;
   }
-  return "Request failed";
+  return fallback;
 }
 
 function rawErrorsFrom(cause: unknown): Array<{ message?: unknown }> {
@@ -847,12 +868,13 @@ function rawErrorsFrom(cause: unknown): Array<{ message?: unknown }> {
 
 export type { CreatableKind };
 
-function protocolOptionLabel(option: string) {
-  const labels: Record<string, string> = {
-    anthropic: "Anthropic",
-    "openai-response": "OpenAI Responses",
-    "openai-chat": "OpenAI Chat",
-    "google-genai": "Gemini"
+function protocolOptionLabel(option: string, t: (key: MessageKey) => string) {
+  const labels: Record<string, MessageKey> = {
+    anthropic: "provider.protocol.anthropic",
+    "openai-response": "provider.protocol.openaiResponses",
+    "openai-chat": "provider.protocol.openaiChat",
+    "google-genai": "provider.protocol.googleGenai"
   };
-  return labels[option] ?? option;
+  const key = labels[option];
+  return key ? t(key) : option;
 }

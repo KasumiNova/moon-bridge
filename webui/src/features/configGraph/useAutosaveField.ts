@@ -18,6 +18,8 @@ export type UseAutosaveFieldOptions<T> = {
   revision: string;
   save: SaveField<T>;
   disabled?: boolean;
+  configUpdateFailedMessage: (result: PatchResponse["result"]) => string;
+  requestFailedMessage: string;
 };
 
 export type AutosaveFieldState<T> = {
@@ -37,7 +39,9 @@ export function useAutosaveField<T>({
   committedValue,
   revision,
   save,
-  disabled = false
+  disabled = false,
+  configUpdateFailedMessage,
+  requestFailedMessage
 }: UseAutosaveFieldOptions<T>): AutosaveFieldState<T> {
   const [value, setValueState] = useState<T>(committedValue);
   const [status, setStatus] = useState<AutosaveFieldStatus>("idle");
@@ -100,12 +104,12 @@ export function useAutosaveField<T>({
             resourceId,
             field,
             code: "requestFailed",
-            message: cause instanceof Error ? cause.message : "Request failed"
+            message: cause instanceof Error ? cause.message : requestFailedMessage
           });
           setStatus("error");
         });
     },
-    [disabled, field, resourceId, resourceKind, save]
+    [disabled, field, requestFailedMessage, resourceId, resourceKind, save]
   );
 
   const setValue = useCallback((next: T) => {
@@ -156,7 +160,7 @@ export function useAutosaveField<T>({
       case "draftRejected":
       case "validationRejected":
       case "revisionConflict":
-        setError(fieldError ?? genericPatchError(response, resourceKind, resourceId, field));
+        setError(fieldError ?? genericPatchError(response, resourceKind, resourceId, field, configUpdateFailedMessage));
         setStatus("error");
         return;
       case "runtimeRejected": {
@@ -164,12 +168,12 @@ export function useAutosaveField<T>({
           ? committedRef.current
           : response.rollbackValue as T;
         setValueState(rollback);
-        setError(fieldError ?? genericPatchError(response, resourceKind, resourceId, field));
+        setError(fieldError ?? genericPatchError(response, resourceKind, resourceId, field, configUpdateFailedMessage));
         setStatus("error");
         return;
       }
       default:
-        setError(genericPatchError(response, resourceKind, resourceId, field));
+        setError(genericPatchError(response, resourceKind, resourceId, field, configUpdateFailedMessage));
         setStatus("error");
     }
   }
@@ -192,14 +196,15 @@ function genericPatchError(
   response: PatchResponse,
   resourceKind: ResourceKind,
   resourceId: string,
-  field: string
+  field: string,
+  message: (result: PatchResponse["result"]) => string
 ): FieldError {
   return {
     resourceKind,
     resourceId,
     field,
     code: response.result,
-    message: `Config update ${response.result}`
+    message: message(response.result)
   };
 }
 

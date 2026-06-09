@@ -102,7 +102,7 @@ describe("config graph console smoke flow", () => {
     renderWithConsoleProviders(<DefaultsPage />);
 
     await screen.findByLabelText("Defaults main");
-    const modelField = getMaterialTextField(document, "Model");
+    const modelField = getMaterialTextField(document, "Default model");
     setMaterialTextFieldValue(modelField, "gpt-4o");
     fireEvent.blur(modelField);
 
@@ -135,7 +135,7 @@ describe("config graph console smoke flow", () => {
     renderWithConsoleProviders(<DefaultsPage />);
 
     await screen.findByLabelText("Defaults main");
-    const model = getMaterialTextField(document, "Model");
+    const model = getMaterialTextField(document, "Default model");
     setMaterialTextFieldValue(model, "invalid-model");
     fireEvent.blur(model);
 
@@ -158,7 +158,7 @@ describe("config graph console smoke flow", () => {
     renderWithConsoleProviders(<SecurityPage />);
 
     await screen.findByLabelText("Server main");
-    const address = getMaterialTextField(document, "Address");
+    const address = getMaterialTextField(document, "Listen address");
     setMaterialTextFieldValue(address, ":9999");
     fireEvent.blur(address);
 

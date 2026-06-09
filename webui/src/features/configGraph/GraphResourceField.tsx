@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import type { ConfigResource, FieldSchema } from "../../rpc/types";
+import { useI18n } from "../../i18n/I18nProvider";
 import { SchemaField } from "./SchemaField";
 import { configDocPathForResource } from "./configDocPath";
 import { useAutosaveField, type SaveFieldRequest } from "./useAutosaveField";
@@ -17,6 +18,7 @@ export function GraphResourceField({
   objectDisplay?: "collapsible" | "expandedFixed";
   revision: string;
 }) {
+  const { t } = useI18n();
   const saveGraphField = useGraphFieldSaver<unknown>();
   const save = useCallback(
     (request: SaveFieldRequest<unknown>) => saveGraphField(request),
@@ -28,7 +30,9 @@ export function GraphResourceField({
     field: field.path,
     committedValue: resource.value[field.path],
     revision,
-    save
+    save,
+    configUpdateFailedMessage: (result) => t("field.configUpdateFailed", { result }),
+    requestFailedMessage: t("error.requestFailed")
   });
   useReportFieldStatus(`${resource.kind}:${resource.id}:${field.path}`, autosave.status);
 

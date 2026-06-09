@@ -77,4 +77,28 @@ describe("logs RPC client", () => {
       Authorization: "Bearer remembered-token"
     });
   });
+
+  test("localizes stream fallback failures from the stored locale", async () => {
+    localStorage.setItem("moonbridge.console.locale", "zh-CN");
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("", { status: 503 }));
+
+    await expect(createLogStream()).rejects.toMatchObject({
+      code: "log_stream_error",
+      message: "日志流请求失败，状态码 503"
+    });
+  });
+
+  test("localizes empty stream body failures from the stored locale", async () => {
+    localStorage.setItem("moonbridge.console.locale", "zh-CN");
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(null, {
+        status: 200
+      })
+    );
+
+    await expect(createLogStream()).rejects.toMatchObject({
+      code: "log_stream_error",
+      message: "日志流响应体为空"
+    });
+  });
 });

@@ -28,7 +28,7 @@ describe("SchemaField", () => {
     );
 
     expect(document.querySelector(".schema-field select")).not.toBeInTheDocument();
-    const materialSelect = await findMaterialSelect(document, "Protocol");
+    const materialSelect = await findMaterialSelect(document, "Upstream protocol");
     expect(document.querySelector(".select-menu")).not.toBeInTheDocument();
     expect(materialSelect.value).toBe("anthropic");
     const options = getMaterialSelectOptions(materialSelect);
@@ -45,7 +45,7 @@ describe("SchemaField", () => {
       "Gemini"
     ]);
     expect(options[0].selected).toBe(true);
-    expect(materialSelect.label).toBe("Protocol");
+    expect(materialSelect.label).toBe("Upstream protocol");
     expect(materialSelect.supportingText).toContain("Selects the upstream API format");
     expect(materialSelect.closest(".mb-field")?.querySelector(".schema-field__help-wrap")).not.toBeInTheDocument();
     expect(materialSelect.closest(".mb-field")?.querySelector("md-icon-button")).not.toBeInTheDocument();
@@ -72,7 +72,7 @@ describe("SchemaField", () => {
       />
     );
 
-    const helpButton = getMaterialIconButton(document, "Help for Base URL");
+    const helpButton = getMaterialIconButton(document, "Help for Upstream base URL");
     expect(helpButton.tagName.toLowerCase()).toBe("md-icon-button");
     expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
 
@@ -80,6 +80,61 @@ describe("SchemaField", () => {
 
     expect(screen.getByRole("tooltip")).toHaveTextContent("Upstream provider API URL");
     expect(helpButton).toHaveAttribute("aria-describedby");
+  });
+
+  test("localizes fallback field help metadata in Chinese locale", async () => {
+    const field: FieldSchema = {
+      path: "custom_limit",
+      type: "number",
+      label: "Custom limit",
+      required: true,
+      hotReloadable: false
+    };
+
+    renderWithConsoleProviders(
+      <SchemaField
+        field={field}
+        value={10}
+        onChange={() => undefined}
+      />,
+      { locale: "zh-CN" }
+    );
+
+    await userEvent.click(getMaterialIconButton(document, "Custom limit 帮助"));
+
+    const tooltip = screen.getByRole("tooltip");
+    expect(tooltip).toHaveTextContent("类型: number");
+    expect(tooltip).toHaveTextContent("必填");
+    expect(tooltip).toHaveTextContent("可能需要重启");
+  });
+
+  test("localizes provider protocol option labels in Chinese locale", async () => {
+    const field: FieldSchema = {
+      path: "protocol",
+      type: "string",
+      label: "Protocol",
+      control: "select",
+      enum: ["anthropic", "openai-response", "openai-chat", "google-genai"],
+      hotReloadable: true
+    };
+
+    renderWithConsoleProviders(
+      <SchemaField
+        field={field}
+        value="openai-response"
+        onChange={() => undefined}
+        docPath="providers.<key>.protocol"
+      />,
+      { locale: "zh-CN" }
+    );
+
+    const materialSelect = await findMaterialSelect(document, "上游协议");
+    expect(getMaterialSelectOptions(materialSelect).map((option) => option.displayText)).toEqual([
+      "Anthropic",
+      "OpenAI Responses",
+      "OpenAI Chat",
+      "Gemini"
+    ]);
   });
 
   test("keeps trailing field help tooltip inside the viewport", async () => {
@@ -101,7 +156,7 @@ describe("SchemaField", () => {
       />
     );
 
-    const helpButton = getMaterialIconButton(document, "Help for Config");
+    const helpButton = getMaterialIconButton(document, "Help for Extension config");
     vi.spyOn(helpButton, "getBoundingClientRect").mockReturnValue({
       x: 4,
       y: 64,
@@ -149,7 +204,7 @@ describe("SchemaField", () => {
       </MemoryRouter>
     );
 
-    await userEvent.click(getMaterialIconButton(document, "Help for API Key"));
+    await userEvent.click(getMaterialIconButton(document, "Help for Upstream API key"));
 
     const tooltip = screen.getByRole("tooltip");
     expect(getComputedStyle(tooltip).paddingTop).toBe("16px");
@@ -193,16 +248,16 @@ describe("SchemaField", () => {
       />
     );
 
-    const fieldElement = getMaterialTextField(document, "Base URL");
+    const fieldElement = getMaterialTextField(document, "Upstream base URL");
 
-    expect(fieldElement.label).toBe("Base URL");
+    expect(fieldElement.label).toBe("Upstream base URL");
     expect(fieldElement).toHaveClass("material-text-field--single-line");
     expect(fieldElement.getAttribute("spellcheck")).toBe("false");
     expect(fieldElement.closest(".mb-field")?.querySelector(".mb-field__label")).not.toBeInTheDocument();
     expect(fieldElement.querySelector("[slot='leading-icon']")).toHaveTextContent("link");
     const trailing = fieldElement.querySelector("[slot='trailing-icon']");
     expect(trailing?.tagName.toLowerCase()).toBe("md-icon-button");
-    expect(trailing).toHaveAttribute("aria-label", "Help for Base URL");
+    expect(trailing).toHaveAttribute("aria-label", "Help for Upstream base URL");
   });
 
   test("guides secret replacement without exposing the committed value", () => {
@@ -310,6 +365,29 @@ describe("SchemaField", () => {
     setMaterialTextFieldValue(jsonEditor, "{\n  \"support\": \"enabled\"\n}");
 
     expect(onChange).toHaveBeenCalledWith({ support: "enabled" });
+  });
+
+  test("localizes JSON summaries and editor labels in Chinese locale", async () => {
+    const field: FieldSchema = {
+      path: "pricing",
+      type: "object",
+      label: "Pricing",
+      control: "object",
+      hotReloadable: true
+    };
+
+    renderWithConsoleProviders(
+      <SchemaField field={field} value={{ input_price: 3 }} onChange={() => undefined} />,
+      { locale: "zh-CN" }
+    );
+
+    const summary = getMaterialButton(document, /Pricing.*1 个键/);
+    expect(summary).toHaveAttribute("aria-label", "Pricing，1 个键");
+
+    await userEvent.click(summary);
+
+    const jsonEditor = getMaterialTextField(document, "Pricing JSON 编辑器");
+    expect(jsonEditor.label).toBe("Pricing JSON 编辑器");
   });
 
   test("toggles boolean fields with the Material Web switch", async () => {

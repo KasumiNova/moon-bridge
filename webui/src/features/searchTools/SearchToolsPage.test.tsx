@@ -27,9 +27,9 @@ describe("SearchToolsPage", () => {
     expect(within(screen.getByLabelText("Extension db_sqlite status")).getByText("Saved")).toBeInTheDocument();
     expect(within(screen.getByLabelText("Proxy main status")).getByText("Critical")).toBeInTheDocument();
 
-    expect(getMaterialSelect(document, "Support").value).toBe("auto");
+    expect(getMaterialSelect(document, "Web search mode").value).toBe("auto");
     expect(screen.getByText("db_sqlite")).toBeInTheDocument();
-    expect(screen.getByLabelText("Response Proxy")).toBeInTheDocument();
+    expect(getMaterialOutlinedButton(document, /OpenAI capture proxy.*2 keys/)).toBeInTheDocument();
     expect(screen.queryByLabelText(/yaml/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/yaml/i)).not.toBeInTheDocument();
   });
@@ -42,7 +42,7 @@ describe("SearchToolsPage", () => {
     expect(await screen.findByRole("heading", { level: 2, name: "联网搜索" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "扩展" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "代理" })).toBeInTheDocument();
-    expect(within(screen.getByLabelText("代理 main status")).getByText("关键运行时")).toBeInTheDocument();
+    expect(within(screen.getByLabelText("代理 main 状态")).getByText("关键运行时")).toBeInTheDocument();
   });
 
   test("creates an extension from the extensions section", async () => {
@@ -148,6 +148,16 @@ type MaterialSelectElement = HTMLElement & {
   label: string;
   value: string;
 };
+
+function getMaterialOutlinedButton(container: ParentNode, label: RegExp) {
+  const element = Array.from(container.querySelectorAll("md-outlined-button")).find(
+    (candidate) => label.test(candidate.getAttribute("aria-label") ?? candidate.textContent ?? "")
+  );
+  if (!element) {
+    throw new Error(`Expected a Material Web outlined button labelled "${label}".`);
+  }
+  return element;
+}
 
 function getMaterialSelect(container: ParentNode, label: string) {
   const element = Array.from(container.querySelectorAll<MaterialSelectElement>("md-outlined-select")).find(

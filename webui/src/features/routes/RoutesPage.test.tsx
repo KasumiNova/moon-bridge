@@ -21,15 +21,15 @@ describe("RoutesPage", () => {
     expect(within(screen.getByLabelText("Route primary status")).getByText("Saved")).toBeInTheDocument();
     expect(screen.getByText("8 fields")).toBeInTheDocument();
     expect(screen.getByText("Hot reload")).toBeInTheDocument();
-    expect(getMaterialTextField(document, "Model")).toBeInTheDocument();
-    expect(getMaterialTextField(document, "Provider")).toBeInTheDocument();
-    expect(getMaterialTextField(document, "Display Name")).toBeInTheDocument();
-    expect(getMaterialTextField(document, "Context Window")).toBeInTheDocument();
+    expect(getMaterialTextField(document, "Route model")).toBeInTheDocument();
+    expect(getMaterialTextField(document, "Route provider")).toBeInTheDocument();
+    expect(getMaterialTextField(document, "Route display name")).toBeInTheDocument();
+    expect(getMaterialTextField(document, "Route context window")).toBeInTheDocument();
     const advancedFeatures = screen.getByRole("group", { name: "Advanced Features" });
-    expect(getMaterialTextField(advancedFeatures, "Web Search JSON editor")).toHaveClass("schema-json-editor--fixed");
-    expect(getMaterialTextField(advancedFeatures, "Extensions JSON editor")).toHaveClass("schema-json-editor--fixed");
-    expect(queryMaterialOutlinedButton(advancedFeatures, /Web Search.*1 key/)).not.toBeInTheDocument();
-    expect(queryMaterialOutlinedButton(advancedFeatures, /Extensions.*0 keys/)).not.toBeInTheDocument();
+    expect(getMaterialTextField(advancedFeatures, "Route web search JSON editor")).toHaveClass("schema-json-editor--fixed");
+    expect(getMaterialTextField(advancedFeatures, "Route extensions JSON editor")).toHaveClass("schema-json-editor--fixed");
+    expect(queryMaterialOutlinedButton(advancedFeatures, /Route web search.*1 key/)).not.toBeInTheDocument();
+    expect(queryMaterialOutlinedButton(advancedFeatures, /Route extensions.*0 keys/)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/priority/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/fallback/i)).not.toBeInTheDocument();
   });
@@ -45,7 +45,7 @@ describe("RoutesPage", () => {
 
     const routePanel = await screen.findByLabelText("Route primary");
     vi.useFakeTimers();
-    const providerField = getMaterialTextField(routePanel, "Provider");
+    const providerField = getMaterialTextField(routePanel, "Route provider");
     setMaterialTextFieldValue(providerField, "openai");
     fireEvent.blur(providerField);
 

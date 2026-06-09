@@ -11,6 +11,7 @@ import {
 import { configDescriptions, type ConfigPath } from "../../configDocs/configDescriptions";
 import type { FieldSchema } from "../../rpc/types";
 import { useI18n } from "../../i18n/I18nProvider";
+import type { MessageKey } from "../../i18n/messages";
 import { MaterialIconButton, MaterialOutlinedButton } from "../../components/MaterialButton";
 import { MaterialOutlinedTextField, type MaterialTextFieldElement } from "../../components/MaterialTextField";
 import { MaterialSwitch } from "../../components/MaterialSwitch";
@@ -57,6 +58,7 @@ export function SchemaField({
   const jsonEditorRef = useRef<MaterialTextFieldElement>(null);
   const jsonSummaryRef = useRef<MdOutlinedButton>(null);
   const trailingHelpAnchorRef = useRef<MdIconButton>(null);
+  const displayLabel = fieldLabel(field, docPath, locale);
 
   useEffect(() => {
     setText(displayValue(field, value));
@@ -76,7 +78,23 @@ export function SchemaField({
   const wide = isWideField(field);
   const errorId = `${id}-error`;
   const helpId = `${id}-help`;
-  const helpParts = fieldHelpParts(field, docPath, locale);
+  const helpParts = fieldHelpParts(field, displayLabel, docPath, locale, {
+    default: t("configDoc.default"),
+    defaultEmpty: t("configDoc.default.empty"),
+    optional: t("configDoc.optional"),
+    required: t("configDoc.required"),
+    restartMayBeRequired: t("configDoc.restartMayBeRequired"),
+    savedRealtime: t("configDoc.savedRealtime"),
+    sensitive: t("configDoc.sensitive"),
+    type: t("configDoc.type"),
+    typeArray: t("configDoc.type.array"),
+    typeBoolean: t("configDoc.type.boolean"),
+    typeHostPort: t("configDoc.type.hostPort"),
+    typeNumber: t("configDoc.type.number"),
+    typeObject: t("configDoc.type.object"),
+    typeString: t("configDoc.type.string"),
+    typeUrl: t("configDoc.type.url")
+  });
   const fieldError = error || parseError;
   const fieldDescribedBy = [
     helpOpen ? helpId : undefined,
@@ -90,7 +108,7 @@ export function SchemaField({
     const selected = typeof value === "string" ? value : "";
     const options: SelectMenuOption[] = (field.enum ?? []).map((option) => ({
       value: option,
-      label: optionLabel(option)
+      label: optionLabel(option, t)
     }));
     return (
       <div className={wide ? "mb-field mb-field--wide" : "mb-field"} data-variant="select">
@@ -101,7 +119,7 @@ export function SchemaField({
             value={selected}
             onChange={(next) => commit(next)}
             disabled={disabled}
-            ariaLabel={field.label}
+            ariaLabel={displayLabel}
             describedBy={selectDescribedBy}
             error={Boolean(fieldError)}
             errorText={fieldError}
@@ -120,11 +138,12 @@ export function SchemaField({
         <div className="schema-field__switch-line">
           <span className="schema-field__label-row">
             <span className="schema-field__label">
-              {field.label}
+              {displayLabel}
               {field.required ? <span className="schema-field__required" aria-hidden="true">*</span> : null}
             </span>
             <FieldHelpButton
               field={field}
+              label={displayLabel}
               helpId={helpId}
               helpOpen={helpOpen}
               helpParts={helpParts}
@@ -133,7 +152,7 @@ export function SchemaField({
           </span>
           <MaterialSwitch
             disabled={disabled}
-            label={field.label}
+            label={displayLabel}
             selected={Boolean(value)}
             onChange={(selected) => commit(selected)}
           />
@@ -153,14 +172,14 @@ export function SchemaField({
         <div className="mb-field__control">
           <MaterialOutlinedTextField
             ariaDescribedBy={fieldDescribedBy}
-            ariaLabel={field.label}
+            ariaLabel={displayLabel}
             ariaInvalid={Boolean(fieldError)}
             className="schema-text-field"
             disabled={disabled}
             error={Boolean(fieldError)}
             errorText={fieldError}
             id={id}
-            label={field.label}
+            label={displayLabel}
             required={field.required}
             rows={6}
             supportingText={fieldSupportingText(field, t("field.secretReplacementHint"))}
@@ -168,6 +187,7 @@ export function SchemaField({
               <FieldHelpIconButton
                 anchorRef={trailingHelpAnchorRef}
                 field={field}
+                label={displayLabel}
                 helpId={helpId}
                 helpOpen={helpOpen}
                 setHelpOpen={setHelpOpen}
@@ -193,11 +213,13 @@ export function SchemaField({
 
   if (field.type === "object" || field.type === "array" || field.control === "object" || field.control === "array") {
     const summaryId = `${id}-summary`;
-    const summary = jsonSummary(value, field);
+    const summary = jsonSummary(value, field, t);
+    const jsonEditorLabel = t("field.jsonEditorLabel", { label: displayLabel });
     return (
       <div className={schemaFieldClass(wide)}>
         <FieldTopline
           field={field}
+          label={displayLabel}
           helpId={helpId}
           helpOpen={helpOpen}
           helpParts={helpParts}
@@ -207,7 +229,7 @@ export function SchemaField({
         {jsonFixedExpanded ? null : (
           <MaterialOutlinedButton
             ariaExpanded={jsonExpanded}
-            ariaLabel={`${field.label}, ${summary}`}
+            ariaLabel={t("field.summaryButtonLabel", { label: displayLabel, summary })}
             className="schema-json-summary"
             controls={id}
             id={summaryId}
@@ -221,7 +243,7 @@ export function SchemaField({
               });
             }}
           >
-            <span>{field.label}</span>
+            <span>{displayLabel}</span>
             <strong>{summary}</strong>
             <span className="material-symbol" aria-hidden="true">
               {jsonExpanded ? "expand_less" : "expand_more"}
@@ -231,14 +253,14 @@ export function SchemaField({
         {jsonExpanded ? (
           <MaterialOutlinedTextField
             ariaDescribedBy={fieldDescribedBy}
-            ariaLabel={`${field.label} JSON editor`}
+            ariaLabel={jsonEditorLabel}
             ariaInvalid={Boolean(fieldError)}
             className={jsonFixedExpanded ? "schema-json-editor schema-json-editor--fixed" : "schema-json-editor"}
             disabled={disabled}
             error={Boolean(fieldError)}
             errorText={fieldError}
             id={id}
-            label={`${field.label} JSON editor`}
+            label={jsonEditorLabel}
             ref={jsonEditorRef}
             required={field.required}
             spellCheck={false}
@@ -259,7 +281,7 @@ export function SchemaField({
       <div className="mb-field__control">
         <MaterialOutlinedTextField
           ariaDescribedBy={fieldDescribedBy}
-          ariaLabel={field.label}
+          ariaLabel={displayLabel}
           ariaInvalid={Boolean(fieldError)}
           autoComplete={field.secret ? "new-password" : undefined}
           className="schema-text-field"
@@ -267,7 +289,7 @@ export function SchemaField({
           error={Boolean(fieldError)}
           errorText={fieldError}
           id={id}
-          label={field.label}
+          label={displayLabel}
           leadingIcon={fieldLeadingIcon(field)}
           required={field.required}
           supportingText={fieldSupportingText(field, t("field.secretReplacementHint"))}
@@ -275,6 +297,7 @@ export function SchemaField({
             <FieldHelpIconButton
               anchorRef={trailingHelpAnchorRef}
               field={field}
+              label={displayLabel}
               helpId={helpId}
               helpOpen={helpOpen}
               setHelpOpen={setHelpOpen}
@@ -357,12 +380,18 @@ function fieldLeadingIcon(field: FieldSchema): string | undefined {
   return undefined;
 }
 
+function fieldLabel(field: FieldSchema, docPath: ConfigPath | undefined, locale: "en-US" | "zh-CN") {
+  const entry = docPath ? configDescriptions[docPath] : undefined;
+  return entry?.title[locale] ?? field.label;
+}
+
 function FieldTopline({
   field,
   helpId,
   helpOpen,
   helpParts,
   id,
+  label,
   labelForControl = true,
   labelId,
   setHelpOpen
@@ -372,13 +401,14 @@ function FieldTopline({
   helpOpen: boolean;
   helpParts: FieldHelpParts;
   id: string;
+  label: string;
   labelForControl?: boolean;
   labelId?: string;
   setHelpOpen: (open: boolean | ((current: boolean) => boolean)) => void;
 }) {
   const labelContent = (
     <>
-      {field.label}
+      {label}
       {field.required ? <span className="schema-field__required" aria-hidden="true">*</span> : null}
     </>
   );
@@ -397,6 +427,7 @@ function FieldTopline({
         )}
         <FieldHelpButton
           field={field}
+          label={label}
           helpId={helpId}
           helpOpen={helpOpen}
           helpParts={helpParts}
@@ -412,12 +443,14 @@ function FieldHelpButton({
   helpId,
   helpOpen,
   helpParts,
+  label,
   setHelpOpen
 }: {
   field: FieldSchema;
   helpId: string;
   helpOpen: boolean;
   helpParts: FieldHelpParts;
+  label: string;
   setHelpOpen: (open: boolean | ((current: boolean) => boolean)) => void;
 }) {
   const anchorRef = useRef<MdIconButton>(null);
@@ -426,6 +459,7 @@ function FieldHelpButton({
       <FieldHelpIconButton
         anchorRef={anchorRef}
         field={field}
+        label={label}
         helpId={helpId}
         helpOpen={helpOpen}
         setHelpOpen={setHelpOpen}
@@ -445,6 +479,7 @@ function FieldHelpIconButton({
   field,
   helpId,
   helpOpen,
+  label,
   setHelpOpen,
   slot
 }: {
@@ -452,6 +487,7 @@ function FieldHelpIconButton({
   field: FieldSchema;
   helpId: string;
   helpOpen: boolean;
+  label: string;
   setHelpOpen: (open: boolean | ((current: boolean) => boolean)) => void;
   slot?: string;
 }) {
@@ -463,7 +499,7 @@ function FieldHelpIconButton({
       className="schema-field__help"
       describedBy={helpOpen ? helpId : undefined}
       icon="help"
-      label={t("field.helpFor", { label: field.label })}
+      label={t("field.helpFor", { label })}
       onBlur={() => setHelpOpen(false)}
       onClick={() => {
         if (openedByHover.current) {
@@ -607,47 +643,93 @@ function inputType(field: FieldSchema) {
 
 function fieldHelpParts(
   field: FieldSchema,
+  label: string,
   docPath: ConfigPath | undefined,
-  locale: "en-US" | "zh-CN"
+  locale: "en-US" | "zh-CN",
+  labels: FieldHelpLabels
 ): FieldHelpParts {
   const entry = docPath ? configDescriptions[docPath] : undefined;
   const metas: { label?: string; value: string }[] = [];
   if (entry) {
-    metas.push({ label: "Type", value: entry.type });
+    metas.push({ label: labels.type, value: localizedConfigMetaValue(entry.type, labels) });
     if (entry.defaultValue) {
-      metas.push({ label: "Default", value: String(entry.defaultValue) });
+      metas.push({ label: labels.default, value: localizedConfigMetaValue(String(entry.defaultValue), labels) });
     }
     if (entry.sensitive || field.secret) {
-      metas.push({ value: "Sensitive" });
+      metas.push({ value: labels.sensitive });
     }
-    return { subhead: field.label, body: entry.description[locale], metas };
+    return { subhead: label, body: entry.description[locale], metas };
   }
-  metas.push({ label: "Type", value: field.type });
-  metas.push({ value: field.required ? "Required" : "Optional" });
+  metas.push({ label: labels.type, value: field.type });
+  metas.push({ value: field.required ? labels.required : labels.optional });
   if (field.secret) {
-    metas.push({ value: "Sensitive" });
+    metas.push({ value: labels.sensitive });
   }
-  metas.push({ value: field.hotReloadable ? "Saved in realtime" : "May require restart" });
-  return { subhead: field.label, body: "", metas };
+  metas.push({ value: field.hotReloadable ? labels.savedRealtime : labels.restartMayBeRequired });
+  return { subhead: label, body: "", metas };
 }
 
-function optionLabel(option: string) {
-  const labels: Record<string, string> = {
-    anthropic: "Anthropic",
-    "openai-response": "OpenAI Responses",
-    "openai-chat": "OpenAI Chat",
-    "google-genai": "Gemini"
+type FieldHelpLabels = {
+  default: string;
+  defaultEmpty: string;
+  optional: string;
+  required: string;
+  restartMayBeRequired: string;
+  savedRealtime: string;
+  sensitive: string;
+  type: string;
+  typeArray: string;
+  typeBoolean: string;
+  typeHostPort: string;
+  typeNumber: string;
+  typeObject: string;
+  typeString: string;
+  typeUrl: string;
+};
+
+function localizedConfigMetaValue(value: string, labels: FieldHelpLabels) {
+  const normalized = value.trim().toLowerCase();
+  const localized: Record<string, string> = {
+    array: labels.typeArray,
+    boolean: labels.typeBoolean,
+    empty: labels.defaultEmpty,
+    "host:port": labels.typeHostPort,
+    number: labels.typeNumber,
+    object: labels.typeObject,
+    string: labels.typeString,
+    url: labels.typeUrl
   };
-  return labels[option] ?? option;
+  return localized[normalized] ?? value;
 }
 
-function jsonSummary(value: unknown, field: FieldSchema) {
+function optionLabel(option: string, t: (key: MessageKey) => string) {
+  const labels: Record<string, MessageKey> = {
+    anthropic: "provider.protocol.anthropic",
+    "openai-response": "provider.protocol.openaiResponses",
+    "openai-chat": "provider.protocol.openaiChat",
+    "google-genai": "provider.protocol.googleGenai"
+  };
+  const key = labels[option];
+  return key ? t(key) : option;
+}
+
+function jsonSummary(
+  value: unknown,
+  field: FieldSchema,
+  t: (key: MessageKey, values?: Record<string, string | number>) => string
+) {
   if (Array.isArray(value)) {
-    return `${value.length} ${value.length === 1 ? "item" : "items"}`;
+    return t(summaryKey("field.summary.items", value.length), { count: value.length });
   }
   if (value && typeof value === "object") {
     const count = Object.keys(value).length;
-    return `${count} ${count === 1 ? "key" : "keys"}`;
+    return t(summaryKey("field.summary.keys", count), { count });
   }
-  return field.type === "array" ? "0 items" : "0 keys";
+  return field.type === "array"
+    ? t("field.summary.items.many", { count: 0 })
+    : t("field.summary.keys.many", { count: 0 });
+}
+
+function summaryKey(prefix: "field.summary.items" | "field.summary.keys", count: number): MessageKey {
+  return `${prefix}.${count === 1 ? "one" : "many"}` as MessageKey;
 }

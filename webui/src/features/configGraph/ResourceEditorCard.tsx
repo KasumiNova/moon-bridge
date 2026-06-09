@@ -78,7 +78,7 @@ export function ResourceEditorCard({
         baseRevision: revision
       });
     } catch (cause) {
-      setDeleteError(errorMessage(cause));
+      setDeleteError(errorMessage(cause, t("error.requestFailed")));
     }
   }
 
@@ -99,7 +99,7 @@ export function ResourceEditorCard({
             <h3>{resource.id}</h3>
           </div>
           <div className="resource-editor-card__facts">
-            <span className="resource-editor-card__status-group" aria-label={`${label} status`}>
+            <span className="resource-editor-card__status-group" aria-label={t("resource.statusGroupLabel", { label })}>
               <span className={`resource-meta-pill status-pill status-pill--${resource.status}`}>
                 <span className="material-symbol" aria-hidden="true">
                   {statusIcon(resource.status)}
@@ -435,7 +435,7 @@ const compactFieldPaths = new Set([
   "version"
 ]);
 
-function errorMessage(cause: unknown) {
+function errorMessage(cause: unknown, fallback: string) {
   const rawErrors = rawErrorsFrom(cause);
   if (rawErrors.length > 0 && typeof rawErrors[0]?.message === "string") {
     return rawErrors[0].message;
@@ -443,7 +443,7 @@ function errorMessage(cause: unknown) {
   if (cause instanceof Error) {
     return cause.message;
   }
-  return "Request failed";
+  return fallback;
 }
 
 function rawErrorsFrom(cause: unknown): Array<{ message?: unknown }> {

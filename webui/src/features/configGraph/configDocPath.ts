@@ -8,6 +8,10 @@ export function configDocPathForResource(
   switch (resource.kind) {
     case "mode":
       return field.path === "mode" ? "mode" : undefined;
+    case "trace":
+      return topLevelPath("trace", field.path);
+    case "log":
+      return topLevelPath("log", field.path);
     case "server":
       return topLevelPath("server", field.path);
     case "defaults":

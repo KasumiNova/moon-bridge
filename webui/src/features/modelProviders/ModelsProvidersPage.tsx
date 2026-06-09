@@ -38,7 +38,11 @@ export function ModelsProvidersPage() {
         </div>
         <div className="resource-card-list">
           {providers.map((provider) => (
-            <section className="provider-resource-group" aria-label={`Provider ${provider.id}`} key={provider.id}>
+            <section
+              className="provider-resource-group"
+              aria-label={t("modelsProviders.providerRegion", { id: provider.id })}
+              key={provider.id}
+            >
               <ResourceEditorCard
                 resource={provider}
                 revision={graph.data.revision}

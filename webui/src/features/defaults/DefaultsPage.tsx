@@ -1,11 +1,17 @@
 import { LoadingState } from "../../components/LoadingState";
 import { useI18n } from "../../i18n/I18nProvider";
+import type { MessageKey } from "../../i18n/messages";
 import type { ConfigResource } from "../../rpc/types";
 import { ResourceEditorCard } from "../configGraph/ResourceEditorCard";
 import { useConfigGraph } from "../configGraph/useConfigGraph";
 import { PageHeader, QueryErrorState } from "../shared";
 
 const defaultResourceOrder = ["defaults", "trace", "log"] as const;
+const defaultResourceTitleKeys: Record<(typeof defaultResourceOrder)[number], MessageKey> = {
+  defaults: "resource.kind.defaults",
+  trace: "resource.kind.trace",
+  log: "resource.kind.log"
+};
 
 export function DefaultsPage() {
   const { t } = useI18n();
@@ -29,16 +35,31 @@ export function DefaultsPage() {
       </PageHeader>
 
       {resources.map((resource) => (
-        <section className="content-panel" key={resource.kind} aria-label={resource.label}>
-          <h2>{resource.label}</h2>
-          <ResourceEditorCard
-            ariaLabel={`${resource.label} ${resource.id}`}
-            resource={resource}
-            revision={graph.data.revision}
-            title={resource.label}
-          />
-        </section>
+        <DefaultResourceSection key={resource.kind} resource={resource} revision={graph.data.revision} />
       ))}
+    </section>
+  );
+}
+
+function DefaultResourceSection({
+  resource,
+  revision
+}: {
+  resource: ConfigResource;
+  revision: string;
+}) {
+  const { t } = useI18n();
+  const titleKey = defaultResourceTitleKeys[resource.kind as (typeof defaultResourceOrder)[number]];
+  const title = titleKey ? t(titleKey) : resource.label;
+  return (
+    <section className="content-panel" aria-label={title}>
+      <h2>{title}</h2>
+      <ResourceEditorCard
+        ariaLabel={t("resource.cardLabel", { title, id: resource.id })}
+        resource={resource}
+        revision={revision}
+        title={title}
+      />
     </section>
   );
 }

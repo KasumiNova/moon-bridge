@@ -34,7 +34,7 @@ export function RoutesPage() {
           {routes.map((route) => (
             <ResourceEditorCard
               key={route.id}
-              ariaLabel={`${routeTitle} ${route.id}`}
+              ariaLabel={t("resource.cardLabel", { title: routeTitle, id: route.id })}
               resource={route}
               revision={graph.data.revision}
               title={routeTitle}

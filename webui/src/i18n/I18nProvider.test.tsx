@@ -4,6 +4,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import {
   CONSOLE_LOCALE_STORAGE_KEY,
   I18nProvider,
+  translateMessage,
   useI18n
 } from "./I18nProvider";
 
@@ -73,6 +74,12 @@ describe("I18nProvider", () => {
 
     expect(screen.getByTestId("locale")).toHaveTextContent("en-US");
     expect(screen.getByTestId("title")).toHaveTextContent("Overview");
+  });
+
+  test("translates messages outside React from the stored locale", () => {
+    localStorage.setItem(CONSOLE_LOCALE_STORAGE_KEY, "zh-CN");
+
+    expect(translateMessage("error.requestFailedWithStatus", { status: 502 })).toBe("请求失败，状态码 502");
   });
 
   test("keeps working when localStorage is unavailable", () => {

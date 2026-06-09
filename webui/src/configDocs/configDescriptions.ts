@@ -12,28 +12,64 @@ export type ConfigDocEntry = {
 
 export const requiredConfigPaths = [
   "mode",
+  "trace.enabled",
+  "log.level",
+  "log.format",
   "server.addr",
   "server.auth_token",
+  "server.max_sessions",
+  "server.session_ttl",
   "persistence.active_provider",
   "cache.mode",
+  "cache.ttl",
+  "cache.prompt_caching",
+  "cache.automatic_prompt_cache",
+  "cache.explicit_cache_breakpoints",
+  "cache.allow_retention_downgrade",
+  "cache.max_breakpoints",
+  "cache.min_cache_tokens",
+  "cache.expected_reuse",
+  "cache.minimum_value_score",
+  "cache.min_breakpoint_tokens",
   "defaults.model",
   "defaults.max_tokens",
   "defaults.system_prompt",
   "models.<slug>.context_window",
   "models.<slug>.max_output_tokens",
   "models.<slug>.slug",
+  "models.<slug>.display_name",
+  "models.<slug>.description",
+  "models.<slug>.base_instructions",
+  "models.<slug>.default_reasoning_level",
+  "models.<slug>.supported_reasoning_levels",
+  "models.<slug>.supports_reasoning_summaries",
+  "models.<slug>.default_reasoning_summary",
+  "models.<slug>.input_modalities",
+  "models.<slug>.supports_image_detail_original",
+  "models.<slug>.web_search",
+  "models.<slug>.extensions",
   "providers.<key>.key",
   "providers.<key>.base_url",
   "providers.<key>.api_key",
   "providers.<key>.protocol",
   "providers.<key>.version",
   "providers.<key>.user_agent",
+  "providers.<key>.web_search",
+  "providers.<key>.extensions",
   "providers.<key>.offers[].model",
   "providers.<key>.offers[].upstream_name",
+  "providers.<key>.offers[].priority",
   "providers.<key>.offers[].pricing",
+  "providers.<key>.offers[].overrides",
   "routes.<alias>.alias",
+  "routes.<alias>.to",
   "routes.<alias>.model",
   "routes.<alias>.provider",
+  "routes.<alias>.display_name",
+  "routes.<alias>.description",
+  "routes.<alias>.context_window",
+  "routes.<alias>.web_search",
+  "routes.<alias>.extensions",
   "web_search.support",
   "web_search.max_uses",
   "web_search.tavily_api_key",
@@ -57,6 +93,32 @@ export const configDescriptions: Record<ConfigPath, ConfigDocEntry> = {
     "Transform | CaptureResponse | CaptureAnthropic",
     "Transform"
   ),
+  "trace.enabled": entry(
+    "trace.enabled",
+    "启用追踪",
+    "Enable tracing",
+    "记录请求转换和上游调用过程，便于排查路由与适配器问题。",
+    "Records request conversion and upstream call flow for route and adapter diagnostics.",
+    "boolean"
+  ),
+  "log.level": entry(
+    "log.level",
+    "日志级别",
+    "Log level",
+    "控制运行时输出的最低日志级别。",
+    "Controls the minimum runtime log level.",
+    "debug | info | warn | error",
+    "info"
+  ),
+  "log.format": entry(
+    "log.format",
+    "日志格式",
+    "Log format",
+    "控制运行时日志输出为文本或 JSON。",
+    "Controls whether runtime logs are emitted as text or JSON.",
+    "text | json",
+    "text"
+  ),
   "server.addr": entry(
     "server.addr",
     "监听地址",
@@ -76,6 +138,24 @@ export const configDescriptions: Record<ConfigPath, ConfigDocEntry> = {
     "empty",
     true
   ),
+  "server.max_sessions": entry(
+    "server.max_sessions",
+    "最大会话数",
+    "Max sessions",
+    "允许保留的最大会话数量；0 表示不限制。",
+    "Maximum retained session count; 0 means unlimited.",
+    "number",
+    "0"
+  ),
+  "server.session_ttl": entry(
+    "server.session_ttl",
+    "会话 TTL",
+    "Session TTL",
+    "会话状态保留时长，例如 24h。",
+    "How long session state is retained, for example 24h.",
+    "string",
+    "24h"
+  ),
   "persistence.active_provider": entry(
     "persistence.active_provider",
     "持久化提供商",
@@ -93,6 +173,86 @@ export const configDescriptions: Record<ConfigPath, ConfigDocEntry> = {
     "Controls prompt cache behavior: off disables it, explicit uses explicit breakpoints, automatic chooses them, hybrid combines both.",
     "off | explicit | automatic | hybrid",
     "explicit"
+  ),
+  "cache.ttl": entry(
+    "cache.ttl",
+    "缓存 TTL",
+    "Cache TTL",
+    "缓存条目的保留时长，例如 1h。",
+    "Retention duration for cache entries, for example 1h.",
+    "string"
+  ),
+  "cache.prompt_caching": entry(
+    "cache.prompt_caching",
+    "启用 Prompt Cache",
+    "Enable prompt caching",
+    "允许 Moon Bridge 为支持的上游协议启用 prompt cache。",
+    "Allows Moon Bridge to enable prompt caching for supported upstream protocols.",
+    "boolean"
+  ),
+  "cache.automatic_prompt_cache": entry(
+    "cache.automatic_prompt_cache",
+    "自动 Prompt Cache",
+    "Automatic prompt cache",
+    "根据请求内容自动选择合适的缓存断点。",
+    "Automatically chooses suitable cache breakpoints from request content.",
+    "boolean"
+  ),
+  "cache.explicit_cache_breakpoints": entry(
+    "cache.explicit_cache_breakpoints",
+    "显式缓存断点",
+    "Explicit cache breakpoints",
+    "允许请求显式指定 prompt cache 断点。",
+    "Allows requests to explicitly specify prompt cache breakpoints.",
+    "boolean"
+  ),
+  "cache.allow_retention_downgrade": entry(
+    "cache.allow_retention_downgrade",
+    "允许降级保留策略",
+    "Allow retention downgrade",
+    "当上游不支持长保留策略时允许降级到可用策略。",
+    "Allows downgrading to an available retention policy when the upstream does not support a longer policy.",
+    "boolean"
+  ),
+  "cache.max_breakpoints": entry(
+    "cache.max_breakpoints",
+    "最大断点数",
+    "Max breakpoints",
+    "单次请求可插入的最大缓存断点数量。",
+    "Maximum number of cache breakpoints inserted for one request.",
+    "number"
+  ),
+  "cache.min_cache_tokens": entry(
+    "cache.min_cache_tokens",
+    "最小缓存 Token",
+    "Min cache tokens",
+    "低于该 token 数的片段不会作为缓存候选。",
+    "Segments below this token count are not considered cache candidates.",
+    "number"
+  ),
+  "cache.expected_reuse": entry(
+    "cache.expected_reuse",
+    "预期复用次数",
+    "Expected reuse",
+    "自动断点选择时用于估算收益的预期复用次数。",
+    "Expected reuse count used to estimate value for automatic breakpoint selection.",
+    "number"
+  ),
+  "cache.minimum_value_score": entry(
+    "cache.minimum_value_score",
+    "最小价值分",
+    "Minimum value score",
+    "自动断点候选必须达到的最低价值评分。",
+    "Minimum value score required for automatic breakpoint candidates.",
+    "number"
+  ),
+  "cache.min_breakpoint_tokens": entry(
+    "cache.min_breakpoint_tokens",
+    "最小断点 Token",
+    "Min breakpoint tokens",
+    "相邻缓存断点之间保留的最小 token 间隔。",
+    "Minimum token distance kept between adjacent cache breakpoints.",
+    "number"
   ),
   "defaults.model": entry(
     "defaults.model",
@@ -145,6 +305,94 @@ export const configDescriptions: Record<ConfigPath, ConfigDocEntry> = {
     "Stable model identifier under models. Provider offers and routes reference models by this slug.",
     "string"
   ),
+  "models.<slug>.display_name": entry(
+    "models.<slug>.display_name",
+    "模型显示名称",
+    "Model display name",
+    "控制台中展示的人类可读模型名称。",
+    "Human-readable model name shown in the console.",
+    "string"
+  ),
+  "models.<slug>.description": entry(
+    "models.<slug>.description",
+    "模型描述",
+    "Model description",
+    "描述模型用途、能力或限制，便于控制台识别。",
+    "Describes model purpose, capabilities, or limits for console readers.",
+    "string"
+  ),
+  "models.<slug>.base_instructions": entry(
+    "models.<slug>.base_instructions",
+    "基础指令",
+    "Base instructions",
+    "追加到该模型请求中的默认行为指令。",
+    "Default behavior instructions appended to requests for this model.",
+    "string"
+  ),
+  "models.<slug>.default_reasoning_level": entry(
+    "models.<slug>.default_reasoning_level",
+    "默认思考深度",
+    "Default reasoning level",
+    "请求未指定思考深度时使用的默认 level。",
+    "Default reasoning level used when a request does not specify one.",
+    "string"
+  ),
+  "models.<slug>.supported_reasoning_levels": entry(
+    "models.<slug>.supported_reasoning_levels",
+    "支持的思考深度",
+    "Supported reasoning levels",
+    "该模型允许选择的思考深度列表。",
+    "List of reasoning levels allowed for this model.",
+    "array"
+  ),
+  "models.<slug>.supports_reasoning_summaries": entry(
+    "models.<slug>.supports_reasoning_summaries",
+    "支持思考摘要",
+    "Supports reasoning summaries",
+    "标记该模型是否支持返回思考摘要。",
+    "Marks whether this model supports returning reasoning summaries.",
+    "boolean"
+  ),
+  "models.<slug>.default_reasoning_summary": entry(
+    "models.<slug>.default_reasoning_summary",
+    "默认思考摘要",
+    "Default reasoning summary",
+    "请求未指定摘要模式时使用的默认思考摘要设置。",
+    "Default reasoning summary setting used when a request does not specify one.",
+    "string"
+  ),
+  "models.<slug>.input_modalities": entry(
+    "models.<slug>.input_modalities",
+    "输入模态",
+    "Input modalities",
+    "该模型支持的输入类型，例如 text 或 image。",
+    "Input types supported by this model, such as text or image.",
+    "array"
+  ),
+  "models.<slug>.supports_image_detail_original": entry(
+    "models.<slug>.supports_image_detail_original",
+    "支持原始图像细节",
+    "Supports original image detail",
+    "标记视觉请求是否可向该模型发送 original 图像细节。",
+    "Marks whether visual requests can send original image detail to this model.",
+    "boolean"
+  ),
+  "models.<slug>.web_search": entry(
+    "models.<slug>.web_search",
+    "模型联网搜索",
+    "Model web search",
+    "覆盖该模型的联网搜索行为。",
+    "Overrides web search behavior for this model.",
+    "object"
+  ),
+  "models.<slug>.extensions": entry(
+    "models.<slug>.extensions",
+    "模型扩展",
+    "Model extensions",
+    "覆盖该模型启用的扩展工具和配置。",
+    "Overrides extension tools and config enabled for this model.",
+    "object"
+  ),
   "providers.<key>.key": entry(
     "providers.<key>.key",
     "Provider Key",
@@ -196,6 +444,22 @@ export const configDescriptions: Record<ConfigPath, ConfigDocEntry> = {
     "User-Agent sent upstream for audit or provider-side identification.",
     "string"
   ),
+  "providers.<key>.web_search": entry(
+    "providers.<key>.web_search",
+    "提供商联网搜索",
+    "Provider web search",
+    "覆盖该 Provider 的联网搜索行为。",
+    "Overrides web search behavior for this provider.",
+    "object"
+  ),
+  "providers.<key>.extensions": entry(
+    "providers.<key>.extensions",
+    "提供商扩展",
+    "Provider extensions",
+    "覆盖该 Provider 启用的扩展工具和配置。",
+    "Overrides extension tools and config enabled for this provider.",
+    "object"
+  ),
   "providers.<key>.offers[].model": entry(
     "providers.<key>.offers[].model",
     "Offer 模型",
@@ -212,6 +476,14 @@ export const configDescriptions: Record<ConfigPath, ConfigDocEntry> = {
     "Actual model name sent to the provider. Empty usually means the local model slug is used.",
     "string"
   ),
+  "providers.<key>.offers[].priority": entry(
+    "providers.<key>.offers[].priority",
+    "Offer 优先级",
+    "Offer priority",
+    "同一模型存在多个 Provider 能力时的排序权重，数值越低越优先。",
+    "Ordering weight when multiple provider offers serve the same model; lower values are preferred.",
+    "number"
+  ),
   "providers.<key>.offers[].pricing": entry(
     "providers.<key>.offers[].pricing",
     "价格",
@@ -219,6 +491,22 @@ export const configDescriptions: Record<ConfigPath, ConfigDocEntry> = {
     "输入、输出、cache write 和 cache read 的计价元数据，用于统计成本。",
     "Pricing metadata for input, output, cache write, and cache read, used for cost tracking.",
     "number"
+  ),
+  "providers.<key>.offers[].overrides": entry(
+    "providers.<key>.offers[].overrides",
+    "Offer 覆盖配置",
+    "Offer overrides",
+    "该 Provider 能力专用的模型能力覆盖项。",
+    "Model capability overrides specific to this provider offer.",
+    "object"
+  ),
+  "routes.<alias>.to": entry(
+    "routes.<alias>.to",
+    "路由目标",
+    "Route target",
+    "该路由指向的内部目标标识。",
+    "Internal target identifier used by this route.",
+    "string"
   ),
   "routes.<alias>.model": entry(
     "routes.<alias>.model",
@@ -243,6 +531,46 @@ export const configDescriptions: Record<ConfigPath, ConfigDocEntry> = {
     "处理该路由的 Provider key。",
     "Provider key that handles this route.",
     "string"
+  ),
+  "routes.<alias>.display_name": entry(
+    "routes.<alias>.display_name",
+    "路由显示名称",
+    "Route display name",
+    "控制台中展示的人类可读路由名称。",
+    "Human-readable route name shown in the console.",
+    "string"
+  ),
+  "routes.<alias>.description": entry(
+    "routes.<alias>.description",
+    "路由描述",
+    "Route description",
+    "描述该路由的用途或模型选择策略。",
+    "Describes this route's purpose or model selection policy.",
+    "string"
+  ),
+  "routes.<alias>.context_window": entry(
+    "routes.<alias>.context_window",
+    "路由上下文窗口",
+    "Route context window",
+    "该路由暴露给客户端的上下文窗口上限。",
+    "Context window limit exposed to clients for this route.",
+    "number"
+  ),
+  "routes.<alias>.web_search": entry(
+    "routes.<alias>.web_search",
+    "路由联网搜索",
+    "Route web search",
+    "覆盖该路由的联网搜索行为。",
+    "Overrides web search behavior for this route.",
+    "object"
+  ),
+  "routes.<alias>.extensions": entry(
+    "routes.<alias>.extensions",
+    "路由扩展",
+    "Route extensions",
+    "覆盖该路由启用的扩展工具和配置。",
+    "Overrides extension tools and config enabled for this route.",
+    "object"
   ),
   "web_search.support": entry(
     "web_search.support",
