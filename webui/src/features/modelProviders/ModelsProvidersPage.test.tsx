@@ -15,43 +15,33 @@ describe("ModelsProvidersPage", () => {
     vi.restoreAllMocks();
   });
 
-  async function expandOffers(providerPanel: HTMLElement) {
-    const toggle = getProviderOffersToggle(providerPanel);
-    if (toggle.getAttribute("aria-expanded") !== "true") {
-      await userEvent.click(toggle);
-    }
-  }
-
-  function getProviderOffersToggle(providerPanel: HTMLElement) {
-    const toggle = providerPanel.querySelector(".provider-offers__toggle");
-    if (!(toggle instanceof HTMLElement)) {
-      throw new Error("Provider offers toggle was not rendered.");
-    }
-    return toggle;
-  }
-
-  test("uses a Material Web icon button for provider offer disclosure", async () => {
+  test("shows providers as collapsible model-owned configuration without provider disclosure", async () => {
     vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
 
     renderWithConsoleProviders(<ModelsProvidersPage />);
 
     const providerPanel = await screen.findByLabelText("Provider anthropic");
-    const toggle = getProviderOffersToggle(providerPanel);
+    const modelGroup = screen.getByLabelText("Model claude-sonnet");
+    const supplyPanel = within(modelGroup).getByRole("region", { name: "Providers (1)" });
+    const modelCard = within(modelGroup).getByLabelText("claude-sonnet");
+    const modelFieldGroups = modelCard.querySelector(".resource-field-groups");
+    const supplyHeader = supplyPanel.querySelector(".resource-field-group__header");
+    const toggle = getMaterialIconButton(supplyPanel, "Toggle Providers");
 
-    expect(toggle.tagName.toLowerCase()).toBe("md-icon-button");
-    expect(toggle).toHaveAttribute("aria-label", "Provider Offers (1)");
-    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(providerPanel.querySelector(".provider-offers__toggle")).not.toBeInTheDocument();
+    expect(within(providerPanel).queryByRole("heading", { name: /Provider Offers/ })).not.toBeInTheDocument();
     expect(within(providerPanel).queryByText("anthropic/claude-sonnet")).not.toBeInTheDocument();
-
+    expect(modelFieldGroups).toContainElement(supplyPanel);
+    expect(supplyPanel.parentElement).toBe(modelFieldGroups);
+    expect(supplyPanel).toHaveClass("resource-field-group");
+    expect(supplyPanel).toHaveClass("resource-field-group--advanced");
+    expect(within(supplyPanel).getByRole("heading", { name: "Providers (1)" })).toBeInTheDocument();
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(within(supplyPanel).queryByText("anthropic/claude-sonnet")).not.toBeInTheDocument();
     await userEvent.click(toggle);
-
     expect(toggle).toHaveAttribute("aria-expanded", "true");
-    expect(within(providerPanel).getByText("anthropic/claude-sonnet")).toBeInTheDocument();
-
-    await userEvent.click(toggle);
-
-    expect(toggle).toHaveAttribute("aria-expanded", "false");
-    expect(within(providerPanel).queryByText("anthropic/claude-sonnet")).not.toBeInTheDocument();
+    expect(within(supplyPanel).getByText("anthropic/claude-sonnet")).toBeInTheDocument();
+    expect(supplyHeader).toContainElement(getMaterialButton(supplyPanel, "Add Provider", "filled"));
   });
 
   test("places Providers above Models and omits enabled toggles", async () => {
@@ -63,16 +53,16 @@ describe("ModelsProvidersPage", () => {
 
     renderWithConsoleProviders(<ModelsProvidersPage />);
 
-    const providers = await screen.findByRole("heading", { name: "Providers (1)" });
+    const providers = await screen.findByRole("heading", { level: 2, name: "Providers (1)" });
     const models = screen.getByRole("heading", { name: "Models (1)" });
-    const providerPanel = screen.getByLabelText("Provider anthropic");
-    const offerHeading = within(providerPanel).getByRole("heading", { name: "Provider Offers (1)" });
+    const modelGroup = screen.getByLabelText("Model claude-sonnet");
+    const supplyHeading = within(modelGroup).getByRole("heading", { name: "Providers (1)" });
 
-    expect(providers.compareDocumentPosition(offerHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(providers.compareDocumentPosition(models) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(models.compareDocumentPosition(supplyHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(within(screen.getByLabelText("anthropic status")).getByText("Saved")).toBeInTheDocument();
-    await expandOffers(providerPanel);
-    expect(within(providerPanel).getByText("anthropic/claude-sonnet")).toBeInTheDocument();
+    await userEvent.click(getMaterialIconButton(modelGroup, "Toggle Providers"));
+    expect(within(modelGroup).getByText("anthropic/claude-sonnet")).toBeInTheDocument();
     expect(screen.queryByLabelText(/^enabled$/i)).not.toBeInTheDocument();
   });
 
@@ -135,8 +125,8 @@ describe("ModelsProvidersPage", () => {
 
     renderWithConsoleProviders(<ModelsProvidersPage />, { locale: "zh-CN" });
 
-    expect(await screen.findByRole("heading", { name: "提供商 (1)" })).toBeInTheDocument();
-    expect(within(screen.getByLabelText("提供商 anthropic")).getByRole("heading", { name: "提供商能力 (1)" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 2, name: "提供商 (1)" })).toBeInTheDocument();
+    expect(within(screen.getByLabelText("模型 claude-sonnet")).getByRole("heading", { name: "提供商 (1)" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "模型 (1)" })).toBeInTheDocument();
     expect(within(screen.getByLabelText("anthropic 状态")).getByText("已保存")).toBeInTheDocument();
     expect(getMaterialTextField(document, "上游 Base URL")).toBeInTheDocument();
@@ -198,7 +188,7 @@ describe("ModelsProvidersPage", () => {
     expect(getMaterialFilterChip(modelForm, "100 万")).toBeInTheDocument();
   });
 
-  test("autosaves provider fields and offer priority through graph patches", async () => {
+  test("autosaves provider fields and provider binding priority through graph patches", async () => {
     vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
     const patch = vi.spyOn(configGraph, "patchConfigGraph").mockResolvedValue({
       result: "committed",
@@ -229,10 +219,13 @@ describe("ModelsProvidersPage", () => {
     });
 
     vi.useRealTimers();
-    await expandOffers(screen.getByLabelText("Provider anthropic"));
-    const offerPanel = screen.getByText("anthropic/claude-sonnet").closest("section")!;
+    const modelGroup = screen.getByLabelText("Model claude-sonnet");
+    await userEvent.click(getMaterialIconButton(modelGroup, "Toggle Providers"));
+    const offerPanel = within(modelGroup)
+      .getByText("anthropic/claude-sonnet")
+      .closest("section")!;
     vi.useFakeTimers();
-    const priorityField = getMaterialTextField(offerPanel, "Offer priority");
+    const priorityField = getMaterialTextField(offerPanel, "Provider priority");
     setMaterialTextFieldValue(priorityField, "5");
     fireEvent.blur(priorityField);
 
@@ -439,11 +432,13 @@ describe("ModelsProvidersPage", () => {
     expect(protocolSelect.querySelector("[slot='leading-icon'] svg")).toBeInTheDocument();
 
     await userEvent.click(getMaterialButton(providerForm, "Cancel", "outlined"));
-    const providerPanel = await screen.findByLabelText("Provider anthropic");
-    await userEvent.click(getMaterialButton(providerPanel, "Add Offer", "filled"));
-    const offerForm = within(providerPanel).getByRole("form", { name: "Create Offer" });
+    const supplyPanel = within(await screen.findByLabelText("Model claude-sonnet"))
+      .getByRole("region", { name: "Providers (1)" });
+    await userEvent.click(getMaterialButton(supplyPanel, "Add Provider", "filled"));
+    const offerForm = within(supplyPanel).getByRole("form", { name: "Create Provider" });
     expect(offerForm.querySelector(".material-static-chip")).not.toBeInTheDocument();
-    expect(getMaterialAssistChip(offerForm, "anthropic").closest(".schema-field")).toBeInTheDocument();
+    expect(getMaterialAssistChip(offerForm, "claude-sonnet").closest(".schema-field")).toBeInTheDocument();
+    expect(getMaterialSelect(offerForm, "Provider").value).toBe("anthropic");
   });
 
   test("creates a model with a 128k default context window", async () => {
@@ -531,7 +526,7 @@ describe("ModelsProvidersPage", () => {
     expect(getMaterialTextField(form, "Context window").value).toBe("0");
   });
 
-  test("creates a provider offer inside the selected provider section", async () => {
+  test("creates provider binding from the selected model without billing by default", async () => {
     vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
     const create = vi.spyOn(configGraph, "createConfigResource").mockResolvedValue({
       result: "committed",
@@ -541,12 +536,53 @@ describe("ModelsProvidersPage", () => {
 
     renderWithConsoleProviders(<ModelsProvidersPage />);
 
-    const providerPanel = await screen.findByLabelText("Provider anthropic");
-    await userEvent.click(getMaterialButton(providerPanel, "Add Offer", "filled"));
-    const form = within(providerPanel).getByRole("form", { name: "Create Offer" });
-    expect(getMaterialSelect(form, "Model").value).toBe("claude-sonnet");
+    const supplyPanel = within(await screen.findByLabelText("Model claude-sonnet"))
+      .getByRole("region", { name: "Providers (1)" });
+    await userEvent.click(getMaterialButton(supplyPanel, "Add Provider", "filled"));
+    const form = within(supplyPanel).getByRole("form", { name: "Create Provider" });
+    expect(getMaterialAssistChip(form, "claude-sonnet")).toBeInTheDocument();
+    expect(getMaterialSelect(form, "Provider").value).toBe("anthropic");
+    expect(queryMaterialTextField(form, "Input price")).not.toBeInTheDocument();
+    expect(getMaterialSwitch(form, "Billing").selected).toBe(false);
     setMaterialTextFieldValue(getMaterialTextField(form, "Upstream name"), "claude-3-5-sonnet-latest");
-    await submitMaterialForm(form, "Create Offer");
+    await submitMaterialForm(form, "Create Provider");
+
+    await waitFor(() => expect(create).toHaveBeenCalledWith("provider_offer", {
+      baseRevision: "rev-1",
+      id: "anthropic/claude-sonnet",
+      value: {
+        model: "claude-sonnet",
+        upstream_name: "claude-3-5-sonnet-latest",
+        priority: 1
+      }
+    }));
+  });
+
+  test("creates provider billing only when the optional billing switch is enabled", async () => {
+    vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
+    const create = vi.spyOn(configGraph, "createConfigResource").mockResolvedValue({
+      result: "committed",
+      revision: "rev-2",
+      graph: configGraphFixture({ revision: "rev-2" })
+    });
+
+    renderWithConsoleProviders(<ModelsProvidersPage />);
+
+    const supplyPanel = within(await screen.findByLabelText("Model claude-sonnet"))
+      .getByRole("region", { name: "Providers (1)" });
+    await userEvent.click(getMaterialButton(supplyPanel, "Add Provider", "filled"));
+    const form = within(supplyPanel).getByRole("form", { name: "Create Provider" });
+    setMaterialSwitchSelected(getMaterialSwitch(form, "Billing"), true);
+    expect(getMaterialTextField(form, "Input price")).toHaveAttribute("spellcheck", "false");
+    expect(getMaterialTextField(form, "Output price")).toHaveAttribute("spellcheck", "false");
+    expect(getMaterialTextField(form, "Cache write price")).toHaveAttribute("spellcheck", "false");
+    expect(getMaterialTextField(form, "Cache read price")).toHaveAttribute("spellcheck", "false");
+    setMaterialTextFieldValue(getMaterialTextField(form, "Upstream name"), "claude-3-5-sonnet-latest");
+    setMaterialTextFieldValue(getMaterialTextField(form, "Input price"), "3");
+    setMaterialTextFieldValue(getMaterialTextField(form, "Output price"), "15");
+    setMaterialTextFieldValue(getMaterialTextField(form, "Cache write price"), "3.75");
+    setMaterialTextFieldValue(getMaterialTextField(form, "Cache read price"), "0.3");
+    await submitMaterialForm(form, "Create Provider");
 
     await waitFor(() => expect(create).toHaveBeenCalledWith("provider_offer", {
       baseRevision: "rev-1",
@@ -556,16 +592,16 @@ describe("ModelsProvidersPage", () => {
         upstream_name: "claude-3-5-sonnet-latest",
         priority: 1,
         pricing: {
-          input_price: 0,
-          output_price: 0,
-          cache_write_price: 0,
-          cache_read_price: 0
+          input_price: 3,
+          output_price: 15,
+          cache_write_price: 3.75,
+          cache_read_price: 0.3
         }
       }
     }));
   });
 
-  test("rejects invalid provider offer numbers without submitting the create request", async () => {
+  test("rejects invalid provider numbers without submitting the create request", async () => {
     vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
     const create = vi.spyOn(configGraph, "createConfigResource").mockResolvedValue({
       result: "committed",
@@ -575,12 +611,13 @@ describe("ModelsProvidersPage", () => {
 
     renderWithConsoleProviders(<ModelsProvidersPage />);
 
-    const providerPanel = await screen.findByLabelText("Provider anthropic");
-    await userEvent.click(getMaterialButton(providerPanel, "Add Offer", "filled"));
-    const form = within(providerPanel).getByRole("form", { name: "Create Offer" });
+    const supplyPanel = within(await screen.findByLabelText("Model claude-sonnet"))
+      .getByRole("region", { name: "Providers (1)" });
+    await userEvent.click(getMaterialButton(supplyPanel, "Add Provider", "filled"));
+    const form = within(supplyPanel).getByRole("form", { name: "Create Provider" });
     setMaterialTextFieldValue(getMaterialTextField(form, "Priority"), "fast");
     setMaterialTextFieldValue(getMaterialTextField(form, "Upstream name"), "claude-3-5-sonnet-latest");
-    await submitMaterialForm(form, "Create Offer");
+    await submitMaterialForm(form, "Create Provider");
 
     expect(screen.getByRole("alert")).toHaveTextContent("Priority must be a valid number.");
     expect(getMaterialTextField(form, "Priority").value).toBe("fast");
@@ -640,7 +677,7 @@ describe("ModelsProvidersPage", () => {
     expect(screen.queryByLabelText("Provider anthropic")).not.toBeInTheDocument();
   });
 
-  test("deletes provider offers and keeps slash identifiers intact", async () => {
+  test("deletes provider bindings and keeps slash identifiers intact", async () => {
     vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
     const graphAfterDelete = configGraphFixture({
       revision: "rev-2",
@@ -654,9 +691,12 @@ describe("ModelsProvidersPage", () => {
 
     renderWithConsoleProviders(<ModelsProvidersPage />);
 
-    await expandOffers(await screen.findByLabelText("Provider anthropic"));
-    const offerPanel = (await screen.findByText("anthropic/claude-sonnet")).closest("section")!;
-    await userEvent.click(getMaterialButton(offerPanel, "Delete Offer anthropic/claude-sonnet", "filled"));
+    const modelGroup = await screen.findByLabelText("Model claude-sonnet");
+    await userEvent.click(getMaterialIconButton(modelGroup, "Toggle Providers"));
+    const offerPanel = within(modelGroup)
+      .getByText("anthropic/claude-sonnet")
+      .closest("section")!;
+    await userEvent.click(getMaterialButton(offerPanel, "Delete Provider anthropic/claude-sonnet", "filled"));
     await userEvent.click(getMaterialButton(offerPanel, "Confirm delete anthropic/claude-sonnet", "filled"));
 
     expect(remove).toHaveBeenCalledWith("provider_offer", "anthropic/claude-sonnet", "rev-1");
@@ -749,6 +789,16 @@ function getMaterialSelectOptions(select: ParentNode) {
   return options;
 }
 
+function getMaterialSwitch(container: ParentNode, label: string) {
+  const element = Array.from(container.querySelectorAll("md-switch")).find(
+    (candidate) => candidate.getAttribute("aria-label") === label
+  );
+  if (!element) {
+    throw new Error(`Expected a Material Web switch labelled "${label}".`);
+  }
+  return element as HTMLElement & { selected: boolean };
+}
+
 function materialElementLabel(element: HTMLElement & { label?: string }) {
   const labelledBy = element.getAttribute("aria-labelledby");
   if (labelledBy) {
@@ -798,11 +848,7 @@ function expectMaterialFilledButtonContentColors(button: HTMLElement, colorToken
 }
 
 async function waitForMaterialButton(container: ParentNode, label: string, variant: "filled" | "outlined" = "filled") {
-  await screen.findByText((_, element) => (
-    element?.tagName.toLowerCase() === (variant === "filled" ? "md-filled-button" : "md-outlined-button") &&
-    Boolean(element.textContent?.includes(label))
-  ));
-  return getMaterialButton(container, label, variant);
+  await waitFor(() => expect(getMaterialButton(container, label, variant)).toBeInTheDocument());
 }
 
 function getMaterialIconButton(container: ParentNode, label: string) {
@@ -888,6 +934,13 @@ function setMaterialSelectValue(element: MaterialSelectElement, value: string) {
         selectedValue = next;
       }
     });
+    element.dispatchEvent(new Event("change", { bubbles: true, composed: true }));
+  });
+}
+
+function setMaterialSwitchSelected(element: HTMLElement & { selected: boolean }, selected: boolean) {
+  act(() => {
+    element.selected = selected;
     element.dispatchEvent(new Event("change", { bubbles: true, composed: true }));
   });
 }

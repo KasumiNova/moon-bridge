@@ -53,7 +53,7 @@ describe("config graph console smoke flow", () => {
 
     renderWithConsoleProviders(<ModelsProvidersPage />);
 
-    expect(await screen.findByRole("heading", { name: "Providers (1)" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 2, name: "Providers (1)" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 3, name: "anthropic" })).toBeInTheDocument();
     expect(screen.getByLabelText("anthropic status")).toHaveTextContent("Saved");
   });

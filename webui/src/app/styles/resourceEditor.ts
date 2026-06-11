@@ -265,6 +265,20 @@ export const resourceEditorStyles = `  .resource-editor-card {
     gap: 12px;
   }
 
+  .resource-field-group__header-actions {
+    min-width: 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .resource-field-group__body {
+    display: grid;
+    gap: 12px;
+  }
+
   .resource-field-group__header h4 {
     margin: 0;
     display: inline-flex;
@@ -283,6 +297,21 @@ export const resourceEditorStyles = `  .resource-editor-card {
 
   .resource-field-group--advanced {
     background: color-mix(in srgb, var(--mb-color-surface) 68%, var(--mb-color-surface-container-high));
+  }
+
+  .resource-field-group__toggle {
+    --md-icon-button-icon-size: 20px;
+    --md-icon-button-icon-color: var(--mb-color-on-surface-variant);
+    --md-icon-button-hover-icon-color: var(--mb-color-on-surface);
+    --md-icon-button-focus-icon-color: var(--mb-color-on-surface);
+    --md-icon-button-pressed-icon-color: var(--mb-color-primary);
+    flex: 0 0 auto;
+    transition: transform var(--mb-duration-medium) var(--mb-ease-spring);
+  }
+
+  .resource-field-group__toggle[aria-expanded="true"] {
+    --md-icon-button-icon-color: var(--mb-color-primary);
+    transform: rotate(90deg);
   }
 
   .resource-field-group__switch {

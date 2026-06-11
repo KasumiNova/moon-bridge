@@ -10,29 +10,30 @@ export type SaveFieldRequest<T> = {
 
 export type SaveField<T> = (request: SaveFieldRequest<T>) => Promise<PatchResponse>;
 
-export type UseAutosaveFieldOptions<T> = {
+export type UseAutosaveFieldOptions<T, SaveValue = T> = {
   resourceKind: ResourceKind;
   resourceId: string;
   field: string;
   committedValue: T;
   revision: string;
-  save: SaveField<T>;
+  save: SaveField<SaveValue>;
   disabled?: boolean;
   configUpdateFailedMessage: (result: PatchResponse["result"]) => string;
   requestFailedMessage: string;
 };
 
-export type AutosaveFieldState<T> = {
+export type AutosaveFieldState<T, SaveValue = T> = {
   value: T;
   status: AutosaveFieldStatus;
   error?: FieldError;
   setValue: (value: T) => void;
   commit: () => void;
   commitValue: (value: T) => void;
+  commitSerializedValue: (localValue: T, saveValue: SaveValue) => void;
   reset: () => void;
 };
 
-export function useAutosaveField<T>({
+export function useAutosaveField<T, SaveValue = T>({
   resourceKind,
   resourceId,
   field,
@@ -42,7 +43,7 @@ export function useAutosaveField<T>({
   disabled = false,
   configUpdateFailedMessage,
   requestFailedMessage
-}: UseAutosaveFieldOptions<T>): AutosaveFieldState<T> {
+}: UseAutosaveFieldOptions<T, SaveValue>): AutosaveFieldState<T, SaveValue> {
   const [value, setValueState] = useState<T>(committedValue);
   const [status, setStatus] = useState<AutosaveFieldStatus>("idle");
   const [error, setError] = useState<FieldError | undefined>();
@@ -72,7 +73,7 @@ export function useAutosaveField<T>({
   }, [committedValue]);
 
   const runSave = useCallback(
-    (pendingValue: T) => {
+    (pendingValue: T, saveValue: SaveValue) => {
       if (disabled) {
         return;
       }
@@ -86,7 +87,7 @@ export function useAutosaveField<T>({
           kind: resourceKind,
           id: resourceId,
           field,
-          value: pendingValue
+          value: saveValue
         }
       })
         .then((response) => {
@@ -123,7 +124,7 @@ export function useAutosaveField<T>({
     if (statusRef.current !== "dirty") {
       return;
     }
-    runSave(valueRef.current);
+    runSave(valueRef.current, valueRef.current as unknown as SaveValue);
   }, [runSave]);
 
   // Set and immediately persist (used by discrete controls like switches/menus).
@@ -135,7 +136,21 @@ export function useAutosaveField<T>({
         setStatus("idle");
         return;
       }
-      runSave(next);
+      runSave(next, next as unknown as SaveValue);
+    },
+    [runSave]
+  );
+
+  // Persist a different wire value while keeping the local UI value typed.
+  const commitSerializedValue = useCallback(
+    (next: T, serialized: SaveValue) => {
+      setValueState(next);
+      if (valuesEqual(next, committedRef.current)) {
+        setError(undefined);
+        setStatus("idle");
+        return;
+      }
+      runSave(next, serialized);
     },
     [runSave]
   );
@@ -146,7 +161,7 @@ export function useAutosaveField<T>({
     setStatus("idle");
   }, []);
 
-  return { value, status, error, setValue, commit, commitValue, reset };
+  return { value, status, error, setValue, commit, commitValue, commitSerializedValue, reset };
 
   function applySaveResponse(response: PatchResponse, pendingValue: T) {
     const fieldError = findFieldError(response.errors, resourceKind, resourceId, field);

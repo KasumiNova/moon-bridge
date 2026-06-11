@@ -1,6 +1,7 @@
 package configgraph
 
 import (
+	"strings"
 	"testing"
 
 	"moonbridge/internal/config"
@@ -55,6 +56,37 @@ func TestApplyPatchToFileConfigUpdatesModelReasoningSupport(t *testing.T) {
 	}
 	if *patched.Models["claude-sonnet"].SupportsReasoning {
 		t.Fatal("Models[claude-sonnet].SupportsReasoning = true, want false")
+	}
+}
+
+func TestApplyPatchToFileConfigClearsProviderOfferPricing(t *testing.T) {
+	fc := testConfig().ToFileConfig()
+
+	patched, errs := ApplyPatchToFileConfig(fc, []PatchOp{
+		{Kind: ResourceProviderOffer, ID: "anthropic/claude-sonnet", Field: "pricing", Value: nil},
+	})
+
+	if len(errs) != 0 {
+		t.Fatalf("ApplyPatchToFileConfig returned errors: %+v", errs)
+	}
+	pricing := patched.Providers["anthropic"].Offers[0].Pricing
+	if pricing.InputPrice != 0 || pricing.OutputPrice != 0 || pricing.CacheWritePrice != 0 || pricing.CacheReadPrice != 0 {
+		t.Fatalf("Pricing = %+v, want zero-value pricing after clearing", pricing)
+	}
+	data, err := patched.MarshalYAML()
+	if err != nil {
+		t.Fatalf("MarshalYAML() error = %v", err)
+	}
+	if strings.Contains(string(data), "pricing:") {
+		t.Fatalf("MarshalYAML() retained pricing after clearing:\n%s", string(data))
+	}
+	cfg, err := config.FromFileConfig(patched)
+	if err != nil {
+		t.Fatalf("config.FromFileConfig() error = %v", err)
+	}
+	offer := assertResource(t, BuildGraph(cfg, "rev-2"), ResourceProviderOffer, "anthropic/claude-sonnet")
+	if _, ok := offer.Value["pricing"]; ok {
+		t.Fatalf("BuildGraph() exposed cleared pricing: %+v", offer.Value["pricing"])
 	}
 }
 

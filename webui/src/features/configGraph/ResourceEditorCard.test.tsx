@@ -294,17 +294,24 @@ describe("ResourceEditorCard", () => {
     expect(within(screen.getByLabelText("main 状态")).getByText("需要重启")).toBeInTheDocument();
   });
 
-  test("merges object fields into basic without a raw JSON editor group", () => {
-    vi.spyOn(configGraph, "patchConfigGraph").mockResolvedValue({
+  test("renders provider pricing and model overrides as structured panels", async () => {
+    const patch = vi.spyOn(configGraph, "patchConfigGraph").mockResolvedValue({
       result: "committed",
       revision: "rev-2"
     });
-    const offer = resource("provider_offer", "anthropic/claude-sonnet", "Offer", {
+    const offer = resource("provider_offer", "anthropic/claude-sonnet", "Provider", {
       model: "claude-sonnet",
       upstream_name: "claude-3-5-sonnet",
       priority: 1,
-      pricing: { input_price: 3 },
-      overrides: {}
+      pricing: {
+        input_price: 3,
+        output_price: 15
+      },
+      overrides: {
+        context_window: 200000,
+        supports_reasoning: true,
+        input_modalities: ["text"]
+      }
     }, [
       field("model", "Model"),
       field("upstream_name", "Upstream Name"),
@@ -314,21 +321,128 @@ describe("ResourceEditorCard", () => {
     ]);
 
     renderWithConsoleProviders(
-      <ResourceEditorCard resource={offer} revision="rev-1" title="Offer" />
+      <ResourceEditorCard resource={offer} revision="rev-1" title="Provider" />
     );
 
     const identityGroup = screen.getByRole("group", { name: "Identity" });
     const standardGroup = screen.getByRole("group", { name: "Basic" });
+    const billingGroup = screen.getByRole("group", { name: "Billing" });
 
-    expect(getMaterialTextField(identityGroup, "Offer model")).toBeInTheDocument();
+    expect(getMaterialTextField(identityGroup, "Provider model")).toBeInTheDocument();
     expect(getMaterialTextField(identityGroup, "Upstream model name")).toBeInTheDocument();
-    expect(getMaterialTextField(standardGroup, "Offer priority")).toBeInTheDocument();
-    expect(getStructuredObject(standardGroup, "Pricing")).not.toHaveTextContent("Structured editor");
-    expect(getMaterialTextField(standardGroup, "input_price")).toBeInTheDocument();
-    expect(getStructuredObject(standardGroup, "Offer overrides")).toHaveTextContent("No configured entries.");
-    expect(queryMaterialOutlinedButton(standardGroup, /Pricing.*1 key/)).not.toBeInTheDocument();
+    expect(getMaterialTextField(standardGroup, "Provider priority")).toBeInTheDocument();
+    const overridesEditor = getProviderOverrideEditor(standardGroup);
+    expect(overridesEditor).toHaveTextContent("Provider overrides");
+    expect(getMaterialTextField(overridesEditor, "Override context window")).toHaveValue("200000");
+    expect(getMaterialSelectOptions(getMaterialSelect(overridesEditor, "Override supports reasoning"))
+      .find((option) => option.value === "true")?.selected).toBe(true);
+    expect(getEditableList(overridesEditor, "Override input modalities")).toBeInTheDocument();
+    expect(getEditableListItems(overridesEditor, "Override input modalities")).toEqual(["text"]);
+    expect(queryMaterialTextField(standardGroup, "Provider overrides JSON")).not.toBeInTheDocument();
+    expect(within(overridesEditor).queryByText("Readonly structured summary")).not.toBeInTheDocument();
+    expect(() => getStructuredObject(standardGroup, "Pricing")).toThrow("Missing structured object editor: Pricing");
     expect(queryMaterialTextField(standardGroup, "Pricing JSON")).not.toBeInTheDocument();
+    expect(getMaterialSwitch(billingGroup, "Billing").selected).toBe(true);
+    expect(getMaterialTextField(billingGroup, "Input price")).toHaveAttribute("spellcheck", "false");
+    expect(getMaterialTextField(billingGroup, "Output price")).toHaveAttribute("spellcheck", "false");
+    expect(getMaterialTextField(billingGroup, "Cache write price")).toHaveAttribute("spellcheck", "false");
+    expect(getMaterialTextField(billingGroup, "Cache read price")).toHaveAttribute("spellcheck", "false");
     expect(screen.queryByRole("group", { name: "Advanced JSON" })).not.toBeInTheDocument();
+
+    setMaterialTextFieldValue(getMaterialTextField(overridesEditor, "Override max output tokens"), "4096");
+    fireEvent.blur(getMaterialTextField(overridesEditor, "Override max output tokens"));
+
+    await waitFor(() =>
+      expect(patch).toHaveBeenCalledWith({
+        baseRevision: "rev-1",
+        changes: [
+          {
+            kind: "provider_offer",
+            id: "anthropic/claude-sonnet",
+            field: "overrides",
+            value: {
+              context_window: 200000,
+              supports_reasoning: true,
+              input_modalities: ["text"],
+              max_output_tokens: 4096
+            }
+          }
+        ]
+      })
+    );
+
+    setMaterialSelectValue(getMaterialSelect(overridesEditor, "Override supports reasoning"), "false");
+
+    await waitFor(() =>
+      expect(patch).toHaveBeenCalledWith({
+        baseRevision: "rev-1",
+        changes: [
+          {
+            kind: "provider_offer",
+            id: "anthropic/claude-sonnet",
+            field: "overrides",
+            value: {
+              context_window: 200000,
+              supports_reasoning: false,
+              input_modalities: ["text"],
+              max_output_tokens: 4096
+            }
+          }
+        ]
+      })
+    );
+
+    setMaterialSwitchSelected(getMaterialSwitch(billingGroup, "Billing"), false);
+
+    await waitFor(() =>
+      expect(patch).toHaveBeenCalledWith({
+        baseRevision: "rev-1",
+        changes: [
+          {
+            kind: "provider_offer",
+            id: "anthropic/claude-sonnet",
+            field: "pricing",
+            value: null
+          }
+        ]
+      })
+    );
+    expect(patch).not.toHaveBeenCalledWith({
+      baseRevision: "rev-1",
+      changes: [
+        {
+          kind: "provider_offer",
+          id: "anthropic/claude-sonnet",
+          field: "pricing",
+          value: {}
+        }
+      ]
+    });
+
+    await waitFor(() => expect(queryMaterialTextField(billingGroup, "Input price")).not.toBeInTheDocument());
+    setMaterialSwitchSelected(getMaterialSwitch(billingGroup, "Billing"), true);
+    expect(getMaterialTextField(billingGroup, "Input price")).toBeInTheDocument();
+    setMaterialTextFieldValue(getMaterialTextField(billingGroup, "Cache read price"), "0.3");
+    fireEvent.blur(getMaterialTextField(billingGroup, "Cache read price"));
+
+    await waitFor(() =>
+      expect(patch).toHaveBeenLastCalledWith({
+        baseRevision: "rev-1",
+        changes: [
+          {
+            kind: "provider_offer",
+            id: "anthropic/claude-sonnet",
+            field: "pricing",
+            value: {
+              input_price: 0,
+              output_price: 0,
+              cache_write_price: 0,
+              cache_read_price: 0.3
+            }
+          }
+        ]
+      })
+    );
   });
 
   test("keeps plain long text fields in basic without a raw JSON editor group", () => {
@@ -509,7 +623,19 @@ describe("ResourceEditorCard", () => {
     expect(basicPanel).toContainElement(getMaterialTextField(document, "Max output tokens"));
     expect(basicPanel).toContainElement(getMaterialTextField(document, "Model description"));
     expect(basicPanel).toContainElement(getMaterialTextField(document, "Base instructions"));
+    expect(Array.from(document.querySelectorAll(".resource-field-group")).map((group) => group.getAttribute("aria-label")))
+      .toEqual(["Identity", "Basic", "Reasoning", "Multimodal", "Advanced Features"]);
     expect(multimodalPanel).toHaveClass("resource-field-group--multimodal");
+    expect(getMaterialIconButton(multimodalPanel, "Toggle Multimodal")).toHaveAttribute("aria-expanded", "false");
+    expect(getMaterialIconButton(advancedPanel, "Toggle Advanced Features")).toHaveAttribute("aria-expanded", "false");
+    expect(queryEditableList(multimodalPanel, "Input modalities")).not.toBeInTheDocument();
+    expect(queryMaterialSelect(advancedPanel, "Model web search mode")).not.toBeInTheDocument();
+
+    fireEvent.click(getMaterialIconButton(multimodalPanel, "Toggle Multimodal"));
+    fireEvent.click(getMaterialIconButton(advancedPanel, "Toggle Advanced Features"));
+
+    expect(getMaterialIconButton(multimodalPanel, "Toggle Multimodal")).toHaveAttribute("aria-expanded", "true");
+    expect(getMaterialIconButton(advancedPanel, "Toggle Advanced Features")).toHaveAttribute("aria-expanded", "true");
     expect(getEditableList(multimodalPanel, "Input modalities")).toBeInTheDocument();
     expect(getMaterialSwitch(multimodalPanel, "Supports original image detail")).toBeInTheDocument();
     expect(advancedPanel).toHaveClass("resource-field-group--advanced");
@@ -584,6 +710,7 @@ describe("ResourceEditorCard", () => {
     );
 
     const advancedPanel = screen.getByRole("group", { name: "Advanced Features" });
+    fireEvent.click(getMaterialIconButton(advancedPanel, "Toggle Advanced Features"));
     const supportSelect = getMaterialSelect(advancedPanel, "Model web search mode");
     expect(getMaterialSelectOptions(supportSelect).map((option) => option.value)).toEqual([
       "auto",
@@ -723,6 +850,7 @@ describe("ResourceEditorCard", () => {
     );
 
     const advancedPanel = screen.getByRole("group", { name: "Advanced Features" });
+    fireEvent.click(getMaterialIconButton(advancedPanel, "Toggle Advanced Features"));
     expect(getExtensionFeatureRow(advancedPanel, "visual")).toBeInTheDocument();
     expect(queryMaterialTextField(advancedPanel, "Model extensions JSON")).not.toBeInTheDocument();
     expect(getMaterialTextField(advancedPanel, "visual provider")).toHaveAttribute("spellcheck", "false");
@@ -799,6 +927,7 @@ describe("ResourceEditorCard", () => {
     );
 
     const providerHelp = getMaterialIconButton(document, "Help for Provider web search max uses");
+    fireEvent.click(getMaterialIconButton(screen.getAllByRole("group", { name: "Advanced Features" })[1], "Toggle Advanced Features"));
     const modelHelp = getMaterialIconButton(document, "Help for Model web search max uses");
     fireEvent.focus(providerHelp);
     fireEvent.focus(modelHelp);
@@ -1157,13 +1286,17 @@ function queryMaterialTextField(container: ParentNode, label: string) {
 }
 
 function getEditableList(container: ParentNode, label: string) {
-  const element = Array.from(container.querySelectorAll<HTMLElement>(".editable-list-field")).find(
-    (candidate) => candidate.getAttribute("aria-label") === label
-  );
+  const element = queryEditableList(container, label);
   if (!element) {
     throw new Error(`Missing editable list: ${label}`);
   }
   return element;
+}
+
+function queryEditableList(container: ParentNode, label: string) {
+  return Array.from(container.querySelectorAll<HTMLElement>(".editable-list-field")).find(
+    (candidate) => candidate.getAttribute("aria-label") === label
+  ) ?? null;
 }
 
 function getEditableListItems(container: ParentNode, label: string) {
@@ -1192,9 +1325,7 @@ function getMaterialInputChip(container: ParentNode, label: string) {
 }
 
 function getMaterialSelect(container: ParentNode, label: string) {
-  const element = Array.from(container.querySelectorAll("md-outlined-select")).find(
-    (selectElement) => materialElementLabel(selectElement as HTMLElement & { label?: string }) === label
-  );
+  const element = queryMaterialSelect(container, label);
   if (!element) {
     throw new Error(`Missing md-outlined-select: ${label}`);
   }
@@ -1203,6 +1334,16 @@ function getMaterialSelect(container: ParentNode, label: string) {
     select: (value: string) => void;
     value: string;
   };
+}
+
+function queryMaterialSelect(container: ParentNode, label: string) {
+  return (Array.from(container.querySelectorAll("md-outlined-select")).find(
+    (selectElement) => materialElementLabel(selectElement as HTMLElement & { label?: string }) === label
+  ) ?? null) as HTMLElement & {
+    options?: Array<{ value: string }>;
+    select: (value: string) => void;
+    value: string;
+  } | null;
 }
 
 type MaterialSelectOptionElement = HTMLElement & {
@@ -1279,6 +1420,14 @@ function getStructuredObject(container: ParentNode, label: string) {
     throw new Error(`Missing structured object editor: ${label}`);
   }
   return element as HTMLElement;
+}
+
+function getProviderOverrideEditor(container: ParentNode) {
+  const element = container.querySelector<HTMLElement>(".provider-overrides-editor");
+  if (!element) {
+    throw new Error("Missing provider overrides editor.");
+  }
+  return element;
 }
 
 function expectMaterialFilledButtonContentColors(button: Element, colorToken: string) {

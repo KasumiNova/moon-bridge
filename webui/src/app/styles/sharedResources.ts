@@ -187,59 +187,14 @@ export const sharedResourceStyles = `  .metric-card,
     gap: 10px;
   }
 
+  .model-resource-group,
   .provider-resource-group {
     display: grid;
     gap: 10px;
   }
 
-  .provider-offers {
-    display: grid;
-    gap: 10px;
-    margin-left: 20px;
-  }
-
-  .provider-offers__bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+  .model-provider-bindings .resource-card-list--compact {
     gap: 12px;
-  }
-
-  .provider-offers__summary {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--mb-color-on-surface);
-  }
-
-  .provider-offers__toggle {
-    --md-icon-button-icon-size: 20px;
-    --md-icon-button-icon-color: var(--mb-color-on-surface-variant);
-    --md-icon-button-hover-icon-color: var(--mb-color-on-surface-variant);
-    --md-icon-button-pressed-icon-color: var(--mb-color-primary);
-    flex: 0 0 auto;
-    transition: transform var(--mb-duration-medium) var(--mb-ease-spring);
-  }
-
-  .provider-offers__toggle[aria-expanded="true"] {
-    --md-icon-button-icon-color: var(--mb-color-primary);
-    transform: rotate(90deg);
-  }
-
-  .provider-offers__summary h3 {
-    margin: 0;
-    font-size: 0.86rem;
-    font-weight: 680;
-    line-height: 1.2;
-  }
-
-  .provider-offers__icon {
-    font-size: 18px;
-    color: var(--mb-color-on-surface-variant);
-  }
-
-  .provider-offers .resource-card-list--compact {
-    margin-left: 6px;
   }
 
   .section-heading {

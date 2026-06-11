@@ -358,6 +358,10 @@ export const formStyles = `  .form-grid {
     align-items: start;
   }
 
+  .structured-feature-field__grid--wide {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .structured-feature-field__number {
     width: 100%;
   }

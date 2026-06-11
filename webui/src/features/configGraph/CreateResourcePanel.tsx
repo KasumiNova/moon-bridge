@@ -19,6 +19,7 @@ type CreateResourcePanelProps = {
   availableExtensionIds?: string[];
   graph: ConfigGraph;
   kind: CreatableKind;
+  modelId?: string;
   providerId?: string;
 };
 
@@ -37,6 +38,7 @@ type FormValues = {
   outputPrice: string;
   cacheWritePrice: string;
   cacheReadPrice: string;
+  billingEnabled: boolean;
   enabled: boolean;
 };
 
@@ -55,6 +57,7 @@ const initialValues: FormValues = {
   outputPrice: "0",
   cacheWritePrice: "0",
   cacheReadPrice: "0",
+  billingEnabled: false,
   enabled: true
 };
 
@@ -90,6 +93,7 @@ export function CreateResourcePanel({
   availableExtensionIds,
   graph,
   kind,
+  modelId,
   providerId
 }: CreateResourcePanelProps) {
   const { t } = useI18n();
@@ -97,7 +101,7 @@ export function CreateResourcePanel({
   const extensionIds = availableExtensionIds ?? [];
   const extensionCreateDisabled = kind === "extension" && extensionIds.length === 0;
   const [open, setOpen] = useState(false);
-  const [values, setValues] = useState<FormValues>(() => defaultValues(kind, graph, providerId, extensionIds));
+  const [values, setValues] = useState<FormValues>(() => defaultValues(kind, graph, providerId, modelId, extensionIds));
   const [error, setError] = useState("");
 
   const title = t(createTextKeys[kind].title);
@@ -105,7 +109,7 @@ export function CreateResourcePanel({
   const submitLabel = t(createTextKeys[kind].submit);
 
   function openPanel() {
-    setValues(defaultValues(kind, graph, providerId, extensionIds));
+    setValues(defaultValues(kind, graph, providerId, modelId, extensionIds));
     setError("");
     setOpen(true);
   }
@@ -141,7 +145,7 @@ export function CreateResourcePanel({
         }
       });
       setOpen(false);
-      setValues(defaultValues(kind, graph, providerId, extensionIds));
+      setValues(defaultValues(kind, graph, providerId, modelId, extensionIds));
     } catch (cause) {
       setError(errorMessage(cause, t("error.requestFailed")));
     }
@@ -180,6 +184,7 @@ export function CreateResourcePanel({
               kind={kind}
               availableExtensionIds={extensionIds}
               values={values}
+              modelId={modelId}
               providerId={providerId}
               setValues={setValues}
             />
@@ -202,6 +207,7 @@ function CreateFields({
   availableExtensionIds = [],
   graph,
   kind,
+  modelId,
   providerId,
   values,
   setValues
@@ -209,6 +215,7 @@ function CreateFields({
   availableExtensionIds?: string[];
   graph: ConfigGraph;
   kind: CreatableKind;
+  modelId?: string;
   providerId?: string;
   values: FormValues;
   setValues: (values: FormValues) => void;
@@ -316,24 +323,34 @@ function CreateFields({
       <>
         <div className="schema-field form-field--create-track">
           <CreateFieldLabel
-            helpText={fieldHelp("providers.<key>.key", "create.help.offerProvider")}
-            label={t("create.offer.provider")}
+            helpText={fieldHelp("providers.<key>.offers[].model", "create.help.offerModel")}
+            label={t("create.offer.model")}
           />
-          <MaterialAssistChip>{providerId ?? values.provider}</MaterialAssistChip>
+          <MaterialAssistChip>{modelId ?? values.model}</MaterialAssistChip>
         </div>
         <SelectInput
-          helpText={fieldHelp("providers.<key>.offers[].model", "create.help.offerModel")}
-          label={t("create.offer.model")}
-          options={modelSelectOptions(models)}
-          value={values.model}
-          onChange={(model) => setValues({ ...values, model })}
+          helpText={fieldHelp("providers.<key>.key", "create.help.offerProvider")}
+          label={t("create.offer.provider")}
+          options={toSelectOptions(providers.map((provider) => provider.id))}
+          value={values.provider}
+          onChange={(provider) => setValues({ ...values, provider })}
         />
         <TextInput helpText={fieldHelp("providers.<key>.offers[].upstream_name", "create.help.offerUpstreamName")} label={t("create.offer.upstreamName")} path="upstream_name" value={values.upstreamName} onChange={(upstreamName) => setValues({ ...values, upstreamName })} />
         <TextInput helpText={t("create.help.offerPriority")} label={t("create.offer.priority")} path="priority" value={values.priority} onChange={(priority) => setValues({ ...values, priority })} />
-        <TextInput helpText={fieldHelp("providers.<key>.offers[].pricing", "create.help.offerInputPrice")} label={t("create.offer.inputPrice")} path="input_price" value={values.inputPrice} onChange={(inputPrice) => setValues({ ...values, inputPrice })} />
-        <TextInput helpText={fieldHelp("providers.<key>.offers[].pricing", "create.help.offerOutputPrice")} label={t("create.offer.outputPrice")} path="output_price" value={values.outputPrice} onChange={(outputPrice) => setValues({ ...values, outputPrice })} />
-        <TextInput helpText={fieldHelp("providers.<key>.offers[].pricing", "create.help.offerCacheWritePrice")} label={t("create.offer.cacheWritePrice")} path="cache_write_price" value={values.cacheWritePrice} onChange={(cacheWritePrice) => setValues({ ...values, cacheWritePrice })} />
-        <TextInput helpText={fieldHelp("providers.<key>.offers[].pricing", "create.help.offerCacheReadPrice")} label={t("create.offer.cacheReadPrice")} path="cache_read_price" value={values.cacheReadPrice} onChange={(cacheReadPrice) => setValues({ ...values, cacheReadPrice })} />
+        <SwitchInput
+          helpText={t("create.help.offerBilling")}
+          label={t("create.offer.billing")}
+          value={values.billingEnabled}
+          onChange={(billingEnabled) => setValues({ ...values, billingEnabled })}
+        />
+        {values.billingEnabled ? (
+          <>
+            <TextInput helpText={fieldHelp("providers.<key>.offers[].pricing", "create.help.offerInputPrice")} label={t("create.offer.inputPrice")} path="input_price" value={values.inputPrice} onChange={(inputPrice) => setValues({ ...values, inputPrice })} />
+            <TextInput helpText={fieldHelp("providers.<key>.offers[].pricing", "create.help.offerOutputPrice")} label={t("create.offer.outputPrice")} path="output_price" value={values.outputPrice} onChange={(outputPrice) => setValues({ ...values, outputPrice })} />
+            <TextInput helpText={fieldHelp("providers.<key>.offers[].pricing", "create.help.offerCacheWritePrice")} label={t("create.offer.cacheWritePrice")} path="cache_write_price" value={values.cacheWritePrice} onChange={(cacheWritePrice) => setValues({ ...values, cacheWritePrice })} />
+            <TextInput helpText={fieldHelp("providers.<key>.offers[].pricing", "create.help.offerCacheReadPrice")} label={t("create.offer.cacheReadPrice")} path="cache_read_price" value={values.cacheReadPrice} onChange={(cacheReadPrice) => setValues({ ...values, cacheReadPrice })} />
+          </>
+        ) : null}
       </>
     );
   }
@@ -691,6 +708,7 @@ function defaultValues(
   kind: CreatableKind,
   graph: ConfigGraph,
   providerId?: string,
+  modelId?: string,
   availableExtensionIds: string[] = []
 ): FormValues {
   const firstModel = graph.resources.find((resource) => resource.kind === "model")?.id ?? "";
@@ -698,7 +716,7 @@ function defaultValues(
   return {
     ...initialValues,
     id: kind === "extension" ? availableExtensionIds[0] ?? "" : initialValues.id,
-    model: kind === "route" || kind === "provider_offer" ? firstModel : "",
+    model: kind === "provider_offer" ? modelId ?? firstModel : kind === "route" ? firstModel : "",
     provider: kind === "route" || kind === "provider_offer" ? providerId ?? firstProvider : ""
   };
 }
@@ -785,13 +803,24 @@ function createValue(
   }
   if (kind === "provider_offer") {
     const priority = numericValue(values.priority, fieldLabels.priority, invalidNumberMessage);
+    if (!priority.ok) {
+      return priority;
+    }
+    const offerValue: Record<string, unknown> = {
+      model: values.model,
+      upstream_name: values.upstreamName,
+      priority: priority.value
+    };
+    if (!values.billingEnabled) {
+      return {
+        ok: true,
+        value: offerValue
+      };
+    }
     const inputPrice = numericValue(values.inputPrice, fieldLabels.inputPrice, invalidNumberMessage);
     const outputPrice = numericValue(values.outputPrice, fieldLabels.outputPrice, invalidNumberMessage);
     const cacheWritePrice = numericValue(values.cacheWritePrice, fieldLabels.cacheWritePrice, invalidNumberMessage);
     const cacheReadPrice = numericValue(values.cacheReadPrice, fieldLabels.cacheReadPrice, invalidNumberMessage);
-    if (!priority.ok) {
-      return priority;
-    }
     if (!inputPrice.ok) {
       return inputPrice;
     }
@@ -807,9 +836,7 @@ function createValue(
     return {
       ok: true,
       value: {
-        model: values.model,
-        upstream_name: values.upstreamName,
-        priority: priority.value,
+        ...offerValue,
         pricing: {
           input_price: inputPrice.value,
           output_price: outputPrice.value,

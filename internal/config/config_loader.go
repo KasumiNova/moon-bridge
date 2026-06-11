@@ -131,6 +131,37 @@ type OfferFileConfig struct {
 	Overrides    *ModelDefFileConfig    `yaml:"overrides,omitempty" json:"overrides,omitempty"`
 }
 
+type offerFileConfigWire struct {
+	Model        string                  `yaml:"model" json:"model"`
+	UpstreamName string                  `yaml:"upstream_name,omitempty" json:"upstream_name,omitempty"`
+	Priority     int                     `yaml:"priority,omitempty" json:"priority,omitempty"`
+	Pricing      *ModelPricingFileConfig `yaml:"pricing,omitempty" json:"pricing,omitempty"`
+	Overrides    *ModelDefFileConfig     `yaml:"overrides,omitempty" json:"overrides,omitempty"`
+}
+
+func (cfg OfferFileConfig) MarshalYAML() (any, error) {
+	return cfg.toWire(), nil
+}
+
+func (cfg OfferFileConfig) MarshalJSON() ([]byte, error) {
+	return json.Marshal(cfg.toWire())
+}
+
+func (cfg OfferFileConfig) toWire() offerFileConfigWire {
+	var pricing *ModelPricingFileConfig
+	if !cfg.Pricing.IsZero() {
+		value := cfg.Pricing
+		pricing = &value
+	}
+	return offerFileConfigWire{
+		Model:        cfg.Model,
+		UpstreamName: cfg.UpstreamName,
+		Priority:     cfg.Priority,
+		Pricing:      pricing,
+		Overrides:    cfg.Overrides,
+	}
+}
+
 type ProviderDefFileConfig struct {
 	BaseURL    string                         `yaml:"base_url" json:"base_url"`
 	APIKey     string                         `yaml:"api_key" json:"api_key"`
@@ -182,6 +213,13 @@ type ModelPricingFileConfig struct {
 	OutputPrice     float64 `yaml:"output_price" json:"output_price,omitempty"`
 	CacheWritePrice float64 `yaml:"cache_write_price" json:"cache_write_price,omitempty"`
 	CacheReadPrice  float64 `yaml:"cache_read_price" json:"cache_read_price,omitempty"`
+}
+
+func (cfg ModelPricingFileConfig) IsZero() bool {
+	return cfg.InputPrice == 0 &&
+		cfg.OutputPrice == 0 &&
+		cfg.CacheWritePrice == 0 &&
+		cfg.CacheReadPrice == 0
 }
 
 // ReasoningLevelPresetFileConfig maps to Codex's ReasoningEffortPreset.

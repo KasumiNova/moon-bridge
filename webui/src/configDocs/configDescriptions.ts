@@ -302,8 +302,8 @@ export const configDescriptions: Record<ConfigPath, ConfigDocEntry> = {
     "models.<slug>.slug",
     "模型 Slug",
     "Model slug",
-    "models 段里的稳定模型标识。Provider offer 和 route 都通过这个 slug 引用模型。",
-    "Stable model identifier under models. Provider offers and routes reference models by this slug.",
+    "models 段里的稳定模型标识。提供商绑定和 route 都通过这个 slug 引用模型。",
+    "Stable model identifier under models. Provider bindings and routes reference models by this slug.",
     "string"
   ),
   "models.<slug>.display_name": entry(
@@ -471,10 +471,10 @@ export const configDescriptions: Record<ConfigPath, ConfigDocEntry> = {
   ),
   "providers.<key>.offers[].model": entry(
     "providers.<key>.offers[].model",
-    "Offer 模型",
-    "Offer model",
-    "声明该 Provider 可服务的本地模型 slug，必须对应 models 段定义。",
-    "Declares the local model slug this provider can serve; it should match a models entry.",
+    "提供商模型",
+    "Provider model",
+    "声明该提供商绑定的本地模型 slug，必须对应 models 段定义。",
+    "Declares the local model slug bound to this provider binding; it should match a models entry.",
     "string"
   ),
   "providers.<key>.offers[].upstream_name": entry(
@@ -487,26 +487,26 @@ export const configDescriptions: Record<ConfigPath, ConfigDocEntry> = {
   ),
   "providers.<key>.offers[].priority": entry(
     "providers.<key>.offers[].priority",
-    "Offer 优先级",
-    "Offer priority",
-    "同一模型存在多个 Provider 能力时的排序权重，数值越低越优先。",
-    "Ordering weight when multiple provider offers serve the same model; lower values are preferred.",
+    "提供商优先级",
+    "Provider priority",
+    "同一模型存在多个提供商绑定时的排序权重，数值越低越优先。",
+    "Ordering weight when multiple provider bindings serve the same model; lower values are preferred.",
     "number"
   ),
   "providers.<key>.offers[].pricing": entry(
     "providers.<key>.offers[].pricing",
-    "价格",
-    "Pricing",
-    "输入、输出、cache write 和 cache read 的计价元数据，用于统计成本。",
-    "Pricing metadata for input, output, cache write, and cache read, used for cost tracking.",
+    "计费",
+    "Billing",
+    "输入、输出、cache write 和 cache read 的可选计价元数据，用于统计成本。",
+    "Optional pricing metadata for input, output, cache write, and cache read, used for cost tracking.",
     "number"
   ),
   "providers.<key>.offers[].overrides": entry(
     "providers.<key>.offers[].overrides",
-    "Offer 覆盖配置",
-    "Offer overrides",
-    "该 Provider 能力专用的模型能力覆盖项。",
-    "Model capability overrides specific to this provider offer.",
+    "提供商覆盖配置",
+    "Provider overrides",
+    "该提供商绑定专用的模型能力覆盖项。",
+    "Model capability overrides specific to this provider binding.",
     "object"
   ),
   "routes.<alias>.to": entry(

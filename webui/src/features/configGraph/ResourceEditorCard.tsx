@@ -50,12 +50,14 @@ const deletableKinds = new Set<ResourceKind>([
 
 export function ResourceEditorCard({
   ariaLabel,
+  children,
   modelDisplayNames = {},
   resource,
   revision,
   title
 }: {
   ariaLabel?: string;
+  children?: ReactNode;
   modelDisplayNames?: Record<string, string>;
   resource: ConfigResource;
   revision: string;
@@ -210,24 +212,28 @@ export function ResourceEditorCard({
           modelDisplayNames={modelDisplayNames}
           resource={resource}
           revision={revision}
-        />
+        >
+          {children}
+        </ResourceFieldGroups>
       </EditorStatusProvider>
     </motion.section>
   );
 }
 
 type FieldGroup = {
-  key: "identity" | "basic" | "multimodal" | "reasoning" | "advancedFeatures";
+  key: "identity" | "basic" | "billing" | "multimodal" | "reasoning" | "advancedFeatures";
   labelKey: MessageKey;
   fields: FieldSchema[];
 };
 
 function ResourceFieldGroups({
+  children,
   fieldGroups,
   modelDisplayNames,
   resource,
   revision
 }: {
+  children?: ReactNode;
   fieldGroups: FieldGroup[];
   modelDisplayNames: Record<string, string>;
   resource: ConfigResource;
@@ -252,6 +258,7 @@ function ResourceFieldGroups({
           revision={revision}
         />
       ))}
+      {children}
     </div>
   );
 }
@@ -270,6 +277,8 @@ function ResourceFieldGroup({
   revision: string;
 }) {
   const { t } = useI18n();
+  const collapsible = isCollapsibleResourceFieldGroup(resource.kind, group);
+  const [open, setOpen] = useState(!collapsible);
   if (group.key === "reasoning") {
     return (
       <ReasoningFieldGroup
@@ -280,13 +289,24 @@ function ResourceFieldGroup({
       />
     );
   }
+  if (group.key === "billing") {
+    return (
+      <ProviderOfferBillingGroup
+        group={group}
+        resource={resource}
+        revision={revision}
+      />
+    );
+  }
   const toggleFields = group.fields.filter(isToggleField);
   const inputFields = group.fields.filter((field) => !isToggleField(field));
+  const bodyId = `${resource.kind}-${resource.id}-${group.key}-fields`.replace(/[^a-zA-Z0-9_-]/g, "-");
+  const label = t(group.labelKey);
 
   return (
     <div
-      aria-label={t(group.labelKey)}
-      className={fieldGroupClass(resource.kind, group)}
+      aria-label={label}
+      className={fieldGroupClass(resource.kind, group, collapsible && !open)}
       role="group"
     >
       <div className="resource-field-group__header">
@@ -294,26 +314,40 @@ function ResourceFieldGroup({
           <span className="material-symbol" aria-hidden="true">
             {fieldGroupIcon(group)}
           </span>
-          {t(group.labelKey)}
+          {label}
         </h4>
+        {collapsible ? (
+          <MaterialIconButton
+            ariaExpanded={open}
+            className="resource-field-group__toggle"
+            controls={bodyId}
+            icon="chevron_right"
+            label={t("resource.group.toggle", { label })}
+            onClick={() => setOpen((current) => !current)}
+          />
+        ) : null}
       </div>
-      {inputFields.length ? (
-        <div className={fieldGridContainerClass(resource.kind, group)}>
-          {renderInputFields(resource, revision, group, inputFields, modelDisplayNames, modelReasoningLevels)}
-        </div>
-      ) : null}
-      {toggleFields.length ? (
-        <div className="switch-bank">
-          {toggleFields.map((field) => (
-            <GraphResourceField
-              field={field}
-              modelDisplayNames={modelDisplayNames}
-              objectDisplay={fieldObjectDisplay(resource.kind, field, group)}
-              resource={resource}
-              revision={revision}
-              key={`${resource.kind}-${resource.id}-${field.path}`}
-            />
-          ))}
+      {open ? (
+        <div className="resource-field-group__body" id={bodyId}>
+          {inputFields.length ? (
+            <div className={fieldGridContainerClass(resource.kind, group)}>
+              {renderInputFields(resource, revision, group, inputFields, modelDisplayNames, modelReasoningLevels)}
+            </div>
+          ) : null}
+          {toggleFields.length ? (
+            <div className="switch-bank">
+              {toggleFields.map((field) => (
+                <GraphResourceField
+                  field={field}
+                  modelDisplayNames={modelDisplayNames}
+                  objectDisplay={fieldObjectDisplay(resource.kind, field, group)}
+                  resource={resource}
+                  revision={revision}
+                  key={`${resource.kind}-${resource.id}-${field.path}`}
+                />
+              ))}
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>
@@ -402,6 +436,7 @@ const modelReasoningDefaultsPaths = [
 ] as const;
 const modelEditableListPaths = new Set(["input_modalities"]);
 const structuredFeatureKinds = new Set<ResourceKind>(["model", "provider", "route"]);
+const providerOfferBillingPaths = new Set(["pricing"]);
 
 const kindIcons: Record<string, string> = {
   provider: "dns",
@@ -472,22 +507,21 @@ function groupFields(kind: ResourceKind, fields: FieldSchema[]): FieldGroup[] {
   const groups: Record<FieldGroup["key"], FieldGroup> = {
     identity: { key: "identity", labelKey: "resource.group.identity", fields: [] },
     basic: { key: "basic", labelKey: "resource.group.basic", fields: [] },
+    billing: { key: "billing", labelKey: "resource.group.billing", fields: [] },
     multimodal: { key: "multimodal", labelKey: "resource.group.multimodal", fields: [] },
     reasoning: { key: "reasoning", labelKey: "resource.group.reasoning", fields: [] },
     advancedFeatures: { key: "advancedFeatures", labelKey: "resource.group.advancedFeatures", fields: [] }
   };
 
-  const order: FieldGroup["key"][] = [
-    "identity",
-    "basic",
-    "multimodal",
-    "advancedFeatures",
-    "reasoning",
-  ];
+  const order: FieldGroup["key"][] = kind === "model"
+    ? ["identity", "basic", "reasoning", "multimodal", "advancedFeatures", "billing"]
+    : ["identity", "basic", "billing", "multimodal", "advancedFeatures", "reasoning"];
 
   for (const field of fields) {
     if (isIdentityField(field)) {
       groups.identity.fields.push(field);
+    } else if (isProviderOfferBillingField(kind, field)) {
+      groups.billing.fields.push(field);
     } else if (isModelMultimodalField(kind, field)) {
       groups.multimodal.fields.push(field);
     } else if (isModelReasoningField(kind, field) && canRenderModelReasoning) {
@@ -535,10 +569,18 @@ function isModelMultimodalField(kind: ResourceKind, field: FieldSchema) {
   return kind === "model" && modelMultimodalPaths.has(field.path);
 }
 
-function fieldGroupClass(kind: ResourceKind, group: FieldGroup) {
+function isProviderOfferBillingField(kind: ResourceKind, field: FieldSchema) {
+  return kind === "provider_offer" && providerOfferBillingPaths.has(field.path);
+}
+
+function isProviderOfferOverridesField(kind: ResourceKind, field: FieldSchema) {
+  return kind === "provider_offer" && field.path === "overrides";
+}
+
+function fieldGroupClass(kind: ResourceKind, group: FieldGroup, collapsed = false) {
   const base = `resource-field-group resource-field-group--${group.key}`;
   const classes = [base];
-  if (group.key === "advancedFeatures" || group.key === "multimodal" || group.key === "reasoning") {
+  if (group.key === "advancedFeatures" || group.key === "billing" || group.key === "multimodal" || group.key === "reasoning") {
     classes.push("resource-field-group--advanced");
   }
   if (group.key === "multimodal") {
@@ -550,7 +592,14 @@ function fieldGroupClass(kind: ResourceKind, group: FieldGroup) {
   if (kind === "route" && group.key === "identity") {
     classes.push("resource-field-group--route-identity");
   }
+  if (collapsed) {
+    classes.push("resource-field-group--collapsed");
+  }
   return classes.join(" ");
+}
+
+function isCollapsibleResourceFieldGroup(kind: ResourceKind, group: FieldGroup) {
+  return kind === "model" && (group.key === "multimodal" || group.key === "advancedFeatures");
 }
 
 function fieldGridContainerClass(kind: ResourceKind, group: FieldGroup) {
@@ -572,6 +621,9 @@ function fieldGroupIcon(group: FieldGroup) {
   }
   if (group.key === "reasoning") {
     return "psychology";
+  }
+  if (group.key === "billing") {
+    return "payments";
   }
   return "tune";
 }
@@ -636,6 +688,20 @@ function renderInputField(
         key={`${resource.kind}-${resource.id}-${field.path}`}
       >
         <GenericEditableListResourceField
+          field={field}
+          resource={resource}
+          revision={revision}
+        />
+      </div>
+    );
+  }
+  if (isProviderOfferOverridesField(resource.kind, field)) {
+    return (
+      <div
+        className="form-grid__wide"
+        key={`${resource.kind}-${resource.id}-${field.path}`}
+      >
+        <ProviderOfferOverridesField
           field={field}
           resource={resource}
           revision={revision}
@@ -759,6 +825,542 @@ function ReasoningSupportSwitch({
       />
     </span>
   );
+}
+
+const providerOfferPriceKeys = [
+  "input_price",
+  "output_price",
+  "cache_write_price",
+  "cache_read_price"
+] as const;
+
+type ProviderOfferPriceKey = typeof providerOfferPriceKeys[number];
+
+function ProviderOfferBillingGroup({
+  group,
+  resource,
+  revision
+}: {
+  group: FieldGroup;
+  resource: ConfigResource;
+  revision: string;
+}) {
+  const { t } = useI18n();
+  const pricingField = group.fields.find((field) => field.path === "pricing");
+  if (!pricingField) {
+    throw new Error("Provider offer billing group requires a pricing field.");
+  }
+  const autosave = useObjectFieldState(resource, revision, pricingField);
+  const [enabled, setEnabled] = useState(() => hasProviderOfferPricing(autosave.value));
+  const manuallyEnabled = useRef(false);
+
+  useEffect(() => {
+    if (hasProviderOfferPricing(autosave.value)) {
+      setEnabled(true);
+      return;
+    }
+    if (!manuallyEnabled.current && autosave.status !== "dirty") {
+      setEnabled(false);
+    }
+  }, [autosave.status, autosave.value]);
+
+  function setBillingEnabled(nextEnabled: boolean) {
+    manuallyEnabled.current = nextEnabled;
+    setEnabled(nextEnabled);
+    if (!nextEnabled) {
+      autosave.commitSerializedValue({}, null);
+    }
+  }
+
+  return (
+    <div
+      aria-label={t(group.labelKey)}
+      className={fieldGroupClass(resource.kind, group)}
+      role="group"
+    >
+      <div className="resource-field-group__header">
+        <h4>
+          <span className="material-symbol" aria-hidden="true">
+            {fieldGroupIcon(group)}
+          </span>
+          {t(group.labelKey)}
+        </h4>
+        <span className="resource-field-group__switch" aria-label={t(group.labelKey)}>
+          <MaterialSwitch
+            disabled={autosave.status === "saving"}
+            label={t(group.labelKey)}
+            selected={enabled}
+            onChange={setBillingEnabled}
+          />
+        </span>
+      </div>
+      {enabled ? (
+        <div className="structured-feature-field structured-feature-field--billing" aria-label={t(group.labelKey)}>
+          <div className="structured-feature-field__grid">
+            {providerOfferPriceKeys.map((fieldKey) => (
+              <ProviderOfferPriceField
+                autosave={autosave}
+                fieldKey={fieldKey}
+                key={fieldKey}
+                label={providerOfferPriceLabel(fieldKey, t)}
+              />
+            ))}
+          </div>
+          {autosave.error ? (
+            <p className="field-error" role="alert">
+              {autosave.error.message}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function ProviderOfferPriceField({
+  autosave,
+  fieldKey,
+  label
+}: {
+  autosave: ObjectFieldState;
+  fieldKey: ProviderOfferPriceKey;
+  label: string;
+}) {
+  const { t } = useI18n();
+  const committedDraft = providerOfferPriceDraft(autosave.value[fieldKey]);
+  const [draft, setDraft] = useState(committedDraft);
+  const [localError, setLocalError] = useState("");
+
+  useEffect(() => {
+    setDraft(committedDraft);
+    setLocalError("");
+  }, [committedDraft]);
+
+  function commit() {
+    const trimmed = draft.trim();
+    if (trimmed === committedDraft) {
+      setLocalError("");
+      return;
+    }
+    const parsed = Number(trimmed);
+    if (!Number.isFinite(parsed)) {
+      setLocalError(t("field.invalidNumber"));
+      return;
+    }
+    setLocalError("");
+    autosave.commitValue({
+      ...providerOfferPricingValue(autosave.value),
+      [fieldKey]: parsed
+    });
+  }
+
+  return (
+    <div className="mb-field" data-variant="input">
+      <div className="mb-field__control">
+        <MaterialOutlinedTextField
+          ariaInvalid={Boolean(localError)}
+          className="structured-feature-field__number"
+          disabled={autosave.status === "saving"}
+          error={Boolean(localError)}
+          errorText={localError}
+          inputMode="decimal"
+          label={label}
+          spellCheck={false}
+          type="text"
+          value={draft}
+          onBlur={commit}
+          onInput={(next) => {
+            setDraft(next);
+            if (localError && next.trim() === committedDraft) {
+              setLocalError("");
+            }
+          }}
+        />
+      </div>
+      {localError ? (
+        <p className="field-error field-error--sr" role="alert">
+          {localError}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function providerOfferPriceLabel(key: ProviderOfferPriceKey, t: ReturnType<typeof useI18n>["t"]) {
+  const labels: Record<ProviderOfferPriceKey, MessageKey> = {
+    input_price: "create.offer.inputPrice",
+    output_price: "create.offer.outputPrice",
+    cache_write_price: "create.offer.cacheWritePrice",
+    cache_read_price: "create.offer.cacheReadPrice"
+  };
+  return t(labels[key]);
+}
+
+function hasProviderOfferPricing(value: Record<string, unknown>) {
+  return providerOfferPriceKeys.some((key) => value[key] !== undefined);
+}
+
+function providerOfferPricingValue(value: Record<string, unknown>): Record<ProviderOfferPriceKey, number> {
+  return {
+    input_price: providerOfferPriceNumber(value.input_price),
+    output_price: providerOfferPriceNumber(value.output_price),
+    cache_write_price: providerOfferPriceNumber(value.cache_write_price),
+    cache_read_price: providerOfferPriceNumber(value.cache_read_price)
+  };
+}
+
+function providerOfferPriceDraft(value: unknown) {
+  return String(providerOfferPriceNumber(value));
+}
+
+function providerOfferPriceNumber(value: unknown) {
+  if (value === undefined || value === null || value === "") {
+    return 0;
+  }
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw new Error("Provider offer price requires a finite number.");
+  }
+  return value;
+}
+
+const providerOverrideNumberKeys = [
+  "context_window",
+  "max_output_tokens"
+] as const;
+
+const providerOverrideTextKeys = [
+  "display_name",
+  "default_reasoning_level",
+  "default_reasoning_summary"
+] as const;
+
+const providerOverrideLongTextKeys = [
+  "description",
+  "base_instructions"
+] as const;
+
+const providerOverrideBooleanKeys = [
+  "supports_reasoning",
+  "supports_reasoning_summaries",
+  "supports_image_detail_original"
+] as const;
+
+type ProviderOverrideNumberKey = typeof providerOverrideNumberKeys[number];
+type ProviderOverrideTextKey = typeof providerOverrideTextKeys[number];
+type ProviderOverrideLongTextKey = typeof providerOverrideLongTextKeys[number];
+type ProviderOverrideBooleanKey = typeof providerOverrideBooleanKeys[number];
+
+function ProviderOfferOverridesField({
+  field,
+  resource,
+  revision
+}: {
+  field: FieldSchema;
+  resource: ConfigResource;
+  revision: string;
+}) {
+  const { t } = useI18n();
+  const autosave = useObjectFieldState(resource, revision, field);
+
+  function commitKey(key: string, value: unknown) {
+    const next = value === undefined ? omitObjectKey(autosave.value, key) : { ...autosave.value, [key]: value };
+    commitProviderOverrides(autosave, next);
+  }
+
+  const inputModalities = stringArrayValue(autosave.value.input_modalities);
+  const reasoningLevels = toReasoningLevelPresets(autosave.value.supported_reasoning_levels);
+
+  return (
+    <div className="provider-overrides-editor structured-feature-field" aria-label={t("field.providerOverrides.title")}>
+      <div className="schema-structured-object__header">
+        <span>{t("field.providerOverrides.title")}</span>
+      </div>
+      <div className="structured-feature-field__grid">
+        {providerOverrideNumberKeys.map((key) => (
+          <ProviderOverrideNumberField
+            disabled={autosave.status === "saving"}
+            key={key}
+            label={providerOverrideLabel(key, t)}
+            value={autosave.value[key]}
+            onCommit={(value) => commitKey(key, value)}
+          />
+        ))}
+        {providerOverrideTextKeys.map((key) => (
+          <ProviderOverrideTextField
+            disabled={autosave.status === "saving"}
+            key={key}
+            label={providerOverrideLabel(key, t)}
+            value={autosave.value[key]}
+            onCommit={(value) => commitKey(key, value)}
+          />
+        ))}
+        {providerOverrideBooleanKeys.map((key) => (
+          <ProviderOverrideBooleanField
+            disabled={autosave.status === "saving"}
+            key={key}
+            label={providerOverrideLabel(key, t)}
+            value={autosave.value[key]}
+            onCommit={(value) => commitKey(key, value)}
+          />
+        ))}
+      </div>
+      <div className="structured-feature-field__grid structured-feature-field__grid--wide">
+        {providerOverrideLongTextKeys.map((key) => (
+          <ProviderOverrideTextField
+            disabled={autosave.status === "saving"}
+            key={key}
+            label={providerOverrideLabel(key, t)}
+            multiline
+            value={autosave.value[key]}
+            onCommit={(value) => commitKey(key, value)}
+          />
+        ))}
+      </div>
+      <EditableListResourceField
+        autosave={{
+          commitValue: (items) => commitKey("input_modalities", items.length ? items : undefined),
+          error: autosave.error,
+          label: localizedStaticLabel(t("field.providerOverrides.inputModalities")),
+          status: autosave.status,
+          value: inputModalities
+        }}
+        field={field}
+        valueFromDraft={stringListItemLabel}
+        valueFromInput={(input) => input}
+      />
+      <EditableListResourceField
+        autosave={{
+          commitValue: (items) => commitKey("supported_reasoning_levels", items.length ? items : undefined),
+          error: autosave.error,
+          label: localizedStaticLabel(t("field.providerOverrides.supportedReasoningLevels")),
+          status: autosave.status,
+          value: reasoningLevels
+        }}
+        field={field}
+        valueFromDraft={reasoningLevelEffort}
+        valueFromInput={newReasoningLevel}
+      />
+      {autosave.error ? (
+        <p className="field-error" role="alert">
+          {autosave.error.message}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function ProviderOverrideNumberField({
+  disabled,
+  label,
+  onCommit,
+  value
+}: {
+  disabled: boolean;
+  label: string;
+  onCommit: (value: number | undefined) => void;
+  value: unknown;
+}) {
+  const { t } = useI18n();
+  const committedDraft = objectNumberDraft(value);
+  const [draft, setDraft] = useState(committedDraft);
+  const [localError, setLocalError] = useState("");
+
+  useEffect(() => {
+    setDraft(committedDraft);
+    setLocalError("");
+  }, [committedDraft]);
+
+  function commit() {
+    const trimmed = draft.trim();
+    if (trimmed === committedDraft) {
+      setLocalError("");
+      return;
+    }
+    if (trimmed === "") {
+      setLocalError("");
+      onCommit(undefined);
+      return;
+    }
+    const parsed = Number(trimmed);
+    if (!Number.isFinite(parsed)) {
+      setLocalError(t("field.invalidNumber"));
+      return;
+    }
+    setLocalError("");
+    onCommit(parsed);
+  }
+
+  return (
+    <div className="mb-field" data-variant="input">
+      <div className="mb-field__control">
+        <MaterialOutlinedTextField
+          ariaInvalid={Boolean(localError)}
+          disabled={disabled}
+          error={Boolean(localError)}
+          errorText={localError}
+          inputMode="numeric"
+          label={label}
+          spellCheck={false}
+          type="text"
+          value={draft}
+          onBlur={commit}
+          onInput={(next) => {
+            setDraft(next);
+            if (localError && next.trim() === committedDraft) {
+              setLocalError("");
+            }
+          }}
+        />
+      </div>
+      {localError ? (
+        <p className="field-error field-error--sr" role="alert">
+          {localError}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function ProviderOverrideTextField({
+  disabled,
+  label,
+  multiline = false,
+  onCommit,
+  value
+}: {
+  disabled: boolean;
+  label: string;
+  multiline?: boolean;
+  onCommit: (value: string | undefined) => void;
+  value: unknown;
+}) {
+  const committedDraft = objectStringDraft(value, false);
+  const [draft, setDraft] = useState(committedDraft);
+
+  useEffect(() => {
+    setDraft(committedDraft);
+  }, [committedDraft]);
+
+  function commit() {
+    if (draft === committedDraft) {
+      return;
+    }
+    onCommit(draft.trim() === "" ? undefined : draft);
+  }
+
+  return (
+    <div className="mb-field" data-variant={multiline ? "textarea" : "input"}>
+      <div className="mb-field__control">
+        <MaterialOutlinedTextField
+          disabled={disabled}
+          label={label}
+          rows={multiline ? 4 : undefined}
+          spellCheck={multiline}
+          type={multiline ? "textarea" : "text"}
+          value={draft}
+          onBlur={commit}
+          onInput={setDraft}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ProviderOverrideBooleanField({
+  disabled,
+  label,
+  onCommit,
+  value
+}: {
+  disabled: boolean;
+  label: string;
+  onCommit: (value: boolean | undefined) => void;
+  value: unknown;
+}) {
+  const { t } = useI18n();
+  const selected = typeof value === "boolean" ? String(value) : "inherit";
+  return (
+    <div className="mb-field" data-variant="select">
+      <div className="mb-field__control">
+        <MaterialSelect
+          ariaLabel={label}
+          disabled={disabled}
+          label={label}
+          options={[
+            { value: "inherit", label: t("field.providerOverrides.inherit") },
+            { value: "true", label: t("field.providerOverrides.enabled") },
+            { value: "false", label: t("field.providerOverrides.disabled") }
+          ]}
+          value={selected}
+          onChange={(next) => {
+            if (next === "inherit") {
+              onCommit(undefined);
+              return;
+            }
+            onCommit(next === "true");
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function providerOverrideLabel(
+  key: ProviderOverrideNumberKey | ProviderOverrideTextKey | ProviderOverrideLongTextKey | ProviderOverrideBooleanKey,
+  t: ReturnType<typeof useI18n>["t"]
+) {
+  const labels: Record<
+    ProviderOverrideNumberKey | ProviderOverrideTextKey | ProviderOverrideLongTextKey | ProviderOverrideBooleanKey,
+    MessageKey
+  > = {
+    base_instructions: "field.providerOverrides.baseInstructions",
+    context_window: "field.providerOverrides.contextWindow",
+    default_reasoning_level: "field.providerOverrides.defaultReasoningLevel",
+    default_reasoning_summary: "field.providerOverrides.defaultReasoningSummary",
+    description: "field.providerOverrides.description",
+    display_name: "field.providerOverrides.displayName",
+    max_output_tokens: "field.providerOverrides.maxOutputTokens",
+    supports_image_detail_original: "field.providerOverrides.supportsImageDetailOriginal",
+    supports_reasoning: "field.providerOverrides.supportsReasoning",
+    supports_reasoning_summaries: "field.providerOverrides.supportsReasoningSummaries"
+  };
+  return t(labels[key]);
+}
+
+function commitProviderOverrides(autosave: ObjectFieldState, next: Record<string, unknown>) {
+  const cleaned = cleanProviderOverrides(next);
+  autosave.commitSerializedValue(cleaned, Object.keys(cleaned).length ? cleaned : null);
+}
+
+function cleanProviderOverrides(value: Record<string, unknown>) {
+  const next: Record<string, unknown> = {};
+  for (const [key, entry] of Object.entries(value)) {
+    if (entry === undefined || entry === null || entry === "") {
+      continue;
+    }
+    if (Array.isArray(entry) && entry.length === 0) {
+      continue;
+    }
+    if (typeof entry === "object" && !Array.isArray(entry) && Object.keys(entry).length === 0) {
+      continue;
+    }
+    next[key] = entry;
+  }
+  return next;
+}
+
+function stringArrayValue(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter((item): item is string => typeof item === "string");
+}
+
+function localizedStaticLabel(label: string): LocalizedLabel {
+  return {
+    "en-US": label,
+    "zh-CN": label
+  };
 }
 
 type WebSearchStructuredFieldKey = "max_uses" | "search_max_rounds" | "tavily_api_key" | "firecrawl_api_key";
@@ -1532,6 +2134,7 @@ type BooleanFieldState = {
 
 type ObjectFieldState = {
   commitValue: (value: Record<string, unknown>) => void;
+  commitSerializedValue: (value: Record<string, unknown>, serialized: Record<string, unknown> | null) => void;
   error?: FieldError;
   status: AutosaveFieldStatus;
   value: Record<string, unknown>;
@@ -1566,12 +2169,12 @@ function useObjectFieldState(
     () => JSON.parse(committedObjectKey) as Record<string, unknown>,
     [committedObjectKey]
   );
-  const saveGraphField = useGraphFieldSaver<Record<string, unknown>>();
+  const saveGraphField = useGraphFieldSaver<Record<string, unknown> | null>();
   const save = useCallback(
-    (request: SaveFieldRequest<Record<string, unknown>>) => saveGraphField(request),
+    (request: SaveFieldRequest<Record<string, unknown> | null>) => saveGraphField(request),
     [saveGraphField]
   );
-  const autosave = useAutosaveField({
+  const autosave = useAutosaveField<Record<string, unknown>, Record<string, unknown> | null>({
     resourceKind: resource.kind,
     resourceId: resource.id,
     field: field.path,
@@ -1584,6 +2187,7 @@ function useObjectFieldState(
   useReportFieldStatus(`${resource.kind}:${resource.id}:${field.path}`, autosave.status);
   return {
     commitValue: autosave.commitValue,
+    commitSerializedValue: autosave.commitSerializedValue,
     error: autosave.error,
     status: autosave.status,
     value: autosave.value
