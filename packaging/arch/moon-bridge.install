@@ -1,6 +1,6 @@
 post_install() {
   cat <<'EOF'
-Moon Bridge has been installed as /usr/bin/mb.
+Moon Bridge has been installed as /usr/bin/moonbridge.
 
 Default config path:
   ~/.moon-bridge/config.yml
@@ -8,7 +8,7 @@ Default config path:
 For a local starter config:
   mkdir -p ~/.moon-bridge
   cp /usr/share/doc/moon-bridge/config.local.yml ~/.moon-bridge/config.yml
-  mb
+  moonbridge
 
 Replace provider settings before sending real upstream requests.
 EOF

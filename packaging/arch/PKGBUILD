@@ -23,6 +23,7 @@ build() {
   export GOMODCACHE="${srcdir}/go-mod"
   export GOFLAGS="-modcacherw"
   export npm_config_cache="${srcdir}/npm-cache"
+  export npm_config_legacy_peer_deps=true
 
   npm --prefix webui ci
   npm --prefix webui run build
@@ -31,7 +32,7 @@ build() {
   mkdir -p internal/service/webui/dist
   cp -R webui/dist/. internal/service/webui/dist/
 
-  go build -buildvcs=false -trimpath -ldflags="-s -w" -o mb ./cmd/moonbridge
+  go build -buildvcs=false -trimpath -ldflags="-s -w" -o moonbridge ./cmd/moonbridge
 }
 
 check() {
@@ -42,16 +43,17 @@ check() {
   export GOMODCACHE="${srcdir}/go-mod"
   export GOFLAGS="-modcacherw"
   export npm_config_cache="${srcdir}/npm-cache"
+  export npm_config_legacy_peer_deps=true
 
   npm --prefix webui test
   go test ./...
-  ./mb -config "${srcdir}/config.local.yml" -print-addr
+  ./moonbridge -config "${srcdir}/config.local.yml" -print-addr
 }
 
 package() {
   cd "${srcdir}/${pkgname}-${pkgver}"
 
-  install -Dm755 mb "${pkgdir}/usr/bin/mb"
+  install -Dm755 moonbridge "${pkgdir}/usr/bin/moonbridge"
   install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
   install -Dm644 README.md "${pkgdir}/usr/share/doc/${pkgname}/README.md"
   install -Dm644 config.example.yml "${pkgdir}/usr/share/doc/${pkgname}/config.example.yml"
