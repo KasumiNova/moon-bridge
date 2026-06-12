@@ -74,7 +74,7 @@ docker run -p 38440:38440 -v $(pwd)/config.yml:/config/config.yml moonbridge
 
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
-| `-config` | `$HOME/.moon-bridge/config.yml` | 配置文件路径 |
+| `-config` | `$HOME/moonbridge/config.yml` | 配置文件路径 |
 | `-addr` | 来自配置文件 | 覆盖监听地址 |
 | `-mode` | 来自配置文件 | 覆盖运行模式（Transform/CaptureAnthropic/CaptureResponse） |
 | `-print-addr` | — | 打印配置的监听地址后退出 |
@@ -93,7 +93,6 @@ docker run -p 38440:38440 -v $(pwd)/config.yml:/config/config.yml moonbridge
 | `/v1/models` | GET | 列出可用模型 |
 | `/models` | GET | 同上 |
 | `/api/v1/` | — | 管理 API（需启用持久化） |
-| `/health` | GET | 健康检查 |
 
 详细 API 文档见 [API.md](docs/api.md)。
 

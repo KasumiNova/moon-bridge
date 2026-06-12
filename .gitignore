@@ -73,3 +73,5 @@ webui/playwright-report/
 .dev.vars
 /moonbridge
 /logs/
+logs/
+*.log

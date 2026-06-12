@@ -94,10 +94,12 @@ data: {"response": {...}}
 | `/api/v1/logs/recent` | GET | 获取最近后端日志 |
 | `/api/v1/logs/stream` | GET | 以 Server-Sent Events 形式跟随后端日志 |
 | `/api/v1/status` | GET | 运行态状态 |
+| `/api/v1/status/providers` | GET | Provider 运行状态 |
 | `/api/v1/providers` | GET | 分页列出 Provider |
 | `/api/v1/providers/{key}` | GET/PUT/PATCH/DELETE | 查看、创建、更新、删除 Provider |
 | `/api/v1/providers/{key}/offers` | POST | 新增 Provider offer |
 | `/api/v1/providers/{key}/offers/{model}` | PATCH/DELETE | 更新或删除 Provider offer |
+| `/api/v1/providers/{key}/test` | POST | 测试 Provider 连通性 |
 | `/api/v1/models` | GET | 分页列出模型定义 |
 | `/api/v1/models/{slug}` | GET/PUT/DELETE | 查看、创建、删除模型定义 |
 | `/api/v1/routes` | GET | 分页列出路由别名 |
@@ -113,7 +115,11 @@ data: {"response": {...}}
 | `/api/v1/changes` | GET | 列出待应用变更 |
 | `/api/v1/changes/apply` | POST | 应用待变更并 reload |
 | `/api/v1/changes/discard` | POST | 丢弃待变更 |
-| `/api/v1/sessions` | GET | 获取会话用量统计 |
+| `/api/v1/sessions` | GET | 列出活跃会话 |
+| `/api/v1/stats` | GET | 用量统计 |
+| `/api/v1/stats/summary` | GET | 用量统计摘要 |
+| `/api/v1/logs` | GET | 日志查询 |
+| `/api/v1/version` | GET | 版本信息 |
 
 ### 配置图 API
 

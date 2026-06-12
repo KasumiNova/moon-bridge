@@ -100,7 +100,7 @@ trace:
 	}
 }
 
-func TestXDGDefaultConfigPathUsesHomeMoonBridgeDirectory(t *testing.T) {
+func TestXDGDefaultConfigPathUsesHomeMoonbridgeDirectory(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(t.TempDir(), "xdg"))
@@ -109,7 +109,7 @@ func TestXDGDefaultConfigPathUsesHomeMoonBridgeDirectory(t *testing.T) {
 	if err != nil {
 		t.Fatalf("XDGDefaultConfigPath() error = %v", err)
 	}
-	want := filepath.Join(home, ".moon-bridge", "config.yml")
+	want := filepath.Join(home, "moonbridge", "config.yml")
 	if got != want {
 		t.Fatalf("XDGDefaultConfigPath() = %q, want %q", got, want)
 	}

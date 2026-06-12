@@ -3,11 +3,11 @@ post_install() {
 Moon Bridge has been installed as /usr/bin/moonbridge.
 
 Default config path:
-  ~/.moon-bridge/config.yml
+  ~/moonbridge/config.yml
 
 For a local starter config:
-  mkdir -p ~/.moon-bridge
-  cp /usr/share/doc/moon-bridge/config.local.yml ~/.moon-bridge/config.yml
+  mkdir -p ~/moonbridge
+  cp /usr/share/doc/moon-bridge/config.local.yml ~/moonbridge/config.yml
   moonbridge
 
 Replace provider settings before sending real upstream requests.
