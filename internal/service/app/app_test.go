@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -46,11 +47,12 @@ func TestRunServerSeedsEmptyConfigStoreBeforeServingConfigGraph(t *testing.T) {
 	addr := freeLoopbackAddr(t)
 	dbPath := filepath.Join(t.TempDir(), "moonbridge.db")
 	cfg := firstRunSQLiteConfig(t, addr, dbPath)
+	var output bytes.Buffer
 
 	ctx, cancel := context.WithCancel(context.Background())
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- RunServer(ctx, cfg, &bytes.Buffer{})
+		errCh <- RunServer(ctx, cfg, &output)
 	}()
 	t.Cleanup(func() {
 		cancel()
@@ -76,6 +78,14 @@ func TestRunServerSeedsEmptyConfigStoreBeforeServingConfigGraph(t *testing.T) {
 	}
 	if graph.Revision == "" {
 		t.Fatal("config graph revision is empty after first-run seed")
+	}
+	for _, want := range []string{
+		"Moon Bridge 监听于 " + addr,
+		"Web Console: http://" + addr + "/console/",
+	} {
+		if !strings.Contains(output.String(), want) {
+			t.Fatalf("RunServer output missing %q:\n%s", want, output.String())
+		}
 	}
 }
 

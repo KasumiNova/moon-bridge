@@ -17,6 +17,9 @@ cp config.example.yml config.yml
 # 启动
 go run ./cmd/moonbridge -config config.yml
 
+# Web Console
+# 打开 http://127.0.0.1:38440/console/
+
 # 另见 CookBook.md 中的详细使用场景
 ```
 
@@ -92,6 +95,7 @@ docker run -p 38440:38440 -v $(pwd)/config.yml:/config/config.yml moonbridge
 | `/responses` | POST | 同上（无 `/v1` 前缀） |
 | `/v1/models` | GET | 列出可用模型 |
 | `/models` | GET | 同上 |
+| `/console/` | GET | 嵌入式 Web Console |
 | `/api/v1/` | — | 管理 API（需启用持久化） |
 
 详细 API 文档见 [API.md](docs/api.md)。

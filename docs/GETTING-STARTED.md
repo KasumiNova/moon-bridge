@@ -85,6 +85,8 @@ go run ./cmd/moonbridge -config config.yml
 日志输出：
 
 ```
+Moon Bridge 监听于 127.0.0.1:38440
+Web Console: http://127.0.0.1:38440/console/
 INFO HTTP 服务器监听中 addr=127.0.0.1:38440
 ```
 

@@ -96,7 +96,7 @@ func TestRunUsesHomeMoonBridgeDefaultConfigPath(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(t.TempDir(), "xdg"))
-	configDir := filepath.Join(home, ".moon-bridge")
+	configDir := filepath.Join(home, "moonbridge")
 	if err := os.Mkdir(configDir, 0755); err != nil {
 		t.Fatalf("Mkdir() error = %v", err)
 	}
@@ -123,5 +123,32 @@ proxy:
 	}
 	if got := strings.TrimSpace(stdout.String()); got != "CaptureResponse" {
 		t.Fatalf("stdout = %q, want CaptureResponse", got)
+	}
+}
+
+func TestRunStartupErrorMentionsCurrentDefaultConfigPath(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(t.TempDir(), "xdg"))
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	code := run([]string{"-print-mode"}, &stdout, &stderr)
+
+	if code != exitStartupErr {
+		t.Fatalf("run() exit code = %d, want %d", code, exitStartupErr)
+	}
+	output := stderr.String()
+	for _, want := range []string{
+		filepath.Join(home, "moonbridge", "config.yml"),
+		"未传 -config 时默认读取 $HOME/moonbridge/config.yml。",
+	} {
+		if !strings.Contains(output, want) {
+			t.Fatalf("stderr missing %q:\n%s", want, output)
+		}
+	}
+	if strings.Contains(output, ".moon-bridge") {
+		t.Fatalf("stderr still mentions old .moon-bridge path:\n%s", output)
 	}
 }

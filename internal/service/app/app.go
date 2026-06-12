@@ -638,7 +638,9 @@ func runHTTPServer(ctx context.Context, addr string, handler http.Handler, error
 	errCh := make(chan error, 1)
 	go func() {
 		fmt.Fprintf(errors, "%s 监听于 %s\n", Name, addr)
-		slog.Info("HTTP 服务器监听中", "addr", addr)
+		consoleURL := fmt.Sprintf("http://%s/console/", addr)
+		fmt.Fprintf(errors, "Web Console: %s\n", consoleURL)
+		slog.Info("HTTP 服务器监听中", "addr", addr, "webui", consoleURL)
 		errCh <- httpServer.ListenAndServe()
 	}()
 
