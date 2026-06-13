@@ -2,7 +2,9 @@
 
 > 完整示例见 [`config.example.yml`](config.example.yml)，JSON Schema 见 [`config.schema.json`](config.schema.json)
 
-Moon Bridge 使用 YAML 配置文件。未传 `-config` 时默认读取 `$HOME/moonbridge/config.yml`；通过 `-config <path>` 可指定任意路径。
+Moon Bridge 使用 YAML 配置文件。未传 `-config` 时默认读取 `$HOME/moonbridge/config.yml`；如果该文件不存在，会自动创建 starter 配置后继续启动。starter 配置启用 SQLite，数据库路径为 `$HOME/moonbridge/data/moonbridge.db`。
+
+通过 `-config <path>` 可指定任意路径；显式 `-config` 指向的文件不存在时不会自动创建，程序会 fail fast。
 
 Web Console 的常规配置流程不要求用户直接编辑 YAML 或了解配置文件路径。启用持久化存储后，Console 通过 `/api/v1/config/graph` 以资源字段形式实时保存配置；YAML 文件仍保留给 CLI、部署脚本、备份、迁移和管理员批量编辑使用。
 

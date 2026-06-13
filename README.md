@@ -10,20 +10,20 @@ Moon Bridge 是一个用 Go 编写的协议转换与模型路由代理。对外�
 ## 快速开始
 
 ```bash
-# 复制配置并编辑
-cp config.example.yml config.yml
-# 修改 config.yml 中的 api_key
+# pacman 或二进制安装后直接启动
+moonbridge
 
-# 启动
-go run ./cmd/moonbridge -config config.yml
-
-# Web Console
+# 首次无配置启动会创建 $HOME/moonbridge/config.yml
 # 打开 http://127.0.0.1:38440/console/
+# 在 Web Console 中配置 Provider、Model 和 API Key
+
+# 源码开发也可以直接运行
+go run ./cmd/moonbridge
 
 # 另见 CookBook.md 中的详细使用场景
 ```
 
-要求 Go 1.25+。
+源码开发要求 Go 1.25+。
 
 ## 核心能力
 
