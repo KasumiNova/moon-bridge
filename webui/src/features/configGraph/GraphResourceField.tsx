@@ -57,6 +57,7 @@ export function GraphResourceField({
       onChange={autosave.setValue}
       onCommit={autosave.commit}
       onCommitValue={autosave.commitValue}
+      clearSecretDraft={autosave.status === "saved"}
       value={autosave.value}
     />
   );

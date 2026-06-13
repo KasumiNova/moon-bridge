@@ -55,7 +55,10 @@ export function useAutosaveField<T, SaveValue = T>({
 
   valueRef.current = value;
   statusRef.current = status;
-  revisionRef.current = revision;
+
+  useEffect(() => {
+    revisionRef.current = revision;
+  }, [revision]);
 
   // Adopt values committed elsewhere (e.g. another field saved and refreshed
   // the graph) without discarding an edit the user is in the middle of typing.
@@ -168,8 +171,13 @@ export function useAutosaveField<T, SaveValue = T>({
     switch (response.result) {
       case "committed":
       case "restartRequired":
+        revisionRef.current = response.revision;
         committedRef.current = pendingValue;
         setError(undefined);
+        if (!valuesEqual(valueRef.current, pendingValue)) {
+          setStatus("dirty");
+          return;
+        }
         setStatus("saved");
         return;
       case "draftRejected":

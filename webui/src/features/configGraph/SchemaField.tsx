@@ -26,6 +26,7 @@ export type SchemaFieldProps = {
   onChange: (value: unknown) => void;
   onCommit?: () => void;
   onCommitValue?: (value: unknown) => void;
+  clearSecretDraft?: boolean;
   disabled?: boolean;
   idPrefix?: string;
   docPath?: ConfigPath;
@@ -40,6 +41,7 @@ export function SchemaField({
   onChange,
   onCommit,
   onCommitValue,
+  clearSecretDraft = false,
   disabled = false,
   idPrefix,
   docPath,
@@ -55,13 +57,33 @@ export function SchemaField({
   const [text, setText] = useState(displayValue(field, value));
   const [parseError, setParseError] = useState("");
   const [helpOpen, setHelpOpen] = useState(false);
+  const emittedSecretDraftRef = useRef<string | undefined>(undefined);
   const trailingHelpAnchorRef = useRef<MdIconButton>(null);
   const displayLabel = fieldLabel(field, docPath, locale);
 
   useEffect(() => {
+    if (isSecretField(field)) {
+      if (typeof value === "string" && value === emittedSecretDraftRef.current) {
+        setText(value);
+      } else {
+        emittedSecretDraftRef.current = undefined;
+        setText("");
+      }
+      setParseError("");
+      return;
+    }
     setText(displayValue(field, value));
     setParseError("");
   }, [field, value]);
+
+  useEffect(() => {
+    if (!clearSecretDraft || !isSecretField(field)) {
+      return;
+    }
+    emittedSecretDraftRef.current = undefined;
+    setText("");
+    setParseError("");
+  }, [clearSecretDraft, field]);
 
   const wide = isWideField(field);
   const errorId = `${id}-error`;
@@ -354,6 +376,9 @@ export function SchemaField({
 
   function updateTextValue(next: string, emit: (value: unknown) => void, schema: FieldSchema) {
     setText(next);
+    if (isSecretField(schema)) {
+      emittedSecretDraftRef.current = next;
+    }
     if (schema.type === "number" || schema.control === "number") {
       if (next === "") {
         setParseError("");
@@ -882,7 +907,7 @@ function isWideField(field: FieldSchema) {
 }
 
 function displayValue(field: FieldSchema, value: unknown) {
-  if (field.secret) {
+  if (isSecretField(field)) {
     return "";
   }
   if (value === undefined || value === null) {
@@ -895,13 +920,17 @@ function displayValue(field: FieldSchema, value: unknown) {
 }
 
 function inputType(field: FieldSchema) {
-  if (field.secret || field.control === "secret") {
+  if (isSecretField(field)) {
     return "password";
   }
   if (field.type === "number" || field.control === "number") {
     return "text";
   }
   return "text";
+}
+
+function isSecretField(field: FieldSchema) {
+  return field.secret || field.control === "secret";
 }
 
 function fieldHelpParts(

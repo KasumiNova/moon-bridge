@@ -2,6 +2,7 @@ import { act, fireEvent, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
+import { useState } from "react";
 import { AppShell } from "../../app/App";
 import type { FieldSchema } from "../../rpc/types";
 import { renderWithConsoleProviders } from "../../test/renderWithConsoleProviders";
@@ -235,6 +236,42 @@ describe("SchemaField", () => {
     expect(document.querySelector(".mb-field__control input")).not.toBeInTheDocument();
     expect(fieldElement.type).toBe("password");
     expect(fieldElement.value).toBe("");
+  });
+
+  test("keeps a newly entered secret draft visible after the controlled parent rerenders", () => {
+    const field: FieldSchema = {
+      path: "api_key",
+      type: "string",
+      label: "API key",
+      secret: true,
+      hotReloadable: true
+    };
+    const onParentChange = vi.fn();
+
+    function ControlledSecretField() {
+      const [value, setValue] = useState<unknown>("sk-saved");
+      return (
+        <SchemaField
+          field={field}
+          value={value}
+          onChange={(next) => {
+            setValue(next);
+            onParentChange(next);
+          }}
+        />
+      );
+    }
+
+    renderWithConsoleProviders(<ControlledSecretField />);
+
+    const fieldElement = getMaterialTextField(document, "API key");
+    expect(fieldElement.type).toBe("password");
+    expect(fieldElement.value).toBe("");
+
+    setMaterialTextFieldValue(fieldElement, "sk-live-draft");
+
+    expect(onParentChange).toHaveBeenCalledWith("sk-live-draft");
+    expect(fieldElement.value).toBe("sk-live-draft");
   });
 
   test("renders text fields with Material label and icon slots instead of an outer outlined field", () => {

@@ -4,7 +4,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import { AppShell } from "../../app/App";
 import { renderWithConsoleProviders } from "../../test/renderWithConsoleProviders";
-import { field, resource } from "../../test/configGraphFixtures";
+import { configGraphFixture, field, resource } from "../../test/configGraphFixtures";
 import {
   expectPanelElementToBeFlat,
   expectPanelRuleToAvoidEdges,
@@ -43,6 +43,54 @@ describe("ResourceEditorCard", () => {
     expect(within(screen.getByLabelText("anthropic status")).getByText("Saved")).toBeInTheDocument();
     expect(getMaterialTextField(document, "Upstream base URL")).toBeInTheDocument();
     expect(getMaterialTextField(document, "Upstream API key")).toHaveProperty("type", "password");
+  });
+
+  test("clears a saved provider API key draft after autosave commits with a masked graph value", async () => {
+    const provider = resource("provider", "anthropic", "Anthropic", {
+      base_url: "https://api.anthropic.com",
+      api_key: "******",
+      protocol: "anthropic"
+    }, [
+      field("base_url", "Base URL"),
+      field("api_key", "API Key", "string", "secret", undefined, true),
+      field("protocol", "Protocol", "string", "select", ["anthropic", "openai-response"])
+    ]);
+    const patch = vi.spyOn(configGraph, "patchConfigGraph").mockResolvedValue({
+      result: "committed",
+      revision: "rev-2",
+      graph: configGraphFixture({
+        revision: "rev-2",
+        resources: [provider]
+      })
+    });
+
+    renderWithConsoleProviders(
+      <ResourceEditorCard resource={provider} revision="rev-1" title="Provider" />
+    );
+
+    const apiKeyField = getMaterialTextField(document, "Upstream API key");
+    expect(apiKeyField.value).toBe("");
+
+    setMaterialTextFieldValue(apiKeyField, "sk-live-draft");
+
+    expect(apiKeyField.value).toBe("sk-live-draft");
+
+    fireEvent.blur(apiKeyField);
+
+    await waitFor(() =>
+      expect(patch).toHaveBeenCalledWith({
+        baseRevision: "rev-1",
+        changes: [
+          {
+            kind: "provider",
+            id: "anthropic",
+            field: "api_key",
+            value: "sk-live-draft"
+          }
+        ]
+      })
+    );
+    await waitFor(() => expect(apiKeyField.value).toBe(""));
   });
 
   test("keeps editor background panels tonal without borders, glow, or hover lift", () => {
@@ -375,7 +423,7 @@ describe("ResourceEditorCard", () => {
 
     await waitFor(() =>
       expect(patch).toHaveBeenCalledWith({
-        baseRevision: "rev-1",
+        baseRevision: "rev-2",
         changes: [
           {
             kind: "provider_offer",
@@ -427,7 +475,7 @@ describe("ResourceEditorCard", () => {
 
     await waitFor(() =>
       expect(patch).toHaveBeenLastCalledWith({
-        baseRevision: "rev-1",
+        baseRevision: "rev-2",
         changes: [
           {
             kind: "provider_offer",
@@ -884,7 +932,7 @@ describe("ResourceEditorCard", () => {
 
     await waitFor(() =>
       expect(patch).toHaveBeenCalledWith({
-        baseRevision: "rev-1",
+        baseRevision: "rev-2",
         changes: [
           {
             kind: "model",
@@ -1076,7 +1124,7 @@ describe("ResourceEditorCard", () => {
 
     await waitFor(() => expect(patch).toHaveBeenCalledTimes(2));
     expect(patch).toHaveBeenLastCalledWith({
-      baseRevision: "rev-1",
+      baseRevision: "rev-2",
       changes: [
         {
           kind: "model",

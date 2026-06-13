@@ -67,6 +67,66 @@ describe("useAutosaveField", () => {
     expect(result.current.error).toBeUndefined();
   });
 
+  test("keeps a newer dirty value when an earlier save commits", async () => {
+    const firstSave = deferred<PatchResponse>();
+    const save: SaveField<string> = vi.fn()
+      .mockReturnValueOnce(firstSave.promise)
+      .mockResolvedValue(committed("rev-3"));
+    const { result } = renderHook(() =>
+      useAutosaveField({
+        resourceKind: "provider",
+        resourceId: "anthropic",
+        field: "api_key",
+        committedValue: "masked",
+        revision: "rev-1",
+        save,
+        configUpdateFailedMessage,
+        requestFailedMessage
+      })
+    );
+
+    act(() => result.current.setValue("secret-a"));
+    act(() => result.current.commit());
+
+    expect(result.current.status).toBe("saving");
+    expect(save).toHaveBeenCalledWith({
+      baseRevision: "rev-1",
+      change: {
+        kind: "provider",
+        id: "anthropic",
+        field: "api_key",
+        value: "secret-a"
+      }
+    });
+
+    act(() => result.current.setValue("secret-b"));
+
+    expect(result.current.value).toBe("secret-b");
+    expect(result.current.status).toBe("dirty");
+
+    await act(async () => {
+      firstSave.resolve(committed("rev-2"));
+      await firstSave.promise;
+    });
+
+    expect(result.current.value).toBe("secret-b");
+    expect(result.current.status).toBe("dirty");
+
+    act(() => result.current.commit());
+
+    expect(save).toHaveBeenCalledTimes(2);
+    expect(save).toHaveBeenLastCalledWith({
+      baseRevision: "rev-2",
+      change: {
+        kind: "provider",
+        id: "anthropic",
+        field: "api_key",
+        value: "secret-b"
+      }
+    });
+    await waitFor(() => expect(result.current.status).toBe("saved"));
+  });
+
   test("commit is a no-op when the field is not dirty", () => {
     const save: SaveField<string> = vi.fn().mockResolvedValue(committed());
     const { result } = renderHook(() =>
@@ -242,3 +302,13 @@ describe("useAutosaveField", () => {
 
 const requestFailedMessage = "Request failed";
 const configUpdateFailedMessage = (result: PatchResponse["result"]) => `Config update ${result} failed.`;
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (cause: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+  return { promise, reject, resolve };
+}
