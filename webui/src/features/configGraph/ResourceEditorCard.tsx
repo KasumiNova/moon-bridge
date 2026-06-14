@@ -12,6 +12,7 @@ import { MaterialSwitch } from "../../components/MaterialSwitch";
 import { MaterialOutlinedTextField } from "../../components/MaterialTextField";
 import { EditorStatusProvider, useReportFieldStatus, type FieldStatusReporter } from "./editorStatus";
 import { GraphResourceField } from "./GraphResourceField";
+import { modelIconForName } from "./modelProviderIcons";
 import { type TooltipPosition, useAnchoredTooltipPosition } from "./helpTooltipPosition";
 import { useAutosaveField, type AutosaveFieldStatus, type SaveFieldRequest } from "./useAutosaveField";
 import { useDeleteConfigResource, useGraphFieldSaver } from "./useConfigGraph";
@@ -51,17 +52,23 @@ const deletableKinds = new Set<ResourceKind>([
 export function ResourceEditorCard({
   ariaLabel,
   children,
+  embedded = false,
   modelDisplayNames = {},
+  onOpenEditor,
   resource,
   revision,
-  title
+  title,
+  variant = "full"
 }: {
   ariaLabel?: string;
   children?: ReactNode;
+  embedded?: boolean;
   modelDisplayNames?: Record<string, string>;
+  onOpenEditor?: () => void;
   resource: ConfigResource;
   revision: string;
   title?: string;
+  variant?: "full" | "summary";
 }) {
   const { t } = useI18n();
   const deleteResource = useDeleteConfigResource();
@@ -80,6 +87,7 @@ export function ResourceEditorCard({
   const fieldGroups = groupFields(resource.kind, resource.schema.fields);
   const resourceTitle = title ?? resource.label;
   const canDelete = deletableKinds.has(resource.kind);
+  const summary = variant === "summary";
 
   async function confirmDelete() {
     setDeleteError("");
@@ -94,67 +102,102 @@ export function ResourceEditorCard({
     }
   }
 
+  const cardClassName = [
+    "resource-editor-card",
+    summary ? "resource-editor-card--summary" : "",
+    embedded ? "resource-editor-card--embedded" : ""
+  ].filter(Boolean).join(" ");
+
+  // In summary rows we hide the operational markers (live save state, runtime impact,
+  // hot-reload) and only surface a status pill when something actually needs attention,
+  // so the list stays scannable and the freed room shows key field details instead.
+  const showStatusInSummary = resource.status !== "saved";
+  const statusGroup = (!summary || showStatusInSummary) ? (
+    <span className="resource-editor-card__status-group" aria-label={t("resource.statusGroupLabel", { label })}>
+      <span className={`resource-meta-pill status-pill status-pill--${resource.status}`}>
+        <span className="material-symbol" aria-hidden="true">
+          {statusIcon(resource.status)}
+        </span>
+        {t(statusLabelKeys[resource.status])}
+      </span>
+      {!summary && resource.runtimeImpact === "critical" ? (
+        <span className="resource-meta-pill status-pill status-pill--critical">
+          <span className="material-symbol" aria-hidden="true">
+            {impactIcon(resource.runtimeImpact)}
+          </span>
+          {t(impactLabelKeys[resource.runtimeImpact])}
+        </span>
+      ) : null}
+      {!summary && liveStatus ? (
+        <motion.span
+          key={liveStatus}
+          className={`resource-meta-pill editor-live-status editor-live-status--${liveStatus}`}
+          initial={{ opacity: 0, scale: 0.85, y: -2 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={springs.spatialFast}
+        >
+          <span className="material-symbol" aria-hidden="true">
+            {liveStatusIcon(liveStatus)}
+          </span>
+          {t(liveStatusKeys[liveStatus])}
+        </motion.span>
+      ) : null}
+    </span>
+  ) : null;
+
   return (
     <motion.section
       aria-label={label}
-      className="resource-editor-card"
+      className={cardClassName}
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={springs.spatial}
     >
-      <div className="resource-editor-card__header">
+      <div className={`resource-editor-card__header${summary ? " resource-editor-card__header--summary" : ""}`}>
         <div className="resource-editor-card__identity">
           <div className="resource-editor-card__identity-line">
             <span className="resource-kind-icon material-symbol" aria-hidden="true">
               {kindIcon(resource.kind)}
             </span>
+            {summary ? summaryIdentityBadge(resource) : null}
             <h3>{resource.id}</h3>
           </div>
           <div className="resource-editor-card__facts">
-            <span className="resource-editor-card__status-group" aria-label={t("resource.statusGroupLabel", { label })}>
-              <span className={`resource-meta-pill status-pill status-pill--${resource.status}`}>
+            {statusGroup}
+            {summary
+              ? summaryValueFacts(resource, t).map((fact) => (
+                  <span className="resource-meta-pill resource-fact" key={fact.key}>
+                    <span className="material-symbol" aria-hidden="true">{fact.icon}</span>
+                    {fact.text}
+                  </span>
+                ))
+              : (
+                <span className="resource-meta-pill resource-fact">
+                  <span className="material-symbol" aria-hidden="true">list_alt</span>
+                  {t(fieldCount === 1 ? "resource.fieldCount.one" : "resource.fieldCount.many", { count: fieldCount })}
+                </span>
+              )}
+            {!summary ? (
+              <span className={`resource-meta-pill resource-fact resource-fact--${resource.hotReloadable ? "hot" : "restart"}`}>
                 <span className="material-symbol" aria-hidden="true">
-                  {statusIcon(resource.status)}
+                  {resource.hotReloadable ? "bolt" : "restart_alt"}
                 </span>
-                {t(statusLabelKeys[resource.status])}
+                {reloadText}
               </span>
-              {resource.runtimeImpact === "critical" ? (
-                <span className="resource-meta-pill status-pill status-pill--critical">
-                  <span className="material-symbol" aria-hidden="true">
-                    {impactIcon(resource.runtimeImpact)}
-                  </span>
-                  {t(impactLabelKeys[resource.runtimeImpact])}
-                </span>
-              ) : null}
-              {liveStatus ? (
-                <motion.span
-                  key={liveStatus}
-                  className={`resource-meta-pill editor-live-status editor-live-status--${liveStatus}`}
-                  initial={{ opacity: 0, scale: 0.85, y: -2 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  transition={springs.spatialFast}
-                >
-                  <span className="material-symbol" aria-hidden="true">
-                    {liveStatusIcon(liveStatus)}
-                  </span>
-                  {t(liveStatusKeys[liveStatus])}
-                </motion.span>
-              ) : null}
-            </span>
-            <span className="resource-meta-pill resource-fact">
-              <span className="material-symbol" aria-hidden="true">list_alt</span>
-              {t(fieldCount === 1 ? "resource.fieldCount.one" : "resource.fieldCount.many", { count: fieldCount })}
-            </span>
-            <span className={`resource-meta-pill resource-fact resource-fact--${resource.hotReloadable ? "hot" : "restart"}`}>
-              <span className="material-symbol" aria-hidden="true">
-                {resource.hotReloadable ? "bolt" : "restart_alt"}
-              </span>
-              {reloadText}
-            </span>
+            ) : null}
           </div>
         </div>
-        {canDelete ? (
-          <div className="resource-editor-card__meta">
+        <div className="resource-editor-card__meta">
+          {summary && onOpenEditor ? (
+            <MaterialOutlinedButton
+              ariaLabel={t("resource.openEditor", { title: resourceTitle, id: resource.id })}
+              icon="tune"
+              onClick={() => onOpenEditor()}
+            >
+              {t("resource.editShort")}
+            </MaterialOutlinedButton>
+          ) : null}
+          {canDelete ? (
             <MaterialFilledButton
               ariaLabel={t("resource.delete", { title: resourceTitle, id: resource.id })}
               className="fab-button fab-button--danger"
@@ -166,8 +209,8 @@ export function ResourceEditorCard({
             >
               {t("resource.deleteShort")}
             </MaterialFilledButton>
-          </div>
-        ) : null}
+          ) : null}
+        </div>
       </div>
 
       {confirmingDelete ? (
@@ -206,18 +249,140 @@ export function ResourceEditorCard({
         </motion.div>
       ) : null}
 
-      <EditorStatusProvider report={reportFieldStatus}>
-        <ResourceFieldGroups
-          fieldGroups={fieldGroups}
-          modelDisplayNames={modelDisplayNames}
-          resource={resource}
-          revision={revision}
-        >
-          {children}
-        </ResourceFieldGroups>
-      </EditorStatusProvider>
+      {summary ? null : (
+        <EditorStatusProvider report={reportFieldStatus}>
+          <ResourceFieldGroups
+            alwaysExpanded={embedded}
+            fieldGroups={fieldGroups}
+            modelDisplayNames={modelDisplayNames}
+            resource={resource}
+            revision={revision}
+          >
+            {children}
+          </ResourceFieldGroups>
+        </EditorStatusProvider>
+      )}
     </motion.section>
   );
+}
+
+/** Brand/icon badge shown next to a resource id in summary rows (e.g. model/route). */
+function summaryIdentityBadge(resource: ConfigResource) {
+  const candidate =
+    resource.kind === "route"
+      ? stringValue(resource.value.model) || resource.id
+      : resource.kind === "model"
+        ? stringValue(resource.value.display_name) || resource.id
+        : resource.id;
+  return modelIconForName(candidate) ?? null;
+}
+
+type SummaryFact = { key: string; icon: string; text: string };
+
+/**
+ * A few value-derived facts shown in summary rows so users can tell entries apart
+ * without opening the editor. Kept defensive: missing values simply yield no pill.
+ */
+function summaryValueFacts(resource: ConfigResource, t: ReturnType<typeof useI18n>["t"]): SummaryFact[] {
+  const value = resource.value ?? {};
+  const facts: SummaryFact[] = [];
+  const push = (key: string, icon: string, text: string) => {
+    if (text) facts.push({ key, icon, text });
+  };
+
+  if (resource.kind === "provider") {
+    const protocol = stringValue(value.protocol);
+    push("protocol", "swap_horiz", protocolLabel(protocol, t));
+    push("host", "link", hostFromUrl(stringValue(value.base_url)));
+    if (stringValue(value.api_key)) {
+      push("key", "vpn_key", t("resource.fact.keySet"));
+    }
+    const version = stringValue(value.version);
+    if (version) {
+      push("version", "history", version);
+    }
+  } else if (resource.kind === "model") {
+    const displayName = stringValue(value.display_name);
+    if (displayName && displayName !== resource.id) {
+      push("displayName", "label", displayName);
+    }
+    const ctx = numberValue(value.context_window);
+    if (typeof ctx === "number") {
+      push("context", "memory", formatContextWindow(ctx));
+    }
+    const maxOutput = numberValue(value.max_output_tokens);
+    if (typeof maxOutput === "number") {
+      push("maxout", "output", formatContextWindow(maxOutput));
+    }
+  } else if (resource.kind === "route") {
+    const model = stringValue(value.model);
+    const provider = stringValue(value.provider);
+    if (model) {
+      push("model", "smart_toy", model);
+    }
+    if (provider) {
+      push("provider", "cloud", provider);
+    }
+    const ctx = numberValue(value.context_window);
+    if (typeof ctx === "number") {
+      push("context", "memory", formatContextWindow(ctx));
+    }
+  } else if (resource.kind === "provider_offer") {
+    const priority = numberValue(value.priority);
+    if (typeof priority === "number") {
+      push("priority", "format_list_numbered", `#${priority}`);
+    }
+    const upstream = stringValue(value.upstream_name);
+    if (upstream) {
+      push("upstream", "arrow_forward", upstream);
+    }
+  }
+
+  return facts;
+}
+
+function protocolLabel(protocol: string, t: ReturnType<typeof useI18n>["t"]): string {
+  switch (protocol) {
+    case "anthropic":
+      return t("provider.protocol.anthropic");
+    case "google-genai":
+    case "googleGenai":
+      return t("provider.protocol.googleGenai");
+    case "openai-chat":
+    case "openaiChat":
+      return t("provider.protocol.openaiChat");
+    case "openai-response":
+    case "openaiResponses":
+      return t("provider.protocol.openaiResponses");
+    default:
+      return protocol;
+  }
+}
+
+function hostFromUrl(url: string): string {
+  if (!url) {
+    return "";
+  }
+  try {
+    return new URL(url).host;
+  } catch {
+    return url.replace(/^https?:\/\//, "").split("/")[0];
+  }
+}
+
+function formatContextWindow(tokens: number): string {
+  if (tokens >= 1000) {
+    return `${Math.round(tokens / 1000)}k ctx`;
+  }
+  return `${tokens} ctx`;
+}
+
+function stringValue(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
+function numberValue(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
 type FieldGroup = {
@@ -227,12 +392,14 @@ type FieldGroup = {
 };
 
 function ResourceFieldGroups({
+  alwaysExpanded,
   children,
   fieldGroups,
   modelDisplayNames,
   resource,
   revision
 }: {
+  alwaysExpanded?: boolean;
   children?: ReactNode;
   fieldGroups: FieldGroup[];
   modelDisplayNames: Record<string, string>;
@@ -250,6 +417,7 @@ function ResourceFieldGroups({
     <div className="resource-field-groups">
       {fieldGroups.map((group) => (
         <ResourceFieldGroup
+          alwaysExpanded={alwaysExpanded}
           group={group}
           key={group.key}
           modelDisplayNames={modelDisplayNames}
@@ -264,12 +432,14 @@ function ResourceFieldGroups({
 }
 
 function ResourceFieldGroup({
+  alwaysExpanded,
   group,
   modelDisplayNames,
   modelReasoningLevels,
   resource,
   revision
 }: {
+  alwaysExpanded?: boolean;
   group: FieldGroup;
   modelDisplayNames: Record<string, string>;
   modelReasoningLevels: ModelReasoningLevelsState | undefined;
@@ -277,7 +447,7 @@ function ResourceFieldGroup({
   revision: string;
 }) {
   const { t } = useI18n();
-  const collapsible = isCollapsibleResourceFieldGroup(resource.kind, group);
+  const collapsible = !alwaysExpanded && isCollapsibleResourceFieldGroup(resource.kind, group);
   const [open, setOpen] = useState(!collapsible);
   if (group.key === "reasoning") {
     return (

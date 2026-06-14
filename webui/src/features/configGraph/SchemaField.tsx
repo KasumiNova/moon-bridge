@@ -31,6 +31,11 @@ export type SchemaFieldProps = {
   idPrefix?: string;
   docPath?: ConfigPath;
   error?: string;
+  /** Explicit select options (e.g. route model/provider picked from existing resources).
+   *  When provided, the field renders as a select regardless of enum/control. */
+  options?: SelectMenuOption[];
+  /** Soft warning shown beneath the field (e.g. a route references a missing model). */
+  warning?: string;
   leadingIconNode?: ReactNode;
   objectDisplay?: "collapsible" | "expandedFixed";
 };
@@ -46,6 +51,8 @@ export function SchemaField({
   idPrefix,
   docPath,
   error,
+  options,
+  warning,
   leadingIconNode,
   objectDisplay = "collapsible"
 }: SchemaFieldProps) {
@@ -87,6 +94,7 @@ export function SchemaField({
 
   const wide = isWideField(field);
   const errorId = `${id}-error`;
+  const warnId = `${id}-warning`;
   const helpId = `${id}-help`;
   const helpParts = fieldHelpParts(field, displayLabel, docPath, locale, {
     default: t("configDoc.default"),
@@ -113,32 +121,40 @@ export function SchemaField({
   const commitOnBlur = onCommit ? () => onCommit() : undefined;
   const commit = onCommitValue ?? onChange;
 
-  if (field.control === "select" || (field.enum?.length ?? 0) > 0) {
+  if (field.control === "select" || (field.enum?.length ?? 0) > 0 || (options?.length ?? 0) > 0) {
     const selected = typeof value === "string" ? value : "";
     const useProtocolIcons = isProviderProtocolField(field, docPath);
-    const options: SelectMenuOption[] = (field.enum ?? []).map((option) => ({
-      value: option,
-      label: optionLabel(option, t),
-      leadingIcon: useProtocolIcons ? protocolIconForValue(option) : undefined
-    }));
+    const resolvedOptions: SelectMenuOption[] = options && options.length > 0
+      ? options
+      : (field.enum ?? []).map((option) => ({
+          value: option,
+          label: optionLabel(option, t),
+          leadingIcon: useProtocolIcons ? protocolIconForValue(option) : undefined
+        }));
+    const selectedOption = resolvedOptions.find((option) => option.value === selected);
     return (
       <div className={wide ? "mb-field mb-field--wide" : "mb-field"} data-variant="select">
         <div className="mb-field__control">
           <SelectMenu
             id={id}
-            options={options}
+            options={resolvedOptions}
             value={selected}
             onChange={(next) => commit(next)}
             disabled={disabled}
             ariaLabel={displayLabel}
-            describedBy={fieldError ? errorId : undefined}
+            describedBy={fieldError ? errorId : warning ? warnId : undefined}
             error={Boolean(fieldError)}
             errorText={fieldError}
-            leadingIcon={useProtocolIcons ? protocolIconForValue(selected) : undefined}
+            leadingIcon={useProtocolIcons ? protocolIconForValue(selected) : selectedOption?.leadingIcon}
             required={field.required}
           />
         </div>
         <FieldA11yMessages errorId={errorId} error={fieldError} />
+        {warning && !fieldError ? (
+          <p className="field-warning" id={warnId} role="note">
+            {warning}
+          </p>
+        ) : null}
       </div>
     );
   }

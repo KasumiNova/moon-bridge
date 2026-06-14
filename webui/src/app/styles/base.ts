@@ -1,6 +1,9 @@
 export const baseStyles = `
   :root {
     color-scheme: dark;
+    /* Reserve the scrollbar gutter so the layout (and centered dialogs) does not shift
+       when a scrollbar appears or disappears — keeps left/right spacing symmetric. */
+    scrollbar-gutter: stable;
     font-family:
       "Roboto Flex", Inter, ui-sans-serif, system-ui, -apple-system,
       BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -20,12 +23,24 @@ export const baseStyles = `
     --mb-shape-2xl: 36px;
     --mb-shape-full: 999px;
 
+    /* Buttons use a uniform small-radius (square-ish) shape rather than pills. */
+    --mb-button-shape: 8px;
+
+    /* All panel/card/dialog backgrounds share one radius for a consistent surface language. */
+    --mb-shape-panel: 20px;
+
     /* ---- Code/mono font ---- */
     --mb-font-mono: "Roboto Mono", "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
 
     /* ---- M3 Expressive type scale ---- */
     --mb-type-display: 700 clamp(2rem, 1.4rem + 2.4vw, 2.9rem)/1.06 "Roboto Flex", Inter, system-ui, sans-serif;
     --mb-tracking-display: -0.015em;
+
+    /* ---- Content measure: caps the reading/editing width on wide and ultrawide screens so
+       content does not stretch into unreadable line lengths, while still filling common
+       1440–1920px laptops. Section grids inside keep using auto-fit to fill the column. ---- */
+    --mb-content-max: 1560px;
+    --mb-content-gutter: clamp(16px, 3.2vw, 44px);
 
     /* ---- M3 motion easings + durations ---- */
     --mb-ease-standard: cubic-bezier(0.2, 0, 0, 1);
@@ -164,7 +179,7 @@ export const baseStyles = `
     width: min(420px, 100%);
     display: grid;
     gap: 14px;
-    border-radius: var(--mb-shape-2xl);
+    border-radius: var(--mb-shape-panel);
     outline: 0;
     padding: 32px;
     background: var(--mb-color-surface-container-high);
@@ -297,7 +312,7 @@ export const baseStyles = `
     align-items: center;
     gap: 4px;
     border: 1px solid color-mix(in srgb, var(--mb-color-outline-variant) 60%, transparent);
-    border-radius: var(--mb-shape-full);
+    border-radius: var(--mb-button-shape);
     padding: 3px;
     background: var(--mb-color-surface-container);
   }
@@ -316,13 +331,13 @@ export const baseStyles = `
     min-width: 36px;
     min-height: 30px;
     --md-filled-button-container-height: 30px;
-    --md-filled-button-container-shape: var(--mb-shape-full);
+    --md-filled-button-container-shape: var(--mb-button-shape);
     --md-filled-button-label-text-size: 0.75rem;
     --md-filled-button-label-text-weight: 700;
     --md-filled-button-leading-space: 10px;
     --md-filled-button-trailing-space: 10px;
     --md-outlined-button-container-height: 30px;
-    --md-outlined-button-container-shape: var(--mb-shape-full);
+    --md-outlined-button-container-shape: var(--mb-button-shape);
     --md-outlined-button-label-text-size: 0.75rem;
     --md-outlined-button-label-text-weight: 700;
     --md-outlined-button-leading-space: 10px;
@@ -339,11 +354,11 @@ export const baseStyles = `
     --md-filled-button-hover-icon-color: var(--mb-color-on-primary);
     --md-filled-button-focus-icon-color: var(--mb-color-on-primary);
     --md-filled-button-pressed-icon-color: var(--mb-color-on-primary);
-    --md-filled-button-container-shape: 999px;
+    --md-filled-button-container-shape: var(--mb-button-shape);
   }
 
   md-outlined-button {
-    --md-outlined-button-container-shape: 999px;
+    --md-outlined-button-container-shape: var(--mb-button-shape);
     --md-outlined-button-label-text-color: var(--mb-color-on-surface);
     --md-outlined-button-outline-color: var(--mb-color-outline-variant);
     --md-outlined-button-hover-label-text-color: var(--mb-color-primary);

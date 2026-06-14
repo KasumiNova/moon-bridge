@@ -108,11 +108,23 @@ export function resourceFieldModelIcon(
 }
 
 export function modelSelectOptions(resources: ConfigResource[]) {
-  return resources.map((resource) => ({
-    label: resource.id,
-    leadingIcon: modelIconForName(modelDisplayName(resource)),
-    value: resource.id
-  }));
+  return resources
+    .filter((resource) => resource.kind === "model")
+    .map((resource) => ({
+      label: resource.id,
+      leadingIcon: modelIconForName(modelDisplayName(resource)),
+      value: resource.id
+    }));
+}
+
+export function providerSelectOptions(resources: ConfigResource[]) {
+  return resources
+    .filter((resource) => resource.kind === "provider")
+    .map((resource) => ({
+      label: resource.id,
+      leadingIcon: protocolIconForValue(stringValue(resource.value.protocol)),
+      value: resource.id
+    }));
 }
 
 export function modelDisplayNamesById(resources: ConfigResource[]) {

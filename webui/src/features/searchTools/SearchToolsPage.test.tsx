@@ -100,7 +100,7 @@ describe("SearchToolsPage", () => {
     expect(enabledSwitch.selected).toBe(true);
     expect(getMaterialSelect(form, "Extension ID")).toBeInTheDocument();
     await userEvent.click(getMaterialIconButton(form, "Help for Enabled"));
-    expect(within(form).getByRole("tooltip")).toHaveTextContent("Enables model-level or global extensions");
+    expect(within(form).getByRole("tooltip")).toHaveTextContent("Turn this extension on or off");
     setMaterialSelectValue(getMaterialSelect(form, "Extension ID"), "metrics");
     setMaterialSwitchSelected(enabledSwitch, false);
     submitMaterialForm(form, "Create Extension");

@@ -55,7 +55,6 @@ describe("config graph console smoke flow", () => {
 
     expect(await screen.findByRole("heading", { level: 2, name: "Providers (1)" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 3, name: "anthropic" })).toBeInTheDocument();
-    expect(screen.getByLabelText("anthropic status")).toHaveTextContent("Saved");
   });
 
   test("overview loads model usage and embedded logs", async () => {
@@ -83,7 +82,7 @@ describe("config graph console smoke flow", () => {
     expect(within(requestsLabel!.closest(".usage-metric") as HTMLElement).getByText("2")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: /Token split chart/ })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Backend logs" })).toBeInTheDocument();
-    expect(screen.getByText(/server-started/)).toBeInTheDocument();
+    expect(screen.getByText(/server started/)).toBeInTheDocument();
     expect(screen.queryByText("Transform")).not.toBeInTheDocument();
     expect(screen.queryByText("rev-1")).not.toBeInTheDocument();
   });
@@ -189,13 +188,13 @@ describe("config graph console smoke flow", () => {
 
     renderWithConsoleProviders(<LogsPage />);
 
-    expect(await screen.findByText(/server-started/)).toBeInTheDocument();
-    expect(screen.getByText(/database-unavailable/)).toBeInTheDocument();
+    expect(await screen.findByText(/server started/)).toBeInTheDocument();
+    expect(screen.getByText(/database unavailable/)).toBeInTheDocument();
 
     fireEvent.click(getMaterialFilterChip(document, "ERROR"));
 
-    expect(screen.queryByText(/server-started/)).not.toBeInTheDocument();
-    expect(screen.getByText(/database-unavailable/)).toBeInTheDocument();
+    expect(screen.queryByText(/server started/)).not.toBeInTheDocument();
+    expect(screen.getByText(/database unavailable/)).toBeInTheDocument();
     expect(screen.getByText("1 of 2 logs")).toBeInTheDocument();
   });
 });

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { LoadingState } from "../../components/LoadingState";
 import { MaterialFilterChip } from "../../components/MaterialFilterChip";
+import { MaterialSwitch } from "../../components/MaterialSwitch";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { MessageKey } from "../../i18n/messages";
 import { getUsageStats, type UsageRange } from "../../rpc/management";
@@ -11,6 +12,7 @@ import type { UsageStats, UsageStatsModelRow } from "../../rpc/types";
 import { listContainer, listItem } from "../../theme/motion";
 import { useConfigGraph } from "../configGraph/useConfigGraph";
 import { LogPanel } from "../logs/LogPanel";
+import { mockUsageStats } from "./mockUsage";
 import { PageHeader, QueryErrorState } from "../shared";
 
 const usageRanges: UsageRange[] = ["session", "24h", "7d", "30d", "all"];
@@ -27,12 +29,16 @@ export function OverviewPage() {
   const { t } = useI18n();
   const graph = useConfigGraph();
   const [range, setRange] = useState<UsageRange>("session");
+  const [demoData, setDemoData] = useState(false);
   const usage = useQuery({
-    queryKey: [...queryKeys.usageStats, range],
-    queryFn: () => getUsageStats(range),
+    queryKey: [...queryKeys.usageStats, range, demoData ? "demo" : "live"],
+    queryFn: () => (demoData ? mockUsageStats(range) : getUsageStats(range)),
     placeholderData: keepPreviousData
   });
-  const liveDuration = useLiveUsageDuration(usage.data?.totals.duration, range === "session" && !usage.isPlaceholderData);
+  const liveDuration = useLiveUsageDuration(
+    usage.data?.totals.duration,
+    range === "session" && !usage.isPlaceholderData && !demoData
+  );
 
   return (
     <section className="page-stack" aria-labelledby="overview-title">
@@ -48,7 +54,7 @@ export function OverviewPage() {
         </section>
       ) : null}
 
-      <section className="content-panel usage-dashboard" aria-labelledby="usage-title">
+      <section className="usage-dashboard" aria-labelledby="usage-title">
         <div className="panel-heading">
           <div>
             <h2 id="usage-title">{t("overview.usageTitle")}</h2>
@@ -68,6 +74,12 @@ export function OverviewPage() {
               ))}
             </md-chip-set>
             {usage.data ? <span className="status-pill status-pill--muted">{liveDuration}</span> : null}
+            {import.meta.env.DEV ? (
+              <label className="usage-demo-toggle">
+                <MaterialSwitch label={t("overview.demoData")} selected={demoData} onChange={setDemoData} />
+                <span>{t("overview.demoData")}</span>
+              </label>
+            ) : null}
           </div>
         </div>
 
@@ -80,7 +92,7 @@ export function OverviewPage() {
         ) : null}
       </section>
 
-      <section id="logs" className="content-panel overview-logs">
+      <section id="logs" className="overview-logs">
         <div className="panel-heading">
           <div>
             <h2 id="overview-logs-title">{t("logs.panelTitle")}</h2>

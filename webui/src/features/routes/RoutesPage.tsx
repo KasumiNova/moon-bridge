@@ -1,14 +1,17 @@
+import { useState } from "react";
 import { LoadingState } from "../../components/LoadingState";
 import { useI18n } from "../../i18n/I18nProvider";
 import { CreateResourcePanel } from "../configGraph/CreateResourcePanel";
-import { modelDisplayNamesById } from "../configGraph/modelProviderIcons";
+import { ResourceEditorDialog } from "../configGraph/ResourceEditorDialog";
 import { ResourceEditorCard } from "../configGraph/ResourceEditorCard";
 import { useConfigGraph } from "../configGraph/useConfigGraph";
+import { modelDisplayNamesById } from "../configGraph/modelProviderIcons";
 import { PageHeader, QueryErrorState } from "../shared";
 
 export function RoutesPage() {
   const { t } = useI18n();
   const graph = useConfigGraph();
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   if (graph.error) {
     return <QueryErrorState error={graph.error} />;
@@ -20,6 +23,7 @@ export function RoutesPage() {
   const routes = graph.data.resources.filter((resource) => resource.kind === "route");
   const routeTitle = t("routes.resourceTitle");
   const modelDisplayNames = modelDisplayNamesById(graph.data.resources);
+  const editing = editingId ? routes.find((route) => route.id === editingId) : undefined;
 
   return (
     <section className="page-stack" aria-labelledby="routes-title">
@@ -32,19 +36,32 @@ export function RoutesPage() {
           <h2 id="routes-list-heading">{t("routes.listTitle", { count: routes.length })}</h2>
           <CreateResourcePanel graph={graph.data} kind="route" />
         </div>
-        <div className="resource-card-list">
+        <div className="resource-card-list resource-card-list--summary">
           {routes.map((route) => (
             <ResourceEditorCard
-              key={route.id}
               ariaLabel={t("resource.cardLabel", { title: routeTitle, id: route.id })}
+              key={route.id}
               modelDisplayNames={modelDisplayNames}
+              onOpenEditor={() => setEditingId(route.id)}
               resource={route}
-              revision={graph.data.revision}
+              revision={graph.data!.revision}
               title={routeTitle}
+              variant="summary"
             />
           ))}
         </div>
       </section>
+
+      {editing ? (
+        <ResourceEditorDialog
+          open
+          onClose={() => setEditingId(null)}
+          modelDisplayNames={modelDisplayNames}
+          resource={editing}
+          revision={graph.data!.revision}
+          title={routeTitle}
+        />
+      ) : null}
     </section>
   );
 }

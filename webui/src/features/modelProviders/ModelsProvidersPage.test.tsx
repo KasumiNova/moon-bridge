@@ -15,33 +15,30 @@ describe("ModelsProvidersPage", () => {
     vi.restoreAllMocks();
   });
 
-  test("shows providers as collapsible model-owned configuration without provider disclosure", async () => {
+  test("lists providers as summary rows and keeps provider bindings inside the model editor", async () => {
     vi.spyOn(configGraph, "getConfigGraph").mockResolvedValue(configGraphFixture());
 
     renderWithConsoleProviders(<ModelsProvidersPage />);
 
+    // Providers render as compact top-level summary rows, with no provider-offers disclosure on the row.
     const providerPanel = await screen.findByLabelText("Provider anthropic");
-    const modelGroup = screen.getByLabelText("Model claude-sonnet");
-    const supplyPanel = within(modelGroup).getByRole("region", { name: "Providers (1)" });
-    const modelCard = within(modelGroup).getByLabelText("claude-sonnet");
-    const modelFieldGroups = modelCard.querySelector(".resource-field-groups");
-    const supplyHeader = supplyPanel.querySelector(".resource-field-group__header");
-    const toggle = getMaterialIconButton(supplyPanel, "Toggle Providers");
-
     expect(providerPanel.querySelector(".provider-offers__toggle")).not.toBeInTheDocument();
     expect(within(providerPanel).queryByRole("heading", { name: /Provider Offers/ })).not.toBeInTheDocument();
     expect(within(providerPanel).queryByText("anthropic/claude-sonnet")).not.toBeInTheDocument();
-    expect(modelFieldGroups).toContainElement(supplyPanel);
-    expect(supplyPanel.parentElement).toBe(modelFieldGroups);
+
+    // A model's provider bindings live behind the model editor dialog.
+    const dialog = await openModelEditor();
+    const supplyPanel = within(dialog).getByRole("region", { name: "Providers (1)" });
+
     expect(supplyPanel).toHaveClass("resource-field-group");
     expect(supplyPanel).toHaveClass("resource-field-group--advanced");
     expect(within(supplyPanel).getByRole("heading", { name: "Providers (1)" })).toBeInTheDocument();
-    expect(toggle).toHaveAttribute("aria-expanded", "false");
-    expect(within(supplyPanel).queryByText("anthropic/claude-sonnet")).not.toBeInTheDocument();
-    await userEvent.click(toggle);
-    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    // Bindings are always expanded inside the dialog (no collapse toggle).
+    expect(within(supplyPanel).queryByLabelText("Toggle Providers")).not.toBeInTheDocument();
     expect(within(supplyPanel).getByText("anthropic/claude-sonnet")).toBeInTheDocument();
-    expect(supplyHeader).toContainElement(getMaterialButton(supplyPanel, "Add Provider", "filled"));
+    expect(supplyPanel.querySelector(".resource-field-group__header")).toContainElement(
+      getMaterialButton(supplyPanel, "Add Provider", "filled")
+    );
   });
 
   test("places Providers above Models and omits enabled toggles", async () => {
@@ -55,14 +52,8 @@ describe("ModelsProvidersPage", () => {
 
     const providers = await screen.findByRole("heading", { level: 2, name: "Providers (1)" });
     const models = screen.getByRole("heading", { name: "Models (1)" });
-    const modelGroup = screen.getByLabelText("Model claude-sonnet");
-    const supplyHeading = within(modelGroup).getByRole("heading", { name: "Providers (1)" });
 
     expect(providers.compareDocumentPosition(models) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(models.compareDocumentPosition(supplyHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(within(screen.getByLabelText("anthropic status")).getByText("Saved")).toBeInTheDocument();
-    await userEvent.click(getMaterialIconButton(modelGroup, "Toggle Providers"));
-    expect(within(modelGroup).getByText("anthropic/claude-sonnet")).toBeInTheDocument();
     expect(screen.queryByLabelText(/^enabled$/i)).not.toBeInTheDocument();
   });
 
@@ -102,8 +93,10 @@ describe("ModelsProvidersPage", () => {
 
     renderWithConsoleProviders(<ModelsProvidersPage />);
 
-    const providerPanel = await screen.findByLabelText("Provider anthropic");
-    const advancedFeatures = within(providerPanel).getByRole("group", { name: "Advanced Features" });
+    await screen.findByLabelText("Provider anthropic");
+    // The full provider field surface (including advanced features) lives in the editor dialog.
+    await openProviderEditor();
+    const advancedFeatures = screen.getByRole("group", { name: "Advanced Features" });
 
     expect(getMaterialSelect(advancedFeatures, "Provider web search mode")).toBeInTheDocument();
     expect(getMaterialTextField(advancedFeatures, "Provider web search max uses")).toHaveAttribute("spellcheck", "false");
@@ -126,9 +119,11 @@ describe("ModelsProvidersPage", () => {
     renderWithConsoleProviders(<ModelsProvidersPage />, { locale: "zh-CN" });
 
     expect(await screen.findByRole("heading", { level: 2, name: "提供商 (1)" })).toBeInTheDocument();
-    expect(within(screen.getByLabelText("模型 claude-sonnet")).getByRole("heading", { name: "提供商 (1)" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "模型 (1)" })).toBeInTheDocument();
-    expect(within(screen.getByLabelText("anthropic 状态")).getByText("已保存")).toBeInTheDocument();
+
+    await openProviderEditor("编辑提供商 anthropic");
+    // Provider status ("已保存") is shown inside the editor dialog, not in the summary row.
+    expect(screen.getByText("已保存")).toBeInTheDocument();
     expect(getMaterialTextField(document, "上游 Base URL")).toBeInTheDocument();
     expect(screen.queryByLabelText("Base URL")).not.toBeInTheDocument();
   });
@@ -148,7 +143,7 @@ describe("ModelsProvidersPage", () => {
     const form = screen.getByRole("form", { name: "创建模型" });
     await userEvent.click(getMaterialIconButton(form, "显示名称 帮助"));
 
-    expect(within(form).getByRole("tooltip")).toHaveTextContent("控制台中展示的人类可读名称。");
+    expect(within(form).getByRole("tooltip")).toHaveTextContent("控制台中显示的名称。");
 
     setMaterialTextFieldValue(getMaterialTextField(form, "上下文窗口"), "0");
     setMaterialTextFieldValue(getMaterialTextField(form, "模型 ID"), "zero-window");
@@ -197,10 +192,10 @@ describe("ModelsProvidersPage", () => {
 
     renderWithConsoleProviders(<ModelsProvidersPage />);
 
-    const providerPanel = (await screen.findByRole("heading", { level: 3, name: "anthropic" }))
-      .closest("section")!;
+    await screen.findByRole("heading", { level: 3, name: "anthropic" });
+    await openProviderEditor();
     vi.useFakeTimers();
-    const baseUrlField = getMaterialTextField(providerPanel, "Upstream base URL");
+    const baseUrlField = getMaterialTextField(document, "Upstream base URL");
     setMaterialTextFieldValue(baseUrlField, "https://api.anthropic.test");
     fireEvent.blur(baseUrlField);
 
@@ -219,9 +214,9 @@ describe("ModelsProvidersPage", () => {
     });
 
     vi.useRealTimers();
-    const modelGroup = screen.getByLabelText("Model claude-sonnet");
-    await userEvent.click(getMaterialIconButton(modelGroup, "Toggle Providers"));
-    const offerPanel = within(modelGroup)
+    await closeResourceEditor();
+    const dialog = await openModelEditor();
+    const offerPanel = within(dialog)
       .getByText("anthropic/claude-sonnet")
       .closest("section")!;
     vi.useFakeTimers();
@@ -432,8 +427,7 @@ describe("ModelsProvidersPage", () => {
     expect(protocolSelect.querySelector("[slot='leading-icon'] svg")).toBeInTheDocument();
 
     await userEvent.click(getMaterialButton(providerForm, "Cancel", "outlined"));
-    const supplyPanel = within(await screen.findByLabelText("Model claude-sonnet"))
-      .getByRole("region", { name: "Providers (1)" });
+    const supplyPanel = await openModelProviderBindings();
     await userEvent.click(getMaterialButton(supplyPanel, "Add Provider", "filled"));
     const offerForm = within(supplyPanel).getByRole("form", { name: "Create Provider" });
     expect(offerForm.querySelector(".material-static-chip")).not.toBeInTheDocument();
@@ -482,7 +476,7 @@ describe("ModelsProvidersPage", () => {
     await userEvent.click(getMaterialButton(document, "Add Model", "filled"));
     const form = screen.getByRole("form", { name: "Create Model" });
     await userEvent.click(getMaterialIconButton(form, "Help for Context window"));
-    expect(within(form).getByRole("tooltip")).toHaveTextContent("Maximum context tokens");
+    expect(within(form).getByRole("tooltip")).toHaveTextContent("Maximum tokens the model can handle");
     const presetChip = getMaterialFilterChip(form, "400k");
     await userEvent.click(presetChip);
     expect(getMaterialTextField(form, "Context window").value).toBe("400000");
@@ -536,8 +530,7 @@ describe("ModelsProvidersPage", () => {
 
     renderWithConsoleProviders(<ModelsProvidersPage />);
 
-    const supplyPanel = within(await screen.findByLabelText("Model claude-sonnet"))
-      .getByRole("region", { name: "Providers (1)" });
+    const supplyPanel = await openModelProviderBindings();
     await userEvent.click(getMaterialButton(supplyPanel, "Add Provider", "filled"));
     const form = within(supplyPanel).getByRole("form", { name: "Create Provider" });
     expect(getMaterialAssistChip(form, "claude-sonnet")).toBeInTheDocument();
@@ -568,8 +561,7 @@ describe("ModelsProvidersPage", () => {
 
     renderWithConsoleProviders(<ModelsProvidersPage />);
 
-    const supplyPanel = within(await screen.findByLabelText("Model claude-sonnet"))
-      .getByRole("region", { name: "Providers (1)" });
+    const supplyPanel = await openModelProviderBindings();
     await userEvent.click(getMaterialButton(supplyPanel, "Add Provider", "filled"));
     const form = within(supplyPanel).getByRole("form", { name: "Create Provider" });
     setMaterialSwitchSelected(getMaterialSwitch(form, "Billing"), true);
@@ -611,8 +603,7 @@ describe("ModelsProvidersPage", () => {
 
     renderWithConsoleProviders(<ModelsProvidersPage />);
 
-    const supplyPanel = within(await screen.findByLabelText("Model claude-sonnet"))
-      .getByRole("region", { name: "Providers (1)" });
+    const supplyPanel = await openModelProviderBindings();
     await userEvent.click(getMaterialButton(supplyPanel, "Add Provider", "filled"));
     const form = within(supplyPanel).getByRole("form", { name: "Create Provider" });
     setMaterialTextFieldValue(getMaterialTextField(form, "Priority"), "fast");
@@ -691,9 +682,8 @@ describe("ModelsProvidersPage", () => {
 
     renderWithConsoleProviders(<ModelsProvidersPage />);
 
-    const modelGroup = await screen.findByLabelText("Model claude-sonnet");
-    await userEvent.click(getMaterialIconButton(modelGroup, "Toggle Providers"));
-    const offerPanel = within(modelGroup)
+    const dialog = await openModelEditor();
+    const offerPanel = within(dialog)
       .getByText("anthropic/claude-sonnet")
       .closest("section")!;
     await userEvent.click(getMaterialButton(offerPanel, "Delete Provider anthropic/claude-sonnet", "filled"));
@@ -737,6 +727,53 @@ async function advanceAutosave() {
     await Promise.resolve();
   });
 }
+
+function getOutlinedButton(container: ParentNode, label: string): HTMLElement {
+  const element = Array.from(container.querySelectorAll("md-outlined-button")).find(
+    (candidate) => (candidate.getAttribute("aria-label") ?? candidate.textContent ?? "").includes(label)
+  );
+  if (!element) {
+    throw new Error(`Expected a Material Web outlined button labelled "${label}".`);
+  }
+  return element as HTMLElement;
+}
+
+function resourceDialog(): HTMLElement {
+  const dialog = document.querySelector("md-dialog.resource-editor-dialog");
+  if (!dialog) {
+    throw new Error("Expected the resource editor dialog to be open.");
+  }
+  return dialog as HTMLElement;
+}
+
+async function openProviderEditor(label = "Edit Provider anthropic") {
+  const button = await waitFor(() => getOutlinedButton(document, label));
+  await userEvent.click(button);
+  await waitFor(() => expect(resourceDialog()).toBeInTheDocument());
+  return resourceDialog();
+}
+
+async function openModelEditor(label = "Edit Model claude-sonnet") {
+  const button = await waitFor(() => getOutlinedButton(document, label));
+  await userEvent.click(button);
+  await waitFor(() => expect(resourceDialog()).toBeInTheDocument());
+  return resourceDialog();
+}
+
+async function openModelProviderBindings() {
+  // Provider bindings are always expanded inside the model editor dialog now.
+  const dialog = await openModelEditor();
+  return within(dialog).getByRole("region", { name: "Providers (1)" });
+}
+
+async function closeResourceEditor() {
+  const closeButton = resourceDialog().querySelector('md-icon-button[aria-label="Close"]');
+  if (closeButton) {
+    await userEvent.click(closeButton as HTMLElement);
+  }
+  await waitFor(() => expect(document.querySelector("md-dialog.resource-editor-dialog")).not.toBeInTheDocument());
+}
+
 
 type MaterialTextFieldElement = HTMLElement & {
   label: string;

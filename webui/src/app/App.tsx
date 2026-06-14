@@ -46,8 +46,6 @@ function AppShellContent({ content }: { content?: ReactNode }) {
           <strong>{t("app.console")}</strong>
         </div>
         <div className="top-app-bar__meta">
-          <span>{t("app.sameOriginApi")}</span>
-          <span>{t("app.runtimeApi")}</span>
           <div className="locale-switch" role="group" aria-label={t("app.language")}>
             <span>{t("app.language")}</span>
             {(["en-US", "zh-CN"] as const).map((nextLocale) => (

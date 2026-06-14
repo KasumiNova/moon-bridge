@@ -113,6 +113,37 @@ if (!Element.prototype.animate) {
   });
 }
 
+// md-dialog (and other Material Web surfaces) observe scrolling/sizing with
+// IntersectionObserver/ResizeObserver, which jsdom does not implement.
+if (!globalThis.IntersectionObserver) {
+  class IntersectionObserverStub {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+    takeRecords() {
+      return [];
+    }
+  }
+  Object.defineProperty(globalThis, "IntersectionObserver", {
+    configurable: true,
+    writable: true,
+    value: IntersectionObserverStub
+  });
+}
+
+if (!globalThis.ResizeObserver) {
+  class ResizeObserverStub {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+  Object.defineProperty(globalThis, "ResizeObserver", {
+    configurable: true,
+    writable: true,
+    value: ResizeObserverStub
+  });
+}
+
 if (!globalThis.localStorage) {
   const store = new Map<string, string>();
 

@@ -89,8 +89,8 @@ export const configDescriptions: Record<ConfigPath, ConfigDocEntry> = {
     "mode",
     "运行模式",
     "Run mode",
-    "控制 Moon Bridge 是转换 OpenAI Responses 请求，还是作为 Capture 透明代理运行。",
-    "Controls whether Moon Bridge transforms OpenAI Responses requests or runs as a transparent capture proxy.",
+    "决定 Moon Bridge 如何处理请求：在协议之间转换，或直接转发给单一上游。",
+    "How Moon Bridge handles requests: convert between formats, or pass straight through to one provider.",
     "Transform | CaptureResponse | CaptureAnthropic",
     "Transform"
   ),
@@ -98,8 +98,8 @@ export const configDescriptions: Record<ConfigPath, ConfigDocEntry> = {
     "trace.enabled",
     "启用追踪",
     "Enable tracing",
-    "记录请求转换和上游调用过程，便于排查路由与适配器问题。",
-    "Records request conversion and upstream call flow for route and adapter diagnostics.",
+    "记录每个请求的处理过程，方便排查问题。",
+    "Records how each request is handled, for troubleshooting.",
     "boolean"
   ),
   "log.level": entry(
@@ -124,8 +124,8 @@ export const configDescriptions: Record<ConfigPath, ConfigDocEntry> = {
     "server.addr",
     "监听地址",
     "Listen address",
-    "HTTP 服务监听地址。控制台、/api/v1 管理接口、/v1/responses 和 /v1/models 都从这里提供。",
-    "HTTP listen address. The console, /api/v1 management API, /v1/responses, and /v1/models are served here.",
+    "服务监听的地址。控制台和 API 都从这里访问。",
+    "Address the server listens on. The console and API are served here.",
     "host:port",
     "127.0.0.1:38440"
   ),
@@ -133,8 +133,8 @@ export const configDescriptions: Record<ConfigPath, ConfigDocEntry> = {
     "server.auth_token",
     "认证 Token",
     "Auth token",
-    "Bearer 认证令牌。为空时不启用认证；设置后控制台和 API 请求都需要 Authorization header。",
-    "Bearer auth token. Empty disables auth; when set, console and API requests require an Authorization header.",
+    "控制台与 API 的访问密码。留空则不需要登录。",
+    "Password for the console and API. Leave empty to disable sign-in.",
     "string",
     "empty",
     true
@@ -161,8 +161,8 @@ export const configDescriptions: Record<ConfigPath, ConfigDocEntry> = {
     "persistence.active_provider",
     "持久化提供商",
     "Persistence provider",
-    "选择配置存储后端。启用后控制台才能实时保存资源编辑。",
-    "Selects the configuration store backend. The console needs it to save resource edits in realtime.",
+    "设置保存的位置。启用后才能在控制台保存修改。",
+    "Where settings are stored. Needed to save changes from the console.",
     "db_sqlite | db_d1",
     "db_sqlite"
   ),
@@ -170,8 +170,8 @@ export const configDescriptions: Record<ConfigPath, ConfigDocEntry> = {
     "cache.mode",
     "缓存模式",
     "Cache mode",
-    "控制 prompt cache 行为：off 关闭，explicit 使用显式断点，automatic 自动选择，hybrid 混合两者。",
-    "Controls prompt cache behavior: off disables it, explicit uses explicit breakpoints, automatic chooses them, hybrid combines both.",
+    "提示词缓存的工作方式：关闭、显式断点、自动选择，或两者混合。",
+    "How prompt caching works: off, explicit breakpoints, automatic, or a mix of both.",
     "off | explicit | automatic | hybrid",
     "explicit"
   ),
@@ -211,8 +211,8 @@ export const configDescriptions: Record<ConfigPath, ConfigDocEntry> = {
     "cache.allow_retention_downgrade",
     "允许降级保留策略",
     "Allow retention downgrade",
-    "当上游不支持长保留策略时允许降级到可用策略。",
-    "Allows downgrading to an available retention policy when the upstream does not support a longer policy.",
+    "当上游不支持所选缓存时长时，自动改用较短的可用时长。",
+    "Use a shorter cache lifetime if the provider doesn't support the chosen one.",
     "boolean"
   ),
   "cache.max_breakpoints": entry(
@@ -235,32 +235,32 @@ export const configDescriptions: Record<ConfigPath, ConfigDocEntry> = {
     "cache.expected_reuse",
     "预期复用次数",
     "Expected reuse",
-    "自动断点选择时用于估算收益的预期复用次数。",
-    "Expected reuse count used to estimate value for automatic breakpoint selection.",
+    "缓存内容预期被复用的次数（用于自动缓存决策）。",
+    "How many times a cached block is expected to be reused (for automatic caching).",
     "number"
   ),
   "cache.minimum_value_score": entry(
     "cache.minimum_value_score",
     "最小价值分",
     "Minimum value score",
-    "自动断点候选必须达到的最低价值评分。",
-    "Minimum value score required for automatic breakpoint candidates.",
+    "自动缓存生效的最低价值阈值。",
+    "Threshold below which automatic caching is skipped.",
     "number"
   ),
   "cache.min_breakpoint_tokens": entry(
     "cache.min_breakpoint_tokens",
     "最小断点 Token",
     "Min breakpoint tokens",
-    "相邻缓存断点之间保留的最小 token 间隔。",
-    "Minimum token distance kept between adjacent cache breakpoints.",
+    "两个缓存点之间至少要相隔的 token 数。",
+    "Minimum number of tokens between two cache points.",
     "number"
   ),
   "defaults.model": entry(
     "defaults.model",
     "默认模型",
     "Default model",
-    "客户端请求未指定模型时使用的模型别名，通常指向 routes 段里的 alias。",
-    "Model alias used when the client request omits a model, usually a route alias.",
+    "请求未指定模型时使用的模型。",
+    "Model used when a request doesn't specify one.",
     "string",
     "moonbridge"
   ),
@@ -286,8 +286,8 @@ export const configDescriptions: Record<ConfigPath, ConfigDocEntry> = {
     "models.<slug>.context_window",
     "上下文窗口",
     "Context window",
-    "模型可接受的最大上下文 token 数，用于路由能力展示和请求约束。",
-    "Maximum context tokens the model can accept, used for route capability display and request limits.",
+    "模型一次最多能处理的 token 数。",
+    "Maximum tokens the model can handle at once.",
     "number"
   ),
   "models.<slug>.max_output_tokens": entry(
@@ -302,8 +302,8 @@ export const configDescriptions: Record<ConfigPath, ConfigDocEntry> = {
     "models.<slug>.slug",
     "模型 Slug",
     "Model slug",
-    "models 段里的稳定模型标识。提供商绑定和 route 都通过这个 slug 引用模型。",
-    "Stable model identifier under models. Provider bindings and routes reference models by this slug.",
+    "模型的稳定标识，其他设置通过它引用此模型。",
+    "Stable id other settings use to refer to this model.",
     "string"
   ),
   "models.<slug>.display_name": entry(
@@ -406,24 +406,24 @@ export const configDescriptions: Record<ConfigPath, ConfigDocEntry> = {
     "providers.<key>.key",
     "Provider Key",
     "Provider key",
-    "providers 段里的稳定上游标识。routes 段通过这个 key 选择请求要发往哪个 Provider。",
-    "Stable upstream identifier under providers. Routes use this key to choose the provider for a request.",
+    "提供商的稳定标识，路由通过它选择此提供商。",
+    "Stable id routes use to pick this provider.",
     "string"
   ),
   "providers.<key>.base_url": entry(
     "providers.<key>.base_url",
     "上游 Base URL",
     "Upstream base URL",
-    "上游 Provider API 地址。不同协议会按自己的路径和请求格式转发。",
-    "Upstream provider API URL. Each protocol forwards using its own paths and request format.",
+    "上游 Provider API 地址。",
+    "Upstream provider API URL.",
     "url"
   ),
   "providers.<key>.api_key": entry(
     "providers.<key>.api_key",
     "上游 API Key",
     "Upstream API key",
-    "发送到上游 Provider 的密钥。管理 API 读取时会脱敏，写入 ****** 表示保留旧值。",
-    "Secret sent to the upstream provider. Management reads are masked; writing ****** keeps the old value.",
+    "此提供商的 API 密钥。显示为掩码；输入新值即可更新。",
+    "API key for this provider. Shown masked; enter a new value to update it.",
     "string",
     undefined,
     true
@@ -441,16 +441,16 @@ export const configDescriptions: Record<ConfigPath, ConfigDocEntry> = {
     "providers.<key>.version",
     "协议版本",
     "Protocol version",
-    "Anthropic 兼容接口常用的版本头；部分 Provider 可留空。",
-    "Version header commonly used by Anthropic-compatible APIs; optional for some providers.",
+    "API 版本头（主要 Anthropic 使用），部分提供商可留空。",
+    "API version header (mainly for Anthropic). Optional for some providers.",
     "string"
   ),
   "providers.<key>.user_agent": entry(
     "providers.<key>.user_agent",
     "User Agent",
     "User agent",
-    "发往上游的 User-Agent 标识，用于审计或 Provider 侧识别。",
-    "User-Agent sent upstream for audit or provider-side identification.",
+    "发送给提供商的 User-Agent 字符串。",
+    "User-Agent string sent to the provider.",
     "string"
   ),
   "providers.<key>.web_search": entry(
@@ -473,32 +473,32 @@ export const configDescriptions: Record<ConfigPath, ConfigDocEntry> = {
     "providers.<key>.offers[].model",
     "提供商模型",
     "Provider model",
-    "声明该提供商绑定的本地模型 slug，必须对应 models 段定义。",
-    "Declares the local model slug bound to this provider binding; it should match a models entry.",
+    "此绑定提供的模型。",
+    "Which model this binding serves.",
     "string"
   ),
   "providers.<key>.offers[].upstream_name": entry(
     "providers.<key>.offers[].upstream_name",
     "上游模型名",
     "Upstream model name",
-    "发送给 Provider 的真实模型名。为空时通常使用本地模型 slug。",
-    "Actual model name sent to the provider. Empty usually means the local model slug is used.",
+    "发送给提供商的真实模型名。留空则使用模型标识。",
+    "Real model name sent to the provider. Leave empty to use the model id.",
     "string"
   ),
   "providers.<key>.offers[].priority": entry(
     "providers.<key>.offers[].priority",
     "提供商优先级",
     "Provider priority",
-    "同一模型存在多个提供商绑定时的排序权重，数值越低越优先。",
-    "Ordering weight when multiple provider bindings serve the same model; lower values are preferred.",
+    "同一模型有多个提供商时的取舍权重，数值越小越优先。",
+    "Tie-breaker when several providers serve the same model; lower wins.",
     "number"
   ),
   "providers.<key>.offers[].pricing": entry(
     "providers.<key>.offers[].pricing",
     "计费",
     "Billing",
-    "输入、输出、cache write 和 cache read 的可选计价元数据，用于统计成本。",
-    "Optional pricing metadata for input, output, cache write, and cache read, used for cost tracking.",
+    "可选的单价信息，用于费用统计。",
+    "Optional prices for cost tracking.",
     "number"
   ),
   "providers.<key>.offers[].overrides": entry(
@@ -513,24 +513,24 @@ export const configDescriptions: Record<ConfigPath, ConfigDocEntry> = {
     "routes.<alias>.to",
     "路由目标",
     "Route target",
-    "该路由指向的内部目标标识。",
-    "Internal target identifier used by this route.",
+    "此路由指向的内部目标。",
+    "Internal target this route points to.",
     "string"
   ),
   "routes.<alias>.model": entry(
     "routes.<alias>.model",
     "路由模型",
     "Route model",
-    "客户端看到的 alias 映射到的本地模型 slug。",
-    "Local model slug that the client-visible alias maps to.",
+    "此别名实际指向的模型。",
+    "Model this alias points to.",
     "string"
   ),
   "routes.<alias>.alias": entry(
     "routes.<alias>.alias",
     "路由别名",
     "Route alias",
-    "客户端请求中使用的模型名称。Moon Bridge 会把这个 alias 解析为内部 model/provider 组合。",
-    "Model name used by clients. Moon Bridge resolves this alias to an internal model/provider pair.",
+    "客户端在请求中使用的模型名。",
+    "The model name clients send in requests.",
     "string"
   ),
   "routes.<alias>.provider": entry(
@@ -622,8 +622,8 @@ export const configDescriptions: Record<ConfigPath, ConfigDocEntry> = {
     "web_search.search_max_rounds",
     "最大搜索轮次",
     "Search max rounds",
-    "注入式搜索编排器最多循环执行搜索工具的轮次。",
-    "Maximum orchestration rounds for injected search tools.",
+    "单次请求最多执行的搜索轮数。",
+    "Maximum number of search rounds per request.",
     "number",
     "3"
   ),
@@ -631,32 +631,32 @@ export const configDescriptions: Record<ConfigPath, ConfigDocEntry> = {
     "extensions.<name>.enabled",
     "启用扩展",
     "Enable extension",
-    "启用模型或全局扩展，例如 deepseek_v4、visual、db_sqlite、metrics。",
-    "Enables model-level or global extensions such as deepseek_v4, visual, db_sqlite, and metrics.",
+    "开启或关闭此扩展。",
+    "Turn this extension on or off.",
     "boolean"
   ),
   "extensions.<name>.config": entry(
     "extensions.<name>.config",
     "扩展配置",
     "Extension config",
-    "扩展私有配置对象。控制台以结构化字段编辑标量配置，并保留更复杂的嵌套配置。",
-    "Extension-specific config object. The console edits scalar config through structured fields and preserves more complex nested config.",
+    "此扩展的设置。",
+    "Settings for this extension.",
     "object"
   ),
   "proxy.response": entry(
     "proxy.response",
     "OpenAI Capture 代理",
     "OpenAI capture proxy",
-    "CaptureResponse 模式下透明代理到 OpenAI Responses 上游所需的 base_url、api_key 和默认模型。",
-    "Base URL, API key, and default model for transparent OpenAI Responses proxying in CaptureResponse mode.",
+    "直通（Capture）模式下转发到 OpenAI 所需的地址、密钥和默认模型。",
+    "Address, key, and default model used when passing requests straight through to OpenAI.",
     "object"
   ),
   "proxy.anthropic": entry(
     "proxy.anthropic",
     "Anthropic Capture 代理",
     "Anthropic capture proxy",
-    "CaptureAnthropic 模式下透明代理到 Anthropic 兼容上游所需的 base_url、api_key、version 和模型。",
-    "Base URL, API key, version, and model for transparent Anthropic-compatible proxying in CaptureAnthropic mode.",
+    "直通（Capture）模式下转发到 Anthropic 所需的地址、密钥、版本和模型。",
+    "Address, key, version, and model used when passing requests straight through to Anthropic.",
     "object"
   )
 };
@@ -689,8 +689,8 @@ function entry(
     defaultValue,
     sensitive,
     apply: {
-      "zh-CN": "通过配置图实时保存；部分关键字段可能需要重启后完全生效。",
-      "en-US": "Saved through the config graph; some critical fields may require restart to fully take effect."
+      "zh-CN": "即时保存；部分字段需重启后生效。",
+      "en-US": "Saved instantly; some fields need a restart to take effect."
     }
   };
 }

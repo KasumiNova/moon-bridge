@@ -770,7 +770,7 @@ describe("ResourceEditorCard", () => {
     expect(getMaterialTextField(advancedPanel, "Model web search Tavily API key")).toHaveProperty("type", "password");
     expect(getMaterialTextField(advancedPanel, "Model web search Firecrawl API key")).toHaveProperty("type", "password");
     expectWebSearchFieldHelp(advancedPanel, "Model web search max uses", "Limits how many web search calls one request may use.");
-    expectWebSearchFieldHelp(advancedPanel, "Model web search search max rounds", "Maximum orchestration rounds for injected search tools.");
+    expectWebSearchFieldHelp(advancedPanel, "Model web search search max rounds", "Maximum number of search rounds per request.");
     expectWebSearchFieldHelp(advancedPanel, "Model web search Tavily API key", "Tavily secret used by injected web search.");
     expectWebSearchFieldHelp(advancedPanel, "Model web search Firecrawl API key", "Firecrawl secret used by injected web search to fetch page content.");
     expect(queryMaterialTextField(advancedPanel, "Model web search JSON")).not.toBeInTheDocument();
@@ -1228,14 +1228,14 @@ describe("ResourceEditorCard", () => {
 
     await userEvent.click(deleteButton);
 
-    expect(screen.getByText("Delete anthropic? This removes the resource from the active graph after save."))
+    expect(screen.getByText("Delete anthropic? This takes effect after saving."))
       .toBeInTheDocument();
     expect(getMaterialButton(document, "Confirm delete anthropic", "filled")).toBeInTheDocument();
     const cancelButton = getMaterialButton(document, "Cancel", "outlined");
 
     await userEvent.click(cancelButton);
 
-    expect(screen.queryByText("Delete anthropic? This removes the resource from the active graph after save."))
+    expect(screen.queryByText("Delete anthropic? This takes effect after saving."))
       .not.toBeInTheDocument();
     expect(remove).not.toHaveBeenCalled();
 

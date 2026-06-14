@@ -4,6 +4,7 @@ import type { MdChipSet } from "@material/web/chips/chip-set.js";
 import type { MdFilterChip } from "@material/web/chips/filter-chip.js";
 import type { MdInputChip } from "@material/web/chips/input-chip.js";
 import type { MdCheckbox } from "@material/web/checkbox/checkbox.js";
+import type { MdDialog } from "@material/web/dialog/dialog.js";
 import type { MdIcon } from "@material/web/icon/icon.js";
 import type { MdIconButton } from "@material/web/iconbutton/icon-button.js";
 import type { MdOutlinedSelect } from "@material/web/select/outlined-select.js";
@@ -17,6 +18,7 @@ declare module "react/jsx-runtime" {
     interface IntrinsicElements {
       "md-chip-set": React.DetailedHTMLProps<React.HTMLAttributes<MdChipSet>, MdChipSet>;
       "md-checkbox": React.DetailedHTMLProps<React.HTMLAttributes<MdCheckbox>, MdCheckbox>;
+      "md-dialog": React.DetailedHTMLProps<React.HTMLAttributes<MdDialog>, MdDialog>;
       "md-filter-chip": React.DetailedHTMLProps<React.HTMLAttributes<MdFilterChip>, MdFilterChip>;
       "md-input-chip": React.DetailedHTMLProps<React.HTMLAttributes<MdInputChip>, MdInputChip> & {
         disabled?: boolean;

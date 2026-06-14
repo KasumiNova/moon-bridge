@@ -438,7 +438,7 @@ export const formStyles = `  .form-grid {
   .editable-list-field__add {
     align-self: stretch;
     --md-filled-button-container-height: 44px;
-    --md-filled-button-container-shape: var(--mb-shape-sm);
+    --md-filled-button-container-shape: var(--mb-button-shape);
     --md-filled-button-leading-space: 12px;
     --md-filled-button-trailing-space: 14px;
   }
@@ -740,6 +740,18 @@ export const formStyles = `  .form-grid {
     font-size: 0.76rem;
     line-height: 1.4;
     font-weight: 650;
+    overflow-wrap: anywhere;
+  }
+
+  .field-warning {
+    margin: 0;
+    border-radius: var(--mb-shape-sm);
+    padding: 8px 12px;
+    color: var(--mb-color-on-warning-container);
+    background: var(--mb-color-warning-container);
+    font-size: 0.76rem;
+    line-height: 1.4;
+    font-weight: 600;
     overflow-wrap: anywhere;
   }
 

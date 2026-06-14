@@ -48,6 +48,21 @@ export const overviewStyles = `  .metric-grid {
     flex-wrap: wrap;
   }
 
+  .usage-demo-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 32px;
+    padding: 0 12px;
+    border-radius: var(--mb-button-shape);
+    color: var(--mb-color-on-surface-variant);
+    background: var(--mb-color-surface-container);
+    font-size: 0.78rem;
+    font-weight: 650;
+    cursor: pointer;
+    user-select: none;
+  }
+
   .usage-summary-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
@@ -59,7 +74,7 @@ export const overviewStyles = `  .metric-grid {
     min-width: 0;
     display: grid;
     gap: 8px;
-    border-radius: var(--mb-shape-lg);
+    border-radius: var(--mb-shape-panel);
     outline: 0;
     padding: 14px 16px;
     background: var(--mb-color-surface-container-high);
@@ -126,7 +141,7 @@ export const overviewStyles = `  .metric-grid {
     min-width: 0;
     display: grid;
     gap: 12px;
-    border-radius: var(--mb-shape-lg);
+    border-radius: var(--mb-shape-panel);
     outline: 0;
     padding: 16px;
     background: color-mix(in srgb, var(--mb-color-surface-container-high) 76%, var(--mb-color-surface));
@@ -158,15 +173,17 @@ export const overviewStyles = `  .metric-grid {
   .usage-chart__bar {
     overflow: hidden;
     display: flex;
-    gap: 3px;
-    min-height: 20px;
+    gap: 0;
+    /* Fixed height (not min-height) so the bar never stretches when the panel
+       around it grows; only the outer ends are rounded via the container. */
+    block-size: 10px;
     border-radius: var(--mb-shape-full);
     background: var(--mb-color-surface-container);
   }
 
   .usage-chart__segment {
-    min-inline-size: 6px;
-    border-radius: var(--mb-shape-full);
+    min-inline-size: 4px;
+    border-radius: 0;
     transition: inline-size var(--mb-duration-long) var(--mb-ease-decelerate);
   }
 
@@ -259,7 +276,7 @@ export const overviewStyles = `  .metric-grid {
     min-height: 180px;
     display: grid;
     place-items: center;
-    border-radius: var(--mb-shape-lg);
+    border-radius: var(--mb-shape-panel);
     outline: 0;
     color: var(--mb-color-on-surface-variant);
     background: color-mix(in srgb, var(--mb-color-surface-container) 48%, transparent);

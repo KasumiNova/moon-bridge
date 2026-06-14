@@ -1,17 +1,23 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { LoadingState } from "../../components/LoadingState";
-import { MaterialIconButton } from "../../components/MaterialButton";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { ConfigGraph, ConfigResource, ResourceKind } from "../../rpc/types";
 import { CreateResourcePanel } from "../configGraph/CreateResourcePanel";
-import { modelDisplayNamesById } from "../configGraph/modelProviderIcons";
+import { ResourceEditorDialog } from "../configGraph/ResourceEditorDialog";
 import { ResourceEditorCard } from "../configGraph/ResourceEditorCard";
 import { useConfigGraph } from "../configGraph/useConfigGraph";
+import { modelDisplayNamesById } from "../configGraph/modelProviderIcons";
 import { PageHeader, QueryErrorState } from "../shared";
 
 export function ModelsProvidersPage() {
   const { t } = useI18n();
   const graph = useConfigGraph();
+  const [editing, setEditing] = useState<{ kind: ResourceKind; id: string } | null>(null);
+
+  const modelDisplayNames = useMemo(
+    () => (graph.data ? modelDisplayNamesById(graph.data.resources) : {}),
+    [graph.data]
+  );
 
   if (graph.error) {
     return <QueryErrorState error={graph.error} />;
@@ -20,12 +26,16 @@ export function ModelsProvidersPage() {
     return <LoadingState label={t("loading.providers")} />;
   }
 
-  const providers = resourcesByKind(graph.data.resources, "provider");
-  const offers = resourcesByKind(graph.data.resources, "provider_offer");
-  const models = resourcesByKind(graph.data.resources, "model");
-  const modelDisplayNames = modelDisplayNamesById(graph.data.resources);
+  const resources = graph.data.resources;
+  const providers = resourcesByKind(resources, "provider");
+  const offers = resourcesByKind(resources, "provider_offer");
+  const models = resourcesByKind(resources, "model");
   const offersByModel = groupOffersByModel(offers);
   const unmatchedOffers = offers.filter((offer) => !models.some((model) => model.id === modelIdForOffer(offer)));
+
+  const editingResource = editing
+    ? resources.find((resource) => resource.kind === editing.kind && resource.id === editing.id)
+    : undefined;
 
   return (
     <section className="page-stack" aria-labelledby="models-providers-title">
@@ -38,19 +48,17 @@ export function ModelsProvidersPage() {
           <h2 id="providers-heading">{t("modelsProviders.providers", { count: providers.length })}</h2>
           <CreateResourcePanel graph={graph.data} kind="provider" />
         </div>
-        <div className="resource-card-list">
+        <div className="resource-card-list resource-card-list--summary">
           {providers.map((provider) => (
-            <section
-              className="provider-resource-group"
-              aria-label={t("modelsProviders.providerRegion", { id: provider.id })}
+            <ResourceEditorCard
+              ariaLabel={t("modelsProviders.providerRegion", { id: provider.id })}
               key={provider.id}
-            >
-              <ResourceEditorCard
-                resource={provider}
-                revision={graph.data.revision}
-                title={t("resource.kind.provider")}
-              />
-            </section>
+              onOpenEditor={() => setEditing({ kind: "provider", id: provider.id })}
+              resource={provider}
+              revision={graph.data.revision}
+              title={t("resource.kind.provider")}
+              variant="summary"
+            />
           ))}
         </div>
       </section>
@@ -58,14 +66,16 @@ export function ModelsProvidersPage() {
       {unmatchedOffers.length > 0 ? (
         <section className="resource-section" aria-labelledby="offers-heading">
           <h2 id="offers-heading">{t("modelsProviders.unmatchedSupplies", { count: unmatchedOffers.length })}</h2>
-          <div className="resource-card-list">
+          <div className="resource-card-list resource-card-list--summary">
             {unmatchedOffers.map((offer) => (
               <ResourceEditorCard
                 key={offer.id}
                 modelDisplayNames={modelDisplayNames}
+                onOpenEditor={() => setEditing({ kind: "provider_offer", id: offer.id })}
                 resource={offer}
                 revision={graph.data.revision}
                 title={t("resource.kind.offer")}
+                variant="summary"
               />
             ))}
           </div>
@@ -77,32 +87,56 @@ export function ModelsProvidersPage() {
           <h2 id="models-heading">{t("modelsProviders.models", { count: models.length })}</h2>
           <CreateResourcePanel graph={graph.data} kind="model" />
         </div>
-        <div className="resource-card-list">
+        <div className="resource-card-list resource-card-list--summary">
           {models.map((model) => (
-            <section
-              className="model-resource-group"
-              aria-label={t("modelsProviders.modelRegion", { id: model.id })}
+            <ResourceEditorCard
+              ariaLabel={t("modelsProviders.modelRegion", { id: model.id })}
               key={model.id}
-            >
-              <ResourceEditorCard
-                modelDisplayNames={modelDisplayNames}
-                resource={model}
-                revision={graph.data.revision}
-                title={t("resource.kind.model")}
-              >
-                <ModelProviderBindings
-                  graph={graph.data}
-                  modelDisplayNames={modelDisplayNames}
-                  modelId={model.id}
-                  offers={offersByModel.get(model.id) ?? []}
-                />
-              </ResourceEditorCard>
-            </section>
+              modelDisplayNames={modelDisplayNames}
+              onOpenEditor={() => setEditing({ kind: "model", id: model.id })}
+              resource={model}
+              revision={graph.data.revision}
+              title={t("resource.kind.model")}
+              variant="summary"
+            />
           ))}
         </div>
       </section>
+
+      {editingResource ? (
+        <ResourceEditorDialog
+          open
+          onClose={() => setEditing(null)}
+          modelDisplayNames={modelDisplayNames}
+          resource={editingResource}
+          revision={graph.data.revision}
+          title={titleForResource(editingResource.kind, t)}
+        >
+          {editingResource.kind === "model" ? (
+            <ModelProviderBindings
+              graph={graph.data}
+              modelDisplayNames={modelDisplayNames}
+              modelId={editingResource.id}
+              offers={offersByModel.get(editingResource.id) ?? []}
+            />
+          ) : null}
+        </ResourceEditorDialog>
+      ) : null}
     </section>
   );
+}
+
+function titleForResource(kind: ResourceKind, t: ReturnType<typeof useI18n>["t"]): string {
+  switch (kind) {
+    case "model":
+      return t("resource.kind.model");
+    case "provider":
+      return t("resource.kind.provider");
+    case "provider_offer":
+      return t("resource.kind.offer");
+    default:
+      return "";
+  }
 }
 
 function resourcesByKind(resources: ConfigResource[], kind: ResourceKind) {
@@ -140,13 +174,12 @@ function ModelProviderBindings({
   offers: ConfigResource[];
 }) {
   const { t } = useI18n();
-  const [open, setOpen] = useState(false);
   const headingId = `model-${modelId}-providers-heading`;
   const bodyId = `model-${modelId}-providers-body`.replace(/[^a-zA-Z0-9_-]/g, "-");
   const offersLabel = t("modelsProviders.modelProviders", { count: offers.length });
   return (
     <section
-      className={`resource-field-group resource-field-group--advanced model-provider-bindings${open ? "" : " resource-field-group--collapsed"}`}
+      className="resource-field-group resource-field-group--advanced model-provider-bindings"
       aria-labelledby={headingId}
       aria-label={offersLabel}
     >
@@ -157,29 +190,19 @@ function ModelProviderBindings({
         </h4>
         <div className="resource-field-group__header-actions">
           <CreateResourcePanel graph={graph} kind="provider_offer" modelId={modelId} />
-          <MaterialIconButton
-            ariaExpanded={open}
-            className="resource-field-group__toggle"
-            controls={bodyId}
-            icon="chevron_right"
-            label={t("resource.group.toggle", { label: t("modelsProviders.modelProvidersToggle") })}
-            onClick={() => setOpen((current) => !current)}
-          />
         </div>
       </div>
-      {open ? (
-        <div className="resource-card-list resource-card-list--compact resource-field-group__body" id={bodyId}>
-          {offers.map((offer) => (
-            <ResourceEditorCard
-              key={offer.id}
-              modelDisplayNames={modelDisplayNames}
-              resource={offer}
-              revision={graph.revision}
-              title={t("resource.kind.offer")}
-            />
-          ))}
-        </div>
-      ) : null}
+      <div className="resource-card-list resource-card-list--compact resource-field-group__body" id={bodyId}>
+        {offers.map((offer) => (
+          <ResourceEditorCard
+            key={offer.id}
+            modelDisplayNames={modelDisplayNames}
+            resource={offer}
+            revision={graph.revision}
+            title={t("resource.kind.offer")}
+          />
+        ))}
+      </div>
     </section>
   );
 }

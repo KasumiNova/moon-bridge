@@ -108,7 +108,7 @@ describe("OverviewPage", () => {
     expect(modelRow).toHaveTextContent("¥1,105.26/M");
 
     expect(screen.getByRole("region", { name: "Backend logs" })).toBeInTheDocument();
-    expect(screen.getByText(/server-started/)).toBeInTheDocument();
+    expect(screen.getByText(/server started/)).toBeInTheDocument();
     expect(screen.queryByText("runtimeRejected")).not.toBeInTheDocument();
     expect(screen.queryByText("upstream rejected reload")).not.toBeInTheDocument();
     expect(screen.queryByText("Validation")).not.toBeInTheDocument();
@@ -278,18 +278,18 @@ describe("OverviewPage", () => {
 
     renderWithConsoleProviders(<OverviewPage />);
 
-    expect(await screen.findByText(/server-started/)).toBeInTheDocument();
+    expect(await screen.findByText(/server started/)).toBeInTheDocument();
 
     const searchField = getMaterialTextField(document.body, "Search logs");
     setMaterialTextFieldValue(searchField, "database");
 
-    expect(screen.queryByText(/server-started/)).not.toBeInTheDocument();
-    expect(screen.getByText(/database-unavailable/)).toBeInTheDocument();
+    expect(screen.queryByText(/server started/)).not.toBeInTheDocument();
+    expect(screen.getByText(/database unavailable/)).toBeInTheDocument();
 
     fireEvent.click(getMaterialIconButton(document.body, "Clear log search"));
 
-    expect(screen.getByText(/server-started/)).toBeInTheDocument();
-    expect(screen.getByText(/database-unavailable/)).toBeInTheDocument();
+    expect(screen.getByText(/server started/)).toBeInTheDocument();
+    expect(screen.getByText(/database unavailable/)).toBeInTheDocument();
   });
 
   test("shows usage empty state while keeping logs available", async () => {
@@ -319,7 +319,7 @@ describe("OverviewPage", () => {
     expect(screen.getByRole("img", { name: /Cache split chart/ })).toBeInTheDocument();
     expect(screen.getByRole("img", { name: /Cost by model chart/ })).toBeInTheDocument();
     expect(screen.getByRole("table", { name: "Model usage table" })).toBeInTheDocument();
-    expect(screen.getByText(/server-started/)).toBeInTheDocument();
+    expect(screen.getByText(/server started/)).toBeInTheDocument();
   });
 
   test("keeps usage dashboard and logs visible when graph API store is unavailable", async () => {

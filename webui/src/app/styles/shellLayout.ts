@@ -119,14 +119,14 @@ export const shellLayoutStyles = `  .workspace {
 
   .content-surface {
     min-width: 0;
-    padding: 24px;
+    padding: 24px var(--mb-content-gutter);
   }
 
   .placeholder-panel {
     min-height: calc(100vh - 120px);
     display: flex;
     align-items: center;
-    border-radius: var(--mb-shape-xl);
+    border-radius: var(--mb-shape-panel);
     outline: 0;
     padding: 32px;
     background: var(--mb-color-surface-container);
@@ -162,10 +162,14 @@ export const shellLayoutStyles = `  .workspace {
   .page-stack {
     display: grid;
     gap: 20px;
+    /* Center the page content within the available rail+content area and cap it at the
+       content measure so wide/ultrawide screens stay readable instead of stretching. */
+    width: min(100%, var(--mb-content-max));
+    margin-inline: auto;
   }
 
   .page-header {
-    max-width: 920px;
+    max-width: none;
   }
 
   .page-header h1 {
@@ -175,6 +179,7 @@ export const shellLayoutStyles = `  .workspace {
 
   .page-header p:last-child {
     margin: 12px 0 0;
+    max-width: 68ch;
     color: var(--mb-color-on-surface-variant);
     font-size: 0.95rem;
     line-height: 1.55;

@@ -1,7 +1,7 @@
 export const sharedResourceStyles = `  .metric-card,
   .content-panel,
   .state-panel {
-    border-radius: var(--mb-shape-xl);
+    border-radius: var(--mb-shape-panel);
     outline: 0;
     background: var(--mb-color-surface-container);
   }
@@ -187,6 +187,11 @@ export const sharedResourceStyles = `  .metric-card,
     gap: 10px;
   }
 
+  /* Summary rows: compact, evenly spaced scannable list (dialog-based editing). */
+  .resource-card-list--summary {
+    gap: 10px;
+  }
+
   .model-resource-group,
   .provider-resource-group {
     display: grid;
@@ -246,7 +251,7 @@ export const sharedResourceStyles = `  .metric-card,
     width: min(760px, 100%);
     display: grid;
     gap: 14px;
-    border-radius: var(--mb-shape-xl);
+    border-radius: var(--mb-shape-panel);
     outline: 0;
     padding: 18px 20px;
     background: var(--mb-color-surface-container-high);

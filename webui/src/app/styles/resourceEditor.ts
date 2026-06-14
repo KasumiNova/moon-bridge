@@ -2,7 +2,7 @@ export const resourceEditorStyles = `  .resource-editor-card {
     position: relative;
     display: grid;
     gap: 14px;
-    border-radius: var(--mb-shape-xl);
+    border-radius: var(--mb-shape-panel);
     outline: 0;
     padding: 16px 18px;
     background: var(--mb-color-surface-container);
@@ -165,7 +165,7 @@ export const resourceEditorStyles = `  .resource-editor-card {
     --md-filled-button-hover-icon-color: var(--mb-color-on-primary-container);
     --md-filled-button-focus-icon-color: var(--mb-color-on-primary-container);
     --md-filled-button-pressed-icon-color: var(--mb-color-on-primary-container);
-    --md-filled-button-container-shape: 16px;
+    --md-filled-button-container-shape: var(--mb-button-shape);
     --md-filled-button-container-elevation: 1;
     --md-filled-button-hover-container-elevation: 2;
     --md-filled-button-pressed-container-elevation: 1;
@@ -329,4 +329,92 @@ export const resourceEditorStyles = `  .resource-editor-card {
     --md-switch-selected-pressed-track-color: var(--mb-color-primary);
   }
 
+  /* ---- Summary row variant: compact, scannable list item ---- */
+  .resource-editor-card--summary {
+    padding: 12px 16px;
+  }
+
+  .resource-editor-card--summary .resource-editor-card__header {
+    align-items: center;
+    gap: 16px;
+  }
+
+  .resource-editor-card--summary .resource-editor-card__identity {
+    gap: 6px;
+  }
+
+  .resource-editor-card--summary .resource-editor-card__meta {
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* Brand badge between the kind icon and the id in summary rows */
+  .resource-editor-card__identity-line .lobe-brand-icon {
+    display: inline-flex;
+    color: var(--mb-color-on-surface-variant);
+  }
+
+  /* ---- Embedded variant: card sits directly on the dialog surface (no nested card) ---- */
+  .resource-editor-card--embedded {
+    border-radius: 0;
+    padding: 0;
+    background: transparent;
+  }
+
+  .resource-editor-card--embedded:hover,
+  .resource-editor-card--embedded:focus-within {
+    background: transparent;
+  }
+
+  /* ---- Material dialog (resource editor) ----
+     md-dialog hard-codes a 560px host max-width. Override on the host element
+     (layout only) so the editor's multi-column form grid has room to breathe. */
+  md-dialog.resource-editor-dialog {
+    --md-dialog-container-shape: var(--mb-shape-panel);
+    --md-dialog-container-color: var(--mb-color-surface-container);
+    --md-dialog-container-elevation: var(--mb-elevation-3);
+    max-width: min(900px, calc(100% - 48px));
+    max-height: min(86vh, calc(100% - 48px));
+  }
+
+  md-dialog.resource-editor-dialog .material-dialog__content {
+    width: min(860px, 100%);
+  }
+
+  /* Generic Material dialog headline + content helpers (emitted by MaterialDialog) */
+  .material-dialog__headline {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .material-dialog__headline-text {
+    overflow-wrap: anywhere;
+    font-size: 1.02rem;
+    font-weight: 680;
+    color: var(--mb-color-on-surface);
+  }
+
+  .material-dialog__close {
+    --md-icon-button-icon-size: 20px;
+    --md-icon-button-icon-color: var(--mb-color-on-surface-variant);
+    --md-icon-button-hover-icon-color: var(--mb-color-on-surface);
+    --md-icon-button-focus-icon-color: var(--mb-color-on-surface);
+    --md-icon-button-pressed-icon-color: var(--mb-color-primary);
+  }
+
+  @media (max-width: 600px) {
+    .resource-editor-card--summary .resource-editor-card__header {
+      flex-wrap: wrap;
+    }
+    .resource-editor-card--summary .resource-editor-card__meta {
+      flex-wrap: wrap;
+      justify-content: flex-start;
+    }
+    md-dialog.resource-editor-dialog .material-dialog__content {
+      width: 100%;
+    }
+  }
 `;

@@ -184,13 +184,17 @@ function LogRow({ entry, index }: { entry: LogEntry; index: number }) {
       animate={{ opacity: 1, y: 0 }}
       transition={springs.effects}
     >
-      <div className="log-row__meta">
-        <span>{entry.timestamp}</span>
-        <strong>{entry.level}</strong>
-      </div>
-      <pre>{logLine(entry)}</pre>
+      <span className={`log-row__level log-row__level--${level}`} aria-hidden="true">{entry.level}</span>
+      <time className="log-row__time" dateTime={entry.timestamp}>{compactLogTime(entry.timestamp)}</time>
+      <p className="log-row__message">{entry.message || logLine(entry)}</p>
     </motion.article>
   );
+}
+
+/** Compact HH:MM:SS view of an ISO timestamp for dense log rows. */
+function compactLogTime(timestamp: string): string {
+  const time = timestamp.split("T")[1];
+  return time ? time.replace(/\.\d{3,}.*$/, "").replace(/Z$/i, "") : timestamp;
 }
 
 async function consumeStream(signal: AbortSignal, append: (entry: LogEntry) => void) {

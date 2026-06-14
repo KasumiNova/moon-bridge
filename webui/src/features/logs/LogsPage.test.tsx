@@ -20,8 +20,8 @@ describe("LogsPage", () => {
 
     renderWithConsoleProviders(<LogsPage />);
 
-    expect(await screen.findByText(/server-started/)).toBeInTheDocument();
-    expect(screen.getByText(/database-unavailable/)).toBeInTheDocument();
+    expect(await screen.findByText(/server started/)).toBeInTheDocument();
+    expect(screen.getByText(/database unavailable/)).toBeInTheDocument();
     expect(screen.getByText("3 of 3 logs")).toBeInTheDocument();
     expect(getMaterialFilterChip(document.body, "Pause")).toBeInTheDocument();
     expect(getMaterialButton(document.body, "Copy")).toBeInTheDocument();
@@ -37,8 +37,8 @@ describe("LogsPage", () => {
 
     setMaterialTextFieldValue(getMaterialTextField(document.body, "Search logs"), "database");
 
-    expect(screen.queryByText(/server-started/)).not.toBeInTheDocument();
-    expect(screen.getByText(/database-unavailable/)).toBeInTheDocument();
+    expect(screen.queryByText(/server started/)).not.toBeInTheDocument();
+    expect(screen.getByText(/database unavailable/)).toBeInTheDocument();
     expect(screen.getByText("1 of 3 logs")).toBeInTheDocument();
 
     fireEvent.click(getMaterialFilterChip(document.body, "Pause"));
@@ -54,11 +54,11 @@ describe("LogsPage", () => {
 
     renderWithConsoleProviders(<LogsPage />);
 
-    expect(await screen.findByText(/server-started/)).toBeInTheDocument();
+    expect(await screen.findByText(/server started/)).toBeInTheDocument();
 
     fireEvent.click(getMaterialFilterChip(document.body, "ERROR"));
-    expect(screen.queryByText(/server-started/)).not.toBeInTheDocument();
-    expect(screen.getByText(/database-unavailable/)).toBeInTheDocument();
+    expect(screen.queryByText(/server started/)).not.toBeInTheDocument();
+    expect(screen.getByText(/database unavailable/)).toBeInTheDocument();
     expect(screen.getByText("1 of 3 logs")).toBeInTheDocument();
 
     fireEvent.click(getMaterialButton(document.body, "Copy"));
@@ -76,7 +76,7 @@ describe("LogsPage", () => {
 
     renderWithConsoleProviders(<LogsPage />);
 
-    expect(await screen.findByText(/server-started/)).toBeInTheDocument();
+    expect(await screen.findByText(/server started/)).toBeInTheDocument();
 
     const followMode = screen.getByRole("group", { name: "Live follow mode" });
     expect(getMaterialFilterChip(followMode, "Follow")).toHaveProperty("selected", true);
@@ -96,8 +96,8 @@ describe("LogsPage", () => {
 
     renderWithConsoleProviders(<LogsPage />, { locale: "zh-CN" });
 
-    expect(await screen.findByLabelText("日志 1")).toHaveTextContent("server-started");
-    expect(screen.getByLabelText("日志 2")).toHaveTextContent("database-unavailable");
+    expect(await screen.findByLabelText("日志 1")).toHaveTextContent("server started");
+    expect(screen.getByLabelText("日志 2")).toHaveTextContent("database unavailable");
   });
 
   test("shows empty feedback and disables log actions when filters hide every row", async () => {
@@ -108,7 +108,7 @@ describe("LogsPage", () => {
 
     renderWithConsoleProviders(<LogsPage />);
 
-    expect(await screen.findByText(/server-started/)).toBeInTheDocument();
+    expect(await screen.findByText(/server started/)).toBeInTheDocument();
 
     setMaterialTextFieldValue(getMaterialTextField(document.body, "Search logs"), "no matching backend event");
 
@@ -139,7 +139,7 @@ describe("LogsPage", () => {
 
     renderWithConsoleProviders(<LogsPage />);
 
-    expect(await screen.findByText(/server-started/)).toBeInTheDocument();
+    expect(await screen.findByText(/server started/)).toBeInTheDocument();
 
     fireEvent.click(getMaterialFilterChip(document.body, "WARN"));
     fireEvent.click(getMaterialButton(document.body, "Download"));
@@ -154,7 +154,7 @@ describe("LogsPage", () => {
 
     renderWithConsoleProviders(<LogsPage />);
 
-    expect(await screen.findByText(/server-started/)).toBeInTheDocument();
+    expect(await screen.findByText(/server started/)).toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.getByRole("status")).toHaveTextContent("Live stream disconnected");
@@ -178,7 +178,7 @@ describe("LogsPage", () => {
     renderWithConsoleProviders(<LogsPage />);
 
     await waitFor(() => {
-      expect(screen.getByText("raw streamed line")).toBeInTheDocument();
+      expect(screen.getByText("streamed")).toBeInTheDocument();
     });
   });
 });

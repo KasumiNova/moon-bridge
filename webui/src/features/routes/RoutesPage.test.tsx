@@ -17,14 +17,18 @@ describe("RoutesPage", () => {
 
     renderWithConsoleProviders(<RoutesPage />);
 
+    // The list shows a compact summary row; operational markers are hidden until the editor opens.
     expect(await screen.findByRole("heading", { level: 3, name: "primary" })).toBeInTheDocument();
-    expect(within(screen.getByLabelText("Route primary status")).getByText("Saved")).toBeInTheDocument();
+
+    await openRouteEditor();
+
     expect(screen.getByText("8 fields")).toBeInTheDocument();
     expect(screen.getByText("Hot reload")).toBeInTheDocument();
-    const routeModelField = getMaterialTextField(document, "Route model");
+    // Route model + provider are selects populated from configured models/providers.
+    const routeModelField = getMaterialSelect(document, "Route model");
     expect(routeModelField).toBeInTheDocument();
     expectLobeLeadingIcon(routeModelField);
-    expect(getMaterialTextField(document, "Route provider")).toBeInTheDocument();
+    expect(getMaterialSelect(document, "Route provider")).toBeInTheDocument();
     expectLobeLeadingIcon(getMaterialTextField(document, "Route display name"));
     expect(getMaterialTextField(document, "Route context window")).toBeInTheDocument();
     const advancedFeatures = screen.getByRole("group", { name: "Advanced Features" });
@@ -52,11 +56,12 @@ describe("RoutesPage", () => {
 
     renderWithConsoleProviders(<RoutesPage />);
 
-    const routePanel = await screen.findByLabelText("Route primary");
+    await screen.findByLabelText("Route primary");
+    await openRouteEditor();
     vi.useFakeTimers();
-    const providerField = getMaterialTextField(routePanel, "Route provider");
-    setMaterialTextFieldValue(providerField, "openai");
-    fireEvent.blur(providerField);
+    const displayNameField = getMaterialTextField(document, "Route display name");
+    setMaterialTextFieldValue(displayNameField, "Fast Route");
+    fireEvent.blur(displayNameField);
 
     await advanceAutosave();
 
@@ -66,8 +71,8 @@ describe("RoutesPage", () => {
         {
           kind: "route",
           id: "primary",
-          field: "provider",
-          value: "openai"
+          field: "display_name",
+          value: "Fast Route"
         }
       ]
     });
@@ -132,7 +137,7 @@ describe("RoutesPage", () => {
     expect(getComputedStyle(modelHelp).position).not.toBe("absolute");
     expect(modelSelect).not.toContainElement(modelHelp);
     await userEvent.click(modelHelp);
-    expect(within(form).getByRole("tooltip")).toHaveTextContent("Local model slug that the client-visible alias maps to.");
+    expect(within(form).getByRole("tooltip")).toHaveTextContent("Model this alias points to.");
   });
 
   test("deletes a route after inline confirmation", async () => {
@@ -296,3 +301,19 @@ function submitMaterialForm(container: ParentNode, submitLabel: string) {
   }
   fireEvent.submit(form);
 }
+
+function getOutlinedButton(container: ParentNode, label: string): HTMLElement {
+  const element = Array.from(container.querySelectorAll("md-outlined-button")).find(
+    (candidate) => (candidate.getAttribute("aria-label") ?? candidate.textContent ?? "").includes(label)
+  );
+  if (!element) {
+    throw new Error(`Expected a Material Web outlined button labelled "${label}".`);
+  }
+  return element as HTMLElement;
+}
+
+/** Opens the route editor dialog from its summary row. */
+async function openRouteEditor() {
+  await userEvent.click(getOutlinedButton(document, "Edit Route primary"));
+}
+
