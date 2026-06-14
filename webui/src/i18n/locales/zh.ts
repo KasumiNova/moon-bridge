@@ -28,6 +28,8 @@ export const zh = {
   "auth.remember": "在此设备记住",
   "auth.signedOut": "已登出，请重新输入令牌。",
   "auth.verifying": "验证中…",
+  "auth.revealToken": "显示令牌",
+  "auth.hideToken": "隐藏令牌",
   "common.error": "错误",
   "common.loading": "加载中",
   "common.unknown": "未知",

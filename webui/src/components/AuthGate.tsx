@@ -1,8 +1,8 @@
 import { createElement, type FormEvent, type ReactNode, useState } from "react";
 import { motion } from "motion/react";
-import { MaterialFilledButton } from "./MaterialButton";
+import { MaterialFilledButton, MaterialIconButton } from "./MaterialButton";
 import { MaterialCheckbox } from "./MaterialCheckbox";
-import { MaterialFilledTextField } from "./MaterialTextField";
+import { MaterialOutlinedTextField } from "./MaterialTextField";
 import { type ApiError, isAuthError } from "../rpc/http";
 import { useI18n } from "../i18n/I18nProvider";
 import { springs, surfaceMotion } from "../theme/motion";
@@ -21,6 +21,9 @@ export function AuthGate({ children, error, pending = false, onSubmit }: AuthGat
   const { t } = useI18n();
   const [token, setToken] = useState("");
   const [remember, setRemember] = useState(false);
+  // The token already lives in plaintext in the server config, so there is no
+  // real secret boundary to enforce — show it by default and let the user hide.
+  const [revealed, setRevealed] = useState(true);
 
   if (!isAuthError(error)) {
     return <>{children}</>;
@@ -58,13 +61,23 @@ export function AuthGate({ children, error, pending = false, onSubmit }: AuthGat
         <p className="eyebrow">{t("auth.eyebrow")}</p>
         <h1 id="auth-title">{t("auth.title")}</h1>
         <p className="auth-card__message">{apiError.message}</p>
-        <MaterialFilledTextField
+        <MaterialOutlinedTextField
           autoFocus
           className="auth-token-field"
           label={t("auth.token")}
-          type="password"
+          spellCheck={false}
+          type={revealed ? "text" : "password"}
           value={token}
           onInput={setToken}
+          trailingIcon={
+            <MaterialIconButton
+              icon={revealed ? "visibility_off" : "visibility"}
+              label={t(revealed ? "auth.hideToken" : "auth.revealToken")}
+              onClick={() => setRevealed((current) => !current)}
+              onMouseDown={(event) => event.preventDefault()}
+              slot="trailing-icon"
+            />
+          }
         />
         <label className="auth-remember">
           <MaterialCheckbox

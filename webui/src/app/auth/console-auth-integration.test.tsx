@@ -25,9 +25,9 @@ function StatusPage() {
   return <div>{data?.ok ? "status ok" : "status pending"}</div>;
 }
 
-function getFilledTextField(label: string) {
+function getOutlinedTextField(label: string) {
   const element = Array.from(
-    document.querySelectorAll<MaterialTextFieldElement>("md-filled-text-field")
+    document.querySelectorAll<MaterialTextFieldElement>("md-outlined-text-field")
   ).find((candidate) => candidate.label === label);
   if (!element) {
     throw new Error(`Expected a Material Web text field labelled "${label}".`);
@@ -102,7 +102,7 @@ describe("console auth integration", () => {
 
     // The Material text field's `.label` reflects once Lit upgrades the custom
     // element, which happens slightly after the card mounts.
-    const tokenField = await waitFor(() => getFilledTextField("Token"));
+    const tokenField = await waitFor(() => getOutlinedTextField("Token"));
     setTextFieldValue(tokenField, "good");
     await submitAuthCard();
 

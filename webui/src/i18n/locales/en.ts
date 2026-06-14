@@ -26,6 +26,8 @@ export const en = {
   "auth.remember": "Remember on this device",
   "auth.signedOut": "Signed out — re-enter your token.",
   "auth.verifying": "Verifying…",
+  "auth.revealToken": "Show token",
+  "auth.hideToken": "Hide token",
   "common.error": "Error",
   "common.loading": "Loading",
   "common.unknown": "unknown",

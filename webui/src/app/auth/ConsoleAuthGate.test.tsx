@@ -55,7 +55,7 @@ describe("ConsoleAuthGate", () => {
     const card = document.querySelector(".auth-card");
     expect(card).toBeInTheDocument();
     // Real Material Web controls drive the login (skill requirement).
-    expect(card?.querySelector("md-filled-text-field")).toBeInTheDocument();
+    expect(card?.querySelector("md-outlined-text-field")).toBeInTheDocument();
     expect(card?.querySelector("md-filled-button")).toBeInTheDocument();
   });
 });

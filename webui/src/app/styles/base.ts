@@ -211,14 +211,6 @@ export const baseStyles = `
 
   .auth-token-field {
     width: 100%;
-    min-height: 44px;
-    --md-filled-text-field-container-color: var(--mb-color-surface-container-highest);
-    --md-filled-text-field-focus-active-indicator-color: var(--mb-color-primary);
-    --md-filled-text-field-focus-label-text-color: var(--mb-color-primary);
-    --md-filled-text-field-input-text-color: var(--mb-color-on-surface);
-    --md-filled-text-field-label-text-color: var(--mb-color-on-surface-variant);
-    --md-filled-text-field-hover-label-text-color: var(--mb-color-on-surface-variant);
-    --md-filled-text-field-active-indicator-color: var(--mb-color-outline);
   }
 
   .auth-remember {

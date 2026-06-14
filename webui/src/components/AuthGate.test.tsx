@@ -28,13 +28,31 @@ describe("AuthGate", () => {
 
     const tokenField = getMaterialTextField(document, "Token");
     const submitButton = getMaterialButton(document, "Save token");
-    expect(tokenField.type).toBe("password");
+    expect(tokenField.type).toBe("text");
     expect(submitButton.type).toBe("submit");
 
     setMaterialTextFieldValue(tokenField, "secret-token");
     await submitAuthForm(submitButton);
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalledWith("secret-token", false));
+  });
+
+  test("toggles token visibility through the trailing icon button", async () => {
+    renderWithConsoleProviders(
+      <AuthGate error={new ApiError(401, "invalid_auth", "missing token")}>
+        Console content
+      </AuthGate>
+    );
+
+    const tokenField = getMaterialTextField(document, "Token");
+    // Plaintext by default (the token already lives in plaintext in the config).
+    expect(tokenField.type).toBe("text");
+    const hideButton = getMaterialIconButton(document, "Hide token");
+
+    await userEvent.click(hideButton);
+
+    expect(tokenField.type).toBe("password");
+    expect(getMaterialIconButton(document, "Show token")).toBeInTheDocument();
   });
 
   test("forwards remember=true when the checkbox is checked", async () => {
@@ -95,13 +113,23 @@ describe("AuthGate", () => {
 });
 
 function getMaterialTextField(container: ParentNode, label: string) {
-  const element = Array.from(container.querySelectorAll("md-filled-text-field")).find(
+  const element = Array.from(container.querySelectorAll("md-outlined-text-field")).find(
     (textField) => (textField as HTMLElement & { label: string }).label === label
   );
   if (!element) {
     throw new Error(`Expected a Material Web text field labelled "${label}".`);
   }
   return element as HTMLElement & { label: string; type: string; value: string };
+}
+
+function getMaterialIconButton(container: ParentNode, label: string) {
+  const element = Array.from(container.querySelectorAll("md-icon-button")).find(
+    (button) => button.getAttribute("aria-label") === label
+  );
+  if (!element) {
+    throw new Error(`Expected a Material Web icon button labelled "${label}".`);
+  }
+  return element as HTMLElement;
 }
 
 function getMaterialCheckbox(container: ParentNode, label: string) {
