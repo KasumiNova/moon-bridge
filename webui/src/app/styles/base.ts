@@ -220,13 +220,6 @@ export const baseStyles = `
     --md-icon-size: 18px;
   }
 
-  /* Groups the visibility toggle + help button in a text field's trailing slot. */
-  .field-trailing-group {
-    display: inline-flex;
-    align-items: center;
-    gap: 2px;
-  }
-
   .auth-remember {
     display: inline-flex;
     align-items: center;

@@ -192,7 +192,6 @@ describe("SchemaField", () => {
       path: "api_key",
       type: "string",
       label: "API Key",
-      secret: true,
       hotReloadable: true
     };
 

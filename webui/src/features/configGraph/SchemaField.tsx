@@ -810,37 +810,32 @@ function renderFieldTrailing({
   setHelpOpen: (open: boolean | ((current: boolean) => boolean)) => void;
   trailingHelpAnchorRef?: RefObject<MdIconButton | null>;
 }) {
-  if (!isSecretField(field)) {
+  // Material Web's text-field trailing slot holds exactly one icon (fixed-width
+  // container + absolutely-positioned slotted content). Secret fields use that
+  // slot for the visibility toggle; the help affordance is dropped for them
+  // (they still show their supporting text).
+  if (isSecretField(field)) {
     return (
-      <FieldHelpIconButton
-        anchorRef={trailingHelpAnchorRef}
-        field={field}
-        label={displayLabel}
-        helpId={helpId}
-        helpOpen={helpOpen}
-        setHelpOpen={setHelpOpen}
-        slot="trailing-icon"
-      />
-    );
-  }
-  return (
-    <span className="field-trailing-group" slot="trailing-icon">
       <MaterialIconButton
         className="field-visibility-toggle"
         icon={revealed ? "visibility_off" : "visibility"}
         label={revealed ? hideLabel : revealLabel}
         onClick={() => setRevealed((current) => !current)}
         onMouseDown={(event) => event.preventDefault()}
+        slot="trailing-icon"
       />
-      <FieldHelpIconButton
-        anchorRef={trailingHelpAnchorRef}
-        field={field}
-        label={displayLabel}
-        helpId={helpId}
-        helpOpen={helpOpen}
-        setHelpOpen={setHelpOpen}
-      />
-    </span>
+    );
+  }
+  return (
+    <FieldHelpIconButton
+      anchorRef={trailingHelpAnchorRef}
+      field={field}
+      label={displayLabel}
+      helpId={helpId}
+      helpOpen={helpOpen}
+      setHelpOpen={setHelpOpen}
+      slot="trailing-icon"
+    />
   );
 }
 
