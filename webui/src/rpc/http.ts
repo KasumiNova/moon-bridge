@@ -48,6 +48,12 @@ export function saveToken(token: string, remember: boolean) {
   }
 }
 
+export function clearStoredToken() {
+  volatileToken = "";
+  safeRemoveStorage(getStorage("sessionStorage"), TOKEN_STORAGE_KEY);
+  safeRemoveStorage(getStorage("localStorage"), REMEMBER_TOKEN_STORAGE_KEY);
+}
+
 export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
   const url = normalizeURL(path);
   const headers = headersToRecord(options.headers);

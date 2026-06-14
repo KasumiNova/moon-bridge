@@ -4,6 +4,8 @@ import type { ReactElement } from "react";
 import type { Locale } from "../i18n/messages";
 import { I18nProvider, CONSOLE_LOCALE_STORAGE_KEY } from "../i18n/I18nProvider";
 import { ThemeProvider } from "../theme/ThemeProvider";
+import { ConsoleAuthProvider } from "../app/auth/ConsoleAuthContext";
+import { shellStyles } from "../app/styles/shellStyles";
 
 export function renderWithConsoleProviders(
   ui: ReactElement,
@@ -17,7 +19,10 @@ export function renderWithConsoleProviders(
   return render(
     <QueryClientProvider client={client}>
       <I18nProvider>
-        <ThemeProvider>{ui}</ThemeProvider>
+        <ThemeProvider>
+          <style>{shellStyles}</style>
+          <ConsoleAuthProvider>{ui}</ConsoleAuthProvider>
+        </ThemeProvider>
       </I18nProvider>
     </QueryClientProvider>
   );

@@ -9,6 +9,8 @@ import { useI18n } from "../i18n/I18nProvider";
 import { useConsoleTheme } from "../theme/ThemeProvider";
 import { pageMotion, springs } from "../theme/motion";
 import { shellStyles } from "./styles/shellStyles";
+import { ConsoleAuthGate } from "./auth/ConsoleAuthGate";
+import { useConsoleAuth } from "./auth/ConsoleAuthContext";
 
 const navItems = [
   { to: "/overview", icon: "dashboard", labelKey: "nav.overview" },
@@ -23,7 +25,17 @@ const navItems = [
 type NavItem = (typeof navItems)[number];
 
 export function App() {
-  return <AppShell content={<Outlet />} />;
+  // shellStyles (incl. base tokens + .auth-card) is injected here — not in
+  // AppShell — so the login card is fully styled even while the shell is
+  // unmounted behind ConsoleAuthGate.
+  return (
+    <>
+      <style>{shellStyles}</style>
+      <ConsoleAuthGate>
+        <AppShell content={<Outlet />} />
+      </ConsoleAuthGate>
+    </>
+  );
 }
 
 export function AppShell({ content }: { content?: ReactNode }) {
@@ -33,13 +45,13 @@ export function AppShell({ content }: { content?: ReactNode }) {
 function AppShellContent({ content }: { content?: ReactNode }) {
   const { theme, toggleTheme } = useConsoleTheme();
   const { locale, setLocale, t } = useI18n();
+  const { signOut } = useConsoleAuth();
   const nextTheme = theme === "dark" ? "light" : "dark";
   const themeIcon = theme === "dark" ? "light_mode" : "dark_mode";
   const nextThemeLabel = t(nextTheme === "dark" ? "theme.dark" : "theme.light");
 
   return (
     <div className="app-shell">
-      <style>{shellStyles}</style>
       <header className="top-app-bar">
         <div>
           <p>Moon Bridge</p>
@@ -77,6 +89,12 @@ function AppShellContent({ content }: { content?: ReactNode }) {
               />
             </motion.span>
           </motion.div>
+          <MaterialIconButton
+            className="app-bar__sign-out"
+            icon="lock"
+            label={t("app.signOut")}
+            onClick={signOut}
+          />
         </div>
       </header>
 

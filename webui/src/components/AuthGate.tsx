@@ -1,22 +1,24 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { createElement, type FormEvent, type ReactNode, useState } from "react";
 import { motion } from "motion/react";
 import { MaterialFilledButton } from "./MaterialButton";
 import { MaterialCheckbox } from "./MaterialCheckbox";
 import { MaterialFilledTextField } from "./MaterialTextField";
-import { type ApiError, isAuthError, saveToken } from "../rpc/http";
+import { type ApiError, isAuthError } from "../rpc/http";
 import { useI18n } from "../i18n/I18nProvider";
 import { springs, surfaceMotion } from "../theme/motion";
 
 type AuthGateProps = {
   children: ReactNode;
+  /** When this is a 401 error the login card is shown; otherwise children render. */
   error?: unknown;
-  onTokenSaved?: () => void;
+  /** True while a submitted token is being verified — disables + relabels submit. */
+  pending?: boolean;
+  /** Called with the trimmed token and the remember flag on submit. */
+  onSubmit?: (token: string, remember: boolean) => void | Promise<void>;
 };
 
-export function AuthGate({ children, error, onTokenSaved }: AuthGateProps) {
+export function AuthGate({ children, error, pending = false, onSubmit }: AuthGateProps) {
   const { t } = useI18n();
-  const queryClient = useQueryClient();
   const [token, setToken] = useState("");
   const [remember, setRemember] = useState(false);
 
@@ -24,15 +26,13 @@ export function AuthGate({ children, error, onTokenSaved }: AuthGateProps) {
     return <>{children}</>;
   }
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const value = token.trim();
-    if (!value) {
+    if (!value || pending) {
       return;
     }
-    saveToken(value, remember);
-    queryClient.invalidateQueries();
-    onTokenSaved?.();
+    await onSubmit?.(value, remember);
   }
 
   const apiError = error as ApiError;
@@ -74,8 +74,8 @@ export function AuthGate({ children, error, onTokenSaved }: AuthGateProps) {
           />
           <span>{t("auth.remember")}</span>
         </label>
-        <MaterialFilledButton className="auth-submit" type="submit">
-          {t("action.saveToken")}
+        <MaterialFilledButton className="auth-submit" type="submit" disabled={pending}>
+          {pending ? t("auth.verifying") : t("action.saveToken")}
         </MaterialFilledButton>
       </motion.form>
     </main>

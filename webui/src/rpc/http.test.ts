@@ -4,6 +4,7 @@ import {
   REMEMBER_TOKEN_STORAGE_KEY,
   TOKEN_STORAGE_KEY,
   apiFetch,
+  clearStoredToken,
   readStoredToken,
   saveToken
 } from "./http";
@@ -150,5 +151,33 @@ describe("apiFetch", () => {
       code: "request_error",
       message: "请求失败，状态码 502"
     });
+  });
+});
+
+describe("clearStoredToken", () => {
+  afterEach(() => {
+    sessionStorage.clear();
+    localStorage.clear();
+  });
+
+  test("removes remembered token from both stores and memory", () => {
+    saveToken("remembered-token", true);
+    expect(readStoredToken()).toBe("remembered-token");
+
+    clearStoredToken();
+
+    expect(sessionStorage.getItem(TOKEN_STORAGE_KEY)).toBeNull();
+    expect(localStorage.getItem(REMEMBER_TOKEN_STORAGE_KEY)).toBeNull();
+    expect(readStoredToken()).toBe("");
+  });
+
+  test("clears a session-only token too", () => {
+    saveToken("session-token", false);
+    expect(readStoredToken()).toBe("session-token");
+
+    clearStoredToken();
+
+    expect(sessionStorage.getItem(TOKEN_STORAGE_KEY)).toBeNull();
+    expect(readStoredToken()).toBe("");
   });
 });
