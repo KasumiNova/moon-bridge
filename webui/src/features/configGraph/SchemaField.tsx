@@ -64,6 +64,7 @@ export function SchemaField({
   const [text, setText] = useState(displayValue(field, value));
   const [parseError, setParseError] = useState("");
   const [helpOpen, setHelpOpen] = useState(false);
+  const [revealed, setRevealed] = useState(false);
   const emittedSecretDraftRef = useRef<string | undefined>(undefined);
   const trailingHelpAnchorRef = useRef<MdIconButton>(null);
   const displayLabel = fieldLabel(field, docPath, locale);
@@ -363,18 +364,19 @@ export function SchemaField({
           leadingIconNode={leadingIconNode}
           required={field.required}
           supportingText={fieldSupportingText(field, t("field.secretReplacementHint"))}
-          trailingIcon={(
-            <FieldHelpIconButton
-              anchorRef={trailingHelpAnchorRef}
-              field={field}
-              label={displayLabel}
-              helpId={helpId}
-              helpOpen={helpOpen}
-              setHelpOpen={setHelpOpen}
-              slot="trailing-icon"
-            />
-          )}
-          type={inputType(field)}
+          trailingIcon={renderFieldTrailing({
+            field,
+            revealed,
+            setRevealed,
+            revealLabel: t("auth.revealToken"),
+            hideLabel: t("auth.hideToken"),
+            displayLabel,
+            helpId,
+            helpOpen,
+            setHelpOpen,
+            trailingHelpAnchorRef
+          })}
+          type={isSecretField(field) && !revealed ? "password" : "text"}
           value={text}
           onInput={(next) => updateTextValue(next, onChange, field)}
           onBlur={commitOnBlur}
@@ -780,6 +782,63 @@ function FieldHelpButton({
         helpId={helpId}
         helpOpen={helpOpen}
         helpParts={helpParts}
+      />
+    </span>
+  );
+}
+
+function renderFieldTrailing({
+  field,
+  revealed,
+  setRevealed,
+  revealLabel,
+  hideLabel,
+  displayLabel,
+  helpId,
+  helpOpen,
+  setHelpOpen,
+  trailingHelpAnchorRef
+}: {
+  field: FieldSchema;
+  revealed: boolean;
+  setRevealed: (next: boolean | ((current: boolean) => boolean)) => void;
+  revealLabel: string;
+  hideLabel: string;
+  displayLabel: string;
+  helpId: string;
+  helpOpen: boolean;
+  setHelpOpen: (open: boolean | ((current: boolean) => boolean)) => void;
+  trailingHelpAnchorRef?: RefObject<MdIconButton | null>;
+}) {
+  if (!isSecretField(field)) {
+    return (
+      <FieldHelpIconButton
+        anchorRef={trailingHelpAnchorRef}
+        field={field}
+        label={displayLabel}
+        helpId={helpId}
+        helpOpen={helpOpen}
+        setHelpOpen={setHelpOpen}
+        slot="trailing-icon"
+      />
+    );
+  }
+  return (
+    <span className="field-trailing-group" slot="trailing-icon">
+      <MaterialIconButton
+        className="field-visibility-toggle"
+        icon={revealed ? "visibility_off" : "visibility"}
+        label={revealed ? hideLabel : revealLabel}
+        onClick={() => setRevealed((current) => !current)}
+        onMouseDown={(event) => event.preventDefault()}
+      />
+      <FieldHelpIconButton
+        anchorRef={trailingHelpAnchorRef}
+        field={field}
+        label={displayLabel}
+        helpId={helpId}
+        helpOpen={helpOpen}
+        setHelpOpen={setHelpOpen}
       />
     </span>
   );

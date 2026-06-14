@@ -213,6 +213,20 @@ export const baseStyles = `
     width: 100%;
   }
 
+  /* Smaller (~ -25%) visibility-toggle icon button used inside secret/token
+     text fields, so it doesn't dominate the field's trailing area. */
+  .field-visibility-toggle {
+    --md-icon-button-state-layer-size: 30px;
+    --md-icon-size: 18px;
+  }
+
+  /* Groups the visibility toggle + help button in a text field's trailing slot. */
+  .field-trailing-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+  }
+
   .auth-remember {
     display: inline-flex;
     align-items: center;

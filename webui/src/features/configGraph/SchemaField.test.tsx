@@ -238,6 +238,25 @@ describe("SchemaField", () => {
     expect(fieldElement.value).toBe("");
   });
 
+  test("reveals a secret field value through the trailing visibility toggle", async () => {
+    const field: FieldSchema = {
+      path: "api_key",
+      type: "string",
+      label: "API key",
+      secret: true,
+      hotReloadable: true
+    };
+
+    renderWithConsoleProviders(<SchemaField field={field} value="sk-secret" onChange={() => undefined} />);
+
+    const fieldElement = getMaterialTextField(document, "API key");
+    expect(fieldElement.type).toBe("password");
+
+    await userEvent.click(getMaterialIconButton(document, "Show token"));
+
+    expect(fieldElement.type).toBe("text");
+  });
+
   test("keeps a newly entered secret draft visible after the controlled parent rerenders", () => {
     const field: FieldSchema = {
       path: "api_key",

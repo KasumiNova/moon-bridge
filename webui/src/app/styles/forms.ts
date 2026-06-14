@@ -518,7 +518,6 @@ export const formStyles = `  .form-grid {
   .mb-field md-outlined-text-field {
     width: 100%;
     min-width: 0;
-    --md-outlined-text-field-container-shape: var(--mb-shape-sm);
     --md-outlined-text-field-input-text-color: var(--mb-color-on-surface);
     --md-outlined-text-field-input-text-size: 0.88rem;
     --md-outlined-text-field-input-text-weight: 640;
@@ -595,7 +594,6 @@ export const formStyles = `  .form-grid {
   .mb-field md-outlined-select {
     width: 100%;
     min-width: 0;
-    --md-outlined-select-text-field-container-shape: var(--mb-shape-sm);
     --md-outlined-select-text-field-input-text-color: var(--mb-color-on-surface);
     --md-outlined-select-text-field-input-text-size: 0.88rem;
     --md-outlined-select-text-field-input-text-weight: 640;

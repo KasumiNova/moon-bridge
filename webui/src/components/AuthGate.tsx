@@ -21,9 +21,7 @@ export function AuthGate({ children, error, pending = false, onSubmit }: AuthGat
   const { t } = useI18n();
   const [token, setToken] = useState("");
   const [remember, setRemember] = useState(false);
-  // The token already lives in plaintext in the server config, so there is no
-  // real secret boundary to enforce — show it by default and let the user hide.
-  const [revealed, setRevealed] = useState(true);
+  const [revealed, setRevealed] = useState(false);
 
   if (!isAuthError(error)) {
     return <>{children}</>;
@@ -71,6 +69,7 @@ export function AuthGate({ children, error, pending = false, onSubmit }: AuthGat
           onInput={setToken}
           trailingIcon={
             <MaterialIconButton
+              className="field-visibility-toggle"
               icon={revealed ? "visibility_off" : "visibility"}
               label={t(revealed ? "auth.hideToken" : "auth.revealToken")}
               onClick={() => setRevealed((current) => !current)}

@@ -28,7 +28,7 @@ describe("AuthGate", () => {
 
     const tokenField = getMaterialTextField(document, "Token");
     const submitButton = getMaterialButton(document, "Save token");
-    expect(tokenField.type).toBe("text");
+    expect(tokenField.type).toBe("password");
     expect(submitButton.type).toBe("submit");
 
     setMaterialTextFieldValue(tokenField, "secret-token");
@@ -45,14 +45,14 @@ describe("AuthGate", () => {
     );
 
     const tokenField = getMaterialTextField(document, "Token");
-    // Plaintext by default (the token already lives in plaintext in the config).
-    expect(tokenField.type).toBe("text");
-    const hideButton = getMaterialIconButton(document, "Hide token");
-
-    await userEvent.click(hideButton);
-
+    // Hidden by default; the trailing toggle reveals it.
     expect(tokenField.type).toBe("password");
-    expect(getMaterialIconButton(document, "Show token")).toBeInTheDocument();
+    const showButton = getMaterialIconButton(document, "Show token");
+
+    await userEvent.click(showButton);
+
+    expect(tokenField.type).toBe("text");
+    expect(getMaterialIconButton(document, "Hide token")).toBeInTheDocument();
   });
 
   test("forwards remember=true when the checkbox is checked", async () => {
